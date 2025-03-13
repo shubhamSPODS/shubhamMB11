@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1031821446441",
+    "project_id": "mybattle11-307f3",
+    "storage_bucket": "mybattle11-307f3.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1031821446441:android:bf960e4a89ca5dfaadbb38",
+        "android_client_info": {
+          "package_name": "com.mybattle11"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCqEuvrZSU0lAkReFGlqP27Ui35vdw-llo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
