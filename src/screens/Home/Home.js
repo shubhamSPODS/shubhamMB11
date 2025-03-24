@@ -35,6 +35,8 @@ const Home = () => {
   const appVersion = useSelector(state => {
     return state.profile.appVersion;
   });
+  
+  
   const [selectedLabel, setSelectedLabel] = useState('Cricket');
   // const [latitude, setLatitude] = useState('');
   // const [longitute, setLongitute] = useState('');
@@ -44,6 +46,8 @@ const Home = () => {
   const [refershing, setRefreshingTwo] = useState(false);
   const [random, setRandom] = useState(0);
   const [CheckCurrent, setCheckCurrent] = useState(getVersion());
+  console.log(CheckCurrent,'checkCu??rrent>>>',appVersion);
+  
   const onClick = Cricket => {
     setSelectedLabel(Cricket);
   };
@@ -51,6 +55,11 @@ const Home = () => {
     dispatch(getBannerList());
     dispatch(getKycDetails());
   }, []);
+    const userData = useSelector(state => {
+      return state.profile.userData;
+    });
+   
+    
  
   // const requestLocationPermission = async () => {
   //   const isIos = Platform.OS === 'ios';
@@ -166,31 +175,31 @@ const Home = () => {
   };
 
 
-  // useEffect(() => {
-  //   console.log(CheckCurrent,appVersion, "version");
-  //   if(CheckCurrent != appVersion) {
-  //     InstallAPK();
-  //   } 
-  // }, []);
-  // const InstallAPK = async () => {
-  //   Alert.alert(
-  //     'Update APK',
-  //     'Please Update the latest verison.',
-  //     [
-  //       // { text: 'Cancel', style: 'cancel' },
-  //       { text: 'Update', onPress: () => DownloadApk() }
-  //     ]
-  //   );
-  // };
+  useEffect(() => {
+    // console.log(CheckCurrent,appVersion, "version");
+    if(CheckCurrent != appVersion) {
+      InstallAPK();
+    } 
+  }, []);
+  const InstallAPK = async () => {
+    Alert.alert(
+      'Update APK',
+      'Please Update the latest verison.',
+      [
+        // { text: 'Cancel', style: 'cancel' },
+        { text: 'Update', onPress: () => DownloadApk() }
+      ]
+    );
+  };
 
-  // const DownloadApk = async () => {
-  //   userLogout();
-  //   const apkDownloadUrl = 'https://admin.mybattle11.com/downloads';
-  //   Linking.openURL(apkDownloadUrl)
-  //     .catch((error) => {
-  //       console.error('Error opening download link:', error);
-  //     });
-  // }
+  const DownloadApk = async () => {
+    userLogout();
+    const apkDownloadUrl = 'https://admin.mybattle11.com/downloads';
+    Linking.openURL(apkDownloadUrl)
+      .catch((error) => {
+        console.error('Error opening download link:', error);
+      });
+  }
   return (
     <AppSafeAreaView
       statusColor={true}

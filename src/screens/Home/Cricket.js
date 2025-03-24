@@ -34,6 +34,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   const userData = useSelector(state => {
     return state.profile.userData;
   });
+  
   const { _id } = userData ?? '';
   const [isMoadlVisible, setIsModalVisible] = useState(false);
   const [intro, setIntro] = useState([]);

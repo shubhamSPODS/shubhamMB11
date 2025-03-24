@@ -133,6 +133,7 @@ export const verifyKycOtp = data => async dispatch => {
   try {
     dispatch(setLoading(true));
     const res = await appOperation.customer.verifyKycOtp(data);
+    
     dispatch(setLoading(false));
     if (res.success) {
       toastAlert.showToastError(res.message);

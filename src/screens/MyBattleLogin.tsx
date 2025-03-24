@@ -84,9 +84,7 @@ const MyBattleLogin = () => {
       toastAlert.showToastError('Please provide a valid Mobile Number');
     } else if (!isSelectedAge) {
       toastAlert.showToastError('Please confirm that you are 18+ years old.');
-    } else if (!isSelectedState) {
-      toastAlert.showToastError('Please confirm that you are from a state where this app is not restricted.');
-    }else if (!isSelectedTerms){
+    } else if (!isSelectedTerms){
       toastAlert.showToastError('Please accept the Terms of Service and Privacy Policy.');
     }
      else {
@@ -95,6 +93,8 @@ const MyBattleLogin = () => {
         mobile_number: number,
         resend: true,
       };
+      console.log(data,'===>>data');
+      
       dispatch(userSignup(data, true));
     }
   };
@@ -114,7 +114,8 @@ const MyBattleLogin = () => {
         <ImageBackground
           source={MyBattleScreen}
           resizeMode="cover"
-          style={styles.MyBattleScreen}>
+          style={styles.MyBattleScreen}
+          >
           <View style={styles.main} />
           <View>
             <FastImage
@@ -171,25 +172,18 @@ const MyBattleLogin = () => {
                 Have a referral code?
               </AppText>
             </TouchableOpacityView>
+         
             <TouchableOpacityView onPress={() => setIsSelectedAge(!isSelectedAge)} style={styles.checkbox}>
-              <Checkbox onPress={() => setIsSelectedAge(!isSelectedAge)} value={isSelectedAge} />
-              <AppText type={TWELVE} weight={POPPINS_MEDIUM} style={{ marginLeft: 10 }}>
-                I confirm that I am 18+ years in age
-              </AppText>
-            </TouchableOpacityView>
-
-            <TouchableOpacityView onPress={() => setIsSelectedState(!isSelectedState)} style={styles.checkbox}>
-              <Checkbox onPress={() => setIsSelectedState(!isSelectedState)} value={isSelectedState} />
-              <AppText type={TWELVE} weight={POPPINS_MEDIUM} style={{ marginLeft: 10 }}>
-                I confirm that I am from a state where this app is not restricted.
-              </AppText>
-            </TouchableOpacityView>
-
+            <Checkbox onPress={() => setIsSelectedAge(!isSelectedAge)} value={isSelectedAge} />
+            <AppText type={TWELVE} weight={POPPINS_MEDIUM} style={{ marginLeft: 10 }}>
+              I confirm that I am 18+ years in age
+            </AppText>
+          </TouchableOpacityView>
 
             <View style={styles.ageiconview}>
             <Checkbox onPress={() => setIsSelectedTerms(!isSelectedTerms)} value={isSelectedTerms}  />
               <AppText type={TWELVE} weight={POPPINS_MEDIUM} style={{ marginLeft: 10 }}>
-                I have read and agree to My Battle 11{' '}
+                I have read and agree to MyBattle 11{' '}
                 <AppText  type={TWELVE} weight={POPPINS_MEDIUM} onPress={() => {
                   NavigationService.navigate(WEB_URL, { titleNames: 'Terms & Conditions' })
                 }} style={{ textDecorationLine: 'underline' }}>

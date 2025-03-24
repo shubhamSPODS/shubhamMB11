@@ -267,9 +267,9 @@ const AuthStack = () => {
       {/* <Stack.Screen name={'Splash'} component={Splash} /> */}
       <Stack.Screen name={MYBATTLELOGIN} component={MyBattleLogin} />
 
-      <Stack.Screen name={OTP} component={Otp} />
+      {/* <Stack.Screen name={OTP} component={Otp} />
       <Stack.Screen name={'Home'} component={BottomMainTab} />
-      <Stack.Screen name={HOME_PRIVACY} component={HomePrivacy} />
+      <Stack.Screen name={HOME_PRIVACY} component={HomePrivacy} /> */}
     </Stack.Navigator>
   );
 };

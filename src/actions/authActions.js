@@ -41,7 +41,8 @@ export const userLogin = data => async dispatch => {
 export const userSignup = (data, permissionSave) => async dispatch => {
   try {
     const response = await appOperation.guest.register(data);
-    console.log(response, '===respo');
+    console.log(response,'==respomse<<<');
+    
     dispatch(setLoading(true));
     if (response?.success) {
       NavigationService.navigate(MYBATTLEOTP, {
@@ -65,7 +66,8 @@ export const otpVerification =
     try {
       dispatch(setLoading(true));
       const response = await appOperation.guest.otp_verification(data);
-
+ console.log(response,'==respomse>>>');
+ 
       if (response?.success) {
         appOperation.setCustomerToken(response?.data?.accessToken);
         

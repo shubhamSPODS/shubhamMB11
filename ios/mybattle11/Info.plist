@@ -34,6 +34,8 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
 	<key>UIAppFonts</key>
+	<key>NSAllowsArbitraryLoads</key>
+<true/>
 	<array>
 		<string>Lato-Bold.ttf</string>
 		<string>Lato-BoldItalic.ttf</string>

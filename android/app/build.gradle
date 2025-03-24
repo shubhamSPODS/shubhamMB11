@@ -91,8 +91,8 @@ android {
         applicationId "com.mybattle11"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 3
-        versionName "3.4"
+        versionCode 4
+        versionName "4.3"
     }
      splits {
         abi {
@@ -160,6 +160,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-dynamic-links:16.0.1'
    implementation ('com.google.firebase:firebase-bom:32.7.4')
    implementation 'com.google.firebase:firebase-analytics'
+   implementation "com.google.firebase:firebase-messaging"
+
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

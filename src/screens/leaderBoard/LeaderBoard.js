@@ -1,5 +1,5 @@
-import {useRoute} from '@react-navigation/native';
-import React, {useState, useRef, useEffect, useMemo, useCallback} from 'react';
+import { useRoute } from '@react-navigation/native';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Dimensions,
@@ -9,13 +9,15 @@ import {
   Platform,
   useWindowDimensions,
   Alert,
+  Text,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import LinearGradient from 'react-native-linear-gradient';
-import {AppSafeAreaView} from '../../common/AppSafeAreaView';
+import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import {
   AppText,
   BLACKOPACITY,
+  BOLD,
   BROWNYELLOW,
   FIFTEEN,
   FORTEEN,
@@ -28,14 +30,14 @@ import {
   TWELVE,
   WHITE,
 } from '../../common/AppText';
-import {TouchableOpacityView} from '../../common/TouchableOpacityView';
+import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import LeaderBoardList from '../../components/leaderBoardList/LeaderBoardList';
 import Winnings from '../../components/winnings/Winnings';
-import {GLORY, SINGLE, WINNER, m} from '../../helper/image';
+import { GLORY, SINGLE, WINNER, m } from '../../helper/image';
 import NavigationService from '../../navigation/NavigationService';
 import styles from './styles';
-import {useDispatch, useSelector} from 'react-redux';
-import {SELECT_PLAYER, VERIFY_ADHAAR_SCREEN} from '../../navigation/routes';
+import { useDispatch, useSelector } from 'react-redux';
+import { SELECT_PLAYER, VERIFY_ADHAAR_SCREEN } from '../../navigation/routes';
 import {
   getAllPlayerList,
   getMyTeam,
@@ -45,20 +47,20 @@ import {
   setSelectedMatch,
 } from '../../slices/matchSlice';
 import CommonHeader from '../../components/matchCard/commonHeader/CommonHeader';
-import {BASE_URL, numberWithCommas, toastAlert} from '../../helper/utility';
+import { BASE_URL, numberWithCommas, toastAlert } from '../../helper/utility';
 import Confirmation from '../../common/Confirmation';
 import CommonImageBackground from '../../common/commonImageBackground';
-import {NewColor, colors} from '../../theme/color';
-import {LIGHTBLUE} from '../../common/AppText';
+import { NewColor, colors } from '../../theme/color';
+import { LIGHTBLUE } from '../../common/AppText';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import SelectTeam from '../../components/selectTeam/SelectTeam';
-import {Screen, universalPaddingHorizontal} from '../../theme/dimens';
-import {ScoreCard} from '../ScoreCard';
+import { Screen, universalPaddingHorizontal } from '../../theme/dimens';
+import { ScoreCard } from '../ScoreCard';
 import PrimaryButton from '../../common/primaryButton';
-import {SceneMap, TabBar, TabView} from 'react-native-tab-view';
-import {SpinnerSecond} from '../../common/SpinnerSecond';
+import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
+import { SpinnerSecond } from '../../common/SpinnerSecond';
 
-const FirstRoute = ({route}) => (
+const FirstRoute = ({ route }) => (
   <Winnings
     id={
       route?.route?.params?.details?.details?.contest_details?.shadow_contest_id
@@ -71,7 +73,7 @@ const FirstRoute = ({route}) => (
   />
 );
 
-const SecondRoute = ({route}) => (
+const SecondRoute = ({ route }) => (
   <LeaderBoardList
     matchId={route?.route?.params?.matchDetails?.MatchId}
     id={route?.route?.params?.details?.contest_category_id}
@@ -84,8 +86,8 @@ const SecondRoute = ({route}) => (
 
 );
 
-const ThirdRoute = ({route}) => (
-  <ScoreCard route={route}/>
+const ThirdRoute = ({ route }) => (
+  <ScoreCard route={route} />
 );
 const LeaderBoard = () => {
   const route = useRoute();
@@ -110,7 +112,7 @@ const LeaderBoard = () => {
   const [random, setRandom] = useState(10);
   const selectTeam = useRef();
   const [saveTeamName, setSaveTeamName] = useState('');
-  const {_id, SeriesId} = matchDetails ?? '';
+  const { _id, SeriesId } = matchDetails ?? '';
   const userData = useSelector(state => {
     return state.profile.userData;
   });
@@ -164,7 +166,7 @@ const LeaderBoard = () => {
   const reconnectWebSocket = () => {
     if (wsRefTwo.current && wsRefTwo.current.readyState !== WebSocket.OPEN) {
       wsRefTwo.current = new WebSocket(url);
-      wsRefTwo.current.onopen = () => {};
+      wsRefTwo.current.onopen = () => { };
       wsRefTwo.current.onclose = e => {
         reconnectWebSocket();
       };
@@ -206,46 +208,46 @@ const LeaderBoard = () => {
     } else {
       if (totalTeamCount === 0) {
         dispatch(setAllPlayers([]));
-        let data = {cid: matchDetails?.SeriesId};
+        let data = { cid: matchDetails?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));
         NavigationService.navigate(SELECT_PLAYER, {
           matchDetails,
           isEditMode: false,
         });
         dispatch(setIsContestEntry(true));
-        dispatch(setSelectedMatch({...details}));
+        dispatch(setSelectedMatch({ ...details }));
       } else if (totalTeamCount === 1) {
         if (details?.teamDetails?.length) {
           dispatch(setAllPlayers([]));
-          let data = {cid: matchDetails?.SeriesId};
+          let data = { cid: matchDetails?.SeriesId };
           let isNavigate = true;
           dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
           dispatch(setIsContestEntry(true));
-          dispatch(setSelectedMatch({...details}));
+          dispatch(setSelectedMatch({ ...details }));
           NavigationService.navigate(SELECT_PLAYER, {
             matchDetails,
             isEditMode: false,
           });
         } else {
           dispatch(getMyTeam(_id));
-          dispatch(setSelectedMatch({...details}));
+          dispatch(setSelectedMatch({ ...details }));
           setSaveTeamName(myTeam[0]?.name);
           setIsAdd(true);
         }
       } else if (totalTeamCount > 1) {
         if (details?.teamDetails?.length == myTeam?.length) {
           dispatch(setAllPlayers([]));
-          let data = {cid: matchDetails?.SeriesId};
+          let data = { cid: matchDetails?.SeriesId };
           let isNavigate = true;
           dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
           dispatch(setIsContestEntry(true));
-          dispatch(setSelectedMatch({...details}));
+          dispatch(setSelectedMatch({ ...details }));
           NavigationService.navigate(SELECT_PLAYER, {
             matchDetails,
             isEditMode: false,
           });
         } else {
-          dispatch(setSelectedMatch({...details}));
+          dispatch(setSelectedMatch({ ...details }));
           selectTeam?.current?.open();
         }
       }
@@ -281,7 +283,7 @@ const LeaderBoard = () => {
                 marginTop: 10,
                 alignItems: 'center',
               }}>
-              <View style={{flex: 1}}>
+              <View style={{ flex: 1 }}>
                 <AppText weight={POPPINS_MEDIUM}>
                   {matchDetails?.TeamsShortNames[0]}
                 </AppText>
@@ -300,7 +302,7 @@ const LeaderBoard = () => {
                 <AppText weight={POPPINS_MEDIUM}>
                   {matchDetails?.TeamsShortNames[1]}
                 </AppText>
-                <AppText style={{textAlign: 'right'}} weight={POPPINS_MEDIUM}>
+                <AppText style={{ textAlign: 'right' }} weight={POPPINS_MEDIUM}>
                   {TeamBScore && TeamBScore[0]?.scores_full
                     ? TeamBScore[0]?.scores_full
                     : 'Yet to bat'}
@@ -309,7 +311,7 @@ const LeaderBoard = () => {
             </View>
           ) : (
             <>
-              <View style={[styles.contestDetails, {marginTop: 0}]}>
+              <View style={[styles.contestDetails, { marginTop: 0 }]}>
                 <View
                   style={{
                     flexDirection: 'row',
@@ -343,7 +345,7 @@ const LeaderBoard = () => {
                       height: '100%',
                       borderRadius: 4,
                     }}
-                    start={{x: 0, y: 0}}
+                    start={{ x: 0, y: 0 }}
                     colors={['#DBA73E', '#E0C77D']}></LinearGradient>
                 </View>
                 <View
@@ -357,10 +359,9 @@ const LeaderBoard = () => {
                     {route?.params?.details?.Contestsize} spots
                   </AppText>
                   <AppText type={TEN} color={GREEN}>
-                    {`${
-                      route?.params?.details?.Contestsize -
+                    {`${route?.params?.details?.Contestsize -
                       (route?.params?.details?.joined || 0)
-                    } spots left`}
+                      } spots left`}
                   </AppText>
                 </View>
               </View>
@@ -370,13 +371,13 @@ const LeaderBoard = () => {
                 <></>
               ) : (
                 <PrimaryButton
-                  buttonStyle={{paddingHorizontal: 20, marginBottom: 10}}
+                  buttonStyle={{ paddingHorizontal: 20, marginBottom: 10 }}
                   onPress={onJoinContest}
                   title={'Join '}
                 />
               )}
               <View style={styles.bottomContainer}>
-                <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={styles.commonViewStyle}>
                     <FastImage
                       source={GLORY}
@@ -391,8 +392,8 @@ const LeaderBoard = () => {
                       {details?.EnteryType !== 'Paid'
                         ? 'Glory awaits!'
                         : `₹${Math.round(details?.Rankdata[0]?.Price).toFixed(
-                            2,
-                          )}`}
+                          2,
+                        )}`}
                     </AppText>
                   </View>
                   <View style={styles.commonViewStyle}>
@@ -405,7 +406,7 @@ const LeaderBoard = () => {
                       color={BLACKOPACITY}
                       type={TEN}
                       style={styles.commonTextStyle}>
-                      {details?.Winning_percent ? details?.Winning_percent : 0}%
+                      {(details?.Winning_percent ? details?.Winning_percent : 0).toFixed(2)}%
                     </AppText>
                   </View>
                   <View style={styles.commonViewStyle}>
@@ -414,7 +415,7 @@ const LeaderBoard = () => {
                       source={details?.JoinWithMULT ? m : SINGLE}
                       resizeMode="contain"
                       style={styles.gloryIcon}
-                    /> 
+                    />
                     <AppText
                       color={BLACKOPACITY}
                       type={TEN}
@@ -437,29 +438,29 @@ const LeaderBoard = () => {
   const layout = useWindowDimensions();
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
-    {key: 'first', title: 'Winnings', route: route},
+    { key: 'first', title: 'Winnings', route: route },
     {
       key: 'second',
       title: 'Leaderboard',
       route: route,
       forStatus: forStatus,
       setForStatus: setForStatus,
-      status:route?.params?.matchDetails?.Status
+      status: route?.params?.matchDetails?.Status
     },
   ]);
 
   const [routes1] = React.useState([
-    {key: 'first', title: 'Winnings', route: route},
+    { key: 'first', title: 'Winnings', route: route },
     {
       key: 'second',
       title: 'Leaderboard',
       route: route,
       forStatus: forStatus,
       setForStatus: setForStatus,
-      status:route?.params?.matchDetails?.Status
+      status: route?.params?.matchDetails?.Status
 
     },
-    {key: 'third', title: 'Scorecard', route:route},
+    { key: 'third', title: 'Scorecard', route: route },
   ]);
 
   const renderScene = SceneMap({
@@ -485,46 +486,65 @@ const LeaderBoard = () => {
         networkActivityIndicatorVisible={true}
       />
       <CommonImageBackground common>
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
           {renderTop()}
           {scoreBoard && scoreBoard[0]?.status_note == '' ? (
-            <TabView
-              navigationState={{index, routes}}
-              renderScene={renderScene}
-              onIndexChange={setIndex}
-              initialLayout={{width: layout.width}}
-              renderTabBar={props => (
-                <RenderTabBar
-                  {...props}
-                  onTabChange={e => {
-                    setActiveTab(e);
-                  }}
-                />
-              )}
-            />
+            <>
+              <TabView
+                navigationState={{ index, routes }}
+                renderScene={renderScene}
+                onIndexChange={setIndex}
+                initialLayout={{ width: layout.width }}
+                renderTabBar={props => (
+                  <RenderTabBar
+                    {...props}
+                    onTabChange={e => {
+                      setActiveTab(e);
+                    }}
+                  />
+                )}
+              />
+              <AppText type={FORTEEN} color={BROWNYELLOW} weight={POPPINS_BOLD} style={{ marginBottom: 8 }}>Disclaimer :</AppText>
+
+              <AppText type={TWELVE} color={WHITE} weight={POPPINS_MEDIUM} style={{ bottom: 10 }}>In case of a tie or contest does not fill up, the actual prizes may be different.
+                In cases of any dispute regarding the total prize pool amount, our decision shall be final and binding.{`\n\n`}
+                <AppText type={TWELVE} color={BROWNYELLOW} weight={POPPINS_MEDIUM}>Note:</AppText>
+                As per the government regulations, starting 1st April 2023, a tax of 30% will be levied at the time of withdrawal or at the end of financial year on the net winnings.</AppText>
+
+            </>
           ) : (
-            <TabView
-              navigationState={{index, routes: routes1}}
-              renderScene={renderScore}
-              onIndexChange={setIndex}
-              initialLayout={{width: layout.width}}
-              renderTabBar={props => (
-                <RenderTabBar1
-                  {...props}
-                  onTabChange={e => {
-                    setActiveTab(e);
-                  }}
-                />
-              )}
-            />
+            <>
+              <TabView
+                navigationState={{ index, routes: routes1 }}
+                renderScene={renderScore}
+                onIndexChange={setIndex}
+                initialLayout={{ width: layout.width }}
+                renderTabBar={props => (
+                  <RenderTabBar1
+                    {...props}
+                    onTabChange={e => {
+                      setActiveTab(e);
+                    }}
+                  />
+                )}
+              />
+              <AppText type={FORTEEN} color={BROWNYELLOW} weight={POPPINS_BOLD} style={{ marginBottom: 8 }}>Disclaimer :</AppText>
+
+              <AppText type={TWELVE} color={WHITE} weight={POPPINS_MEDIUM} style={{ bottom: 10 }}>In case of a tie or contest does not fill up, the actual prizes may be different.
+                In cases of any dispute regarding the total prize pool amount, our decision shall be final and binding.{`\n\n`}
+                <AppText type={TWELVE} color={BROWNYELLOW} weight={POPPINS_MEDIUM}>Note: </AppText>
+                As per the government regulations, starting 1st April 2023, a tax of 30% will be levied at the time of withdrawal or at the end of financial year on the net winnings.</AppText>
+
+            </>
           )}
-          {scoreBoard && scoreBoard[0]?.status_note == '' && 
-          <View style={{width: Screen.Width, height: "10%", marginBottom: 20, paddingHorizontal: 12}}>
-          <AppText type={TWELVE} color={BROWNYELLOW} weight={POPPINS_BOLD_ITALIC}>In case of tier for a position or a unfillled contest, the prize money may vary from initially stated amount. Moreover, the indian government mandates 30% TDS deduction on the
-            Net winnings at the time of withdrawal from Skill Fantasy, as per the proposed section 194BA of the income tax Act, 1961
-          </AppText>
-        </View>}
-          
+          {scoreBoard && scoreBoard[0]?.status_note == '' &&
+            <View style={{ width: Screen.Width, height: "10%", marginBottom: 20, paddingHorizontal: 12 }}>
+              <AppText type={TWELVE} color={BROWNYELLOW} weight={POPPINS_BOLD_ITALIC}>In case of tier for a position or a unfillled contest, the prize money may vary from initially stated amount. Moreover, the indian government mandates 30% TDS deduction on the
+                Net winnings at the time of withdrawal from Skill Fantasy, as per the proposed section 194BA of the income tax Act, 1961
+              </AppText>
+            </View>}
+
+
         </View>
       </CommonImageBackground>
       <RBSheet
@@ -567,7 +587,7 @@ const LeaderBoard = () => {
 
 export default LeaderBoard;
 export const RenderTabBar = props => {
-  const {onTabChange} = props;
+  const { onTabChange } = props;
 
   return useMemo(
     () => (
@@ -577,8 +597,8 @@ export const RenderTabBar = props => {
           onTabChange(e?.route?.title);
         }}
         scrollEnabled={false}
-        tabStyle={[{flex: 1}, props.tabStyle]}
-        renderLabel={({route, focused}) => (
+        tabStyle={[{ flex: 1 }, props.tabStyle]}
+        renderLabel={({ route, focused }) => (
           <View
             style={{
               flexDirection: 'column',
@@ -593,22 +613,22 @@ export const RenderTabBar = props => {
             </AppText>
             {focused ? (
               <LinearGradient
-                style={{height: 2, width: 125}}
-                start={{x: 0, y: 1}}
-                end={{x: 1, y: 0}}
+                style={{ height: 2, width: 125 }}
+                start={{ x: 0, y: 1 }}
+                end={{ x: 1, y: 0 }}
                 colors={[
                   colors.playerDetailsLinerOne,
                   colors.playerDetailsLinerTwo,
                 ]}
               />
             ) : (
-              <View style={{height: 2, width: 125}} />
+              <View style={{ height: 2, width: 125 }} />
             )}
           </View>
         )}
-        indicatorStyle={{backgroundColor: 'transparent'}}
+        indicatorStyle={{ backgroundColor: 'transparent' }}
         pressColor={'transparent'}
-        style={[{width: '100%', backgroundColor: 'transparent', elevation: 0}]}
+        style={[{ width: '100%', backgroundColor: 'transparent', elevation: 0 }]}
       />
     ),
     [props], // dependencies
@@ -616,7 +636,7 @@ export const RenderTabBar = props => {
 };
 
 export const RenderTabBar1 = props => {
-  const {onTabChange} = props;
+  const { onTabChange } = props;
 
   return useMemo(
     () => (
@@ -626,8 +646,8 @@ export const RenderTabBar1 = props => {
           onTabChange(e?.route?.title);
         }}
         scrollEnabled={false}
-        tabStyle={[{flex: 1}, props.tabStyle]}
-        renderLabel={({route, focused}) => (
+        tabStyle={[{ flex: 1 }, props.tabStyle]}
+        renderLabel={({ route, focused }) => (
           <View
             style={{
               flexDirection: 'column',
@@ -642,22 +662,22 @@ export const RenderTabBar1 = props => {
             </AppText>
             {focused ? (
               <LinearGradient
-                style={{height: 2, width: 125}}
-                start={{x: 0, y: 1}}
-                end={{x: 1, y: 0}}
+                style={{ height: 2, width: 125 }}
+                start={{ x: 0, y: 1 }}
+                end={{ x: 1, y: 0 }}
                 colors={[
                   colors.playerDetailsLinerOne,
                   colors.playerDetailsLinerTwo,
                 ]}
               />
             ) : (
-              <View style={{height: 2, width: 125}} />
+              <View style={{ height: 2, width: 125 }} />
             )}
           </View>
         )}
-        indicatorStyle={{backgroundColor: 'transparent'}}
+        indicatorStyle={{ backgroundColor: 'transparent' }}
         pressColor={'transparent'}
-        style={[{width: '100%', backgroundColor: 'transparent', elevation: 0}]}
+        style={[{ width: '100%', backgroundColor: 'transparent', elevation: 0 }]}
       />
     ),
     [props], // dependencies

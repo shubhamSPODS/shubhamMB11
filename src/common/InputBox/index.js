@@ -1,4 +1,4 @@
-import { View, TextInput } from 'react-native';
+import { View, TextInput, Image } from 'react-native';
 import React from 'react';
 import styles from './styles';
 import { useSelector } from 'react-redux';
@@ -56,12 +56,19 @@ const InputBox = ({
             justifyContent: 'space-between',
             marginTop: top ? 10 : 0
           }}>
-          {image && (
+          {/* {image && (
             <FastImage source={callIcon} resizeMode='contain' tintColor={colors.brownYellow} style={{
               height: 20,
               width: 20,
               marginLeft: 5
             }} />
+          )} */}
+{image && (
+          <Image source={callIcon} tintColor={colors.brownYellow} style={{
+              height: 20,
+              width: 20,
+              marginLeft: 5
+            }}/>
           )}
           <TextInput
             {...props}

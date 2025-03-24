@@ -182,7 +182,8 @@ const MyMatches = () => {
   //   setActiveTab(title);
   //   dispatch(getMyMatches(title == 'Upcoming' ? 'Scheduled' : title));
   // };
-  const reversedData = [...data].reverse();
+  const reversedData = [...data]
+
 
   const FirstRoute = () => (
     <FlatList
