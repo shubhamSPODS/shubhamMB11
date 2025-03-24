@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, View, RefreshControl } from 'react-native';
 import { appOperation } from '../../appOperation';
-import { AppText, BLACK, BLACKOPACITY, FORTEEN, LATO_SEMI_BOLD, LIGHTBLUE, POPPINS_BOLD, SIXTEEN, TEN, TWELVE, WHITE } from '../../common/AppText';
+import { AppText, BLACK, BLACKOPACITY, BROWNYELLOW, ELEVEN, FORTEEN, LATO_SEMI_BOLD, LIGHTBLUE, POPPINS_BOLD, POPPINS_LIGHT, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, SIXTEEN, TEN, TWELVE, WHITE } from '../../common/AppText';
 import { toastAlert } from '../../helper/utility';
 import styles from './styles';
 import { SpinnerSecond } from '../../common/SpinnerSecond';
@@ -70,6 +70,8 @@ const Winnings = ({ id, privateis, notLive, rankData }) => {
           </View>
 
         }
+        
+         
       </>
     );
   };
@@ -87,11 +89,24 @@ const Winnings = ({ id, privateis, notLive, rankData }) => {
             showsVerticalScrollIndicator={false}
             data={prizeList?.length > 1 ? prizeList : rankData}
             renderItem={renderWinnings}
+            ListFooterComponent={()=>(
+              <>
+          <AppText type={ELEVEN} color={BROWNYELLOW} weight={POPPINS_SEMI_BOLD} style={{ marginBottom: 8 }}>Disclaimer :</AppText>
+        
+        <AppText type={ELEVEN} color={WHITE} weight={POPPINS_LIGHT} style={{ bottom: 10,lineHeight:18 }}>In case of a tie or contest does not fill up, the actual prizes may be different.
+          In cases of any dispute regarding the total prize pool amount, our decision shall be final and binding.{`\n\n`}
+          <AppText type={ELEVEN} color={BROWNYELLOW} weight={POPPINS_MEDIUM} style={{lineHeight:18}}>Note: </AppText>
+          <AppText type={ELEVEN} color={WHITE} weight={POPPINS_LIGHT} style={{ bottom: 10,lineHeight:18 }}> As per the government regulations, starting 1st April 2023, a tax of 30% will be levied at the time of withdrawal or at the end of financial year on the net winnings.</AppText></AppText>
+    
+              </>
+            )}
             contentContainerStyle={{  flex: privateis && !notLive ? 1 : 0, height:Screen.Height  }}
             // refreshControl={
             //   <RefreshControl refreshing={onRefresh} onRefresh={getPrizeList} />
             // }
           />
+
+
         {/* )} */}
       </View>
     </>

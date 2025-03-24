@@ -430,6 +430,7 @@ const LeaderBoard = () => {
             </>
           )}
         </>
+
       </View>
     );
   };
@@ -504,13 +505,7 @@ const LeaderBoard = () => {
                   />
                 )}
               />
-              <AppText type={FORTEEN} color={BROWNYELLOW} weight={POPPINS_BOLD} style={{ marginBottom: 8 }}>Disclaimer :</AppText>
-
-              <AppText type={TWELVE} color={WHITE} weight={POPPINS_MEDIUM} style={{ bottom: 10 }}>In case of a tie or contest does not fill up, the actual prizes may be different.
-                In cases of any dispute regarding the total prize pool amount, our decision shall be final and binding.{`\n\n`}
-                <AppText type={TWELVE} color={BROWNYELLOW} weight={POPPINS_MEDIUM}>Note:</AppText>
-                As per the government regulations, starting 1st April 2023, a tax of 30% will be levied at the time of withdrawal or at the end of financial year on the net winnings.</AppText>
-
+             
             </>
           ) : (
             <>
@@ -520,21 +515,17 @@ const LeaderBoard = () => {
                 onIndexChange={setIndex}
                 initialLayout={{ width: layout.width }}
                 renderTabBar={props => (
+                  <>
                   <RenderTabBar1
                     {...props}
                     onTabChange={e => {
                       setActiveTab(e);
                     }}
                   />
+                  </>
                 )}
               />
-              <AppText type={FORTEEN} color={BROWNYELLOW} weight={POPPINS_BOLD} style={{ marginBottom: 8 }}>Disclaimer :</AppText>
-
-              <AppText type={TWELVE} color={WHITE} weight={POPPINS_MEDIUM} style={{ bottom: 10 }}>In case of a tie or contest does not fill up, the actual prizes may be different.
-                In cases of any dispute regarding the total prize pool amount, our decision shall be final and binding.{`\n\n`}
-                <AppText type={TWELVE} color={BROWNYELLOW} weight={POPPINS_MEDIUM}>Note: </AppText>
-                As per the government regulations, starting 1st April 2023, a tax of 30% will be levied at the time of withdrawal or at the end of financial year on the net winnings.</AppText>
-
+            
             </>
           )}
           {scoreBoard && scoreBoard[0]?.status_note == '' &&
@@ -543,6 +534,8 @@ const LeaderBoard = () => {
                 Net winnings at the time of withdrawal from Skill Fantasy, as per the proposed section 194BA of the income tax Act, 1961
               </AppText>
             </View>}
+
+            
 
 
         </View>
@@ -630,6 +623,8 @@ export const RenderTabBar = props => {
         pressColor={'transparent'}
         style={[{ width: '100%', backgroundColor: 'transparent', elevation: 0 }]}
       />
+
+
     ),
     [props], // dependencies
   );
@@ -640,6 +635,8 @@ export const RenderTabBar1 = props => {
 
   return useMemo(
     () => (
+      <>
+      
       <TabBar
         {...props}
         onTabPress={e => {
@@ -679,6 +676,8 @@ export const RenderTabBar1 = props => {
         pressColor={'transparent'}
         style={[{ width: '100%', backgroundColor: 'transparent', elevation: 0 }]}
       />
+
+      </>
     ),
     [props], // dependencies
   );
