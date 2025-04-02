@@ -38,7 +38,7 @@
     "native-base": "^3.4.28",
     "patch-package": "^8.0.0",
     "react": "^18.2.0",
-    "react-native": "^0.73.2",
+    "react-native": "^0.70.2",
     "react-native-base64": "^0.2.1",
     "react-native-device-info": "^11.1.0",
     "react-native-dropdown-picker": "^5.4.6",

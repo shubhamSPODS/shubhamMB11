@@ -45,7 +45,6 @@ const LeaderBoardList = ({
   const contestData = useSelector(state => state?.match?.contestData);
   const [leaderBoards, setLeaderBoards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [onRefresh, setOnrefresh] = useState(false);
   const [myDataleader, setMyDataleader] = useState([]);
   const [ForConnectedTo, setForConnectedTo] = useState(false);
   const [status, setStatus] = useState(false);
@@ -72,6 +71,7 @@ const LeaderBoardList = ({
       };
     }
   }, [matchId, id]);
+  
 const handleListStakingHistory = type => {
   setLimit(prevLimit => prevLimit + 50);
   setSkip(prevSkip => prevSkip + 1); 
@@ -83,7 +83,6 @@ const handleListStakingHistoryTop = type => {
 
 };
 useEffect(() => {
-  console.log(skip, '====>>' , limit);
 }, [skip, limit]); 
 
 const getData = React.useCallback(() => {
@@ -94,7 +93,7 @@ const getData = React.useCallback(() => {
   try {
     wsRef.current = new WebSocket(url);
     wsRef.current.onopen = () => {
-      setIsConnected(true); // Set the connection status to true
+      setIsConnected(true); 
     };
     3;
     if (!wsRef.current) return;
@@ -105,7 +104,7 @@ const getData = React.useCallback(() => {
       const liveStatus = JSON.parse(e?.data);
       setForStatus(liveStatus?.live);
       setStatus(liveStatus?.live);
-      setLeaderBoards(parseData?.data);
+      setLeaderBoards(parseData?.data||[]);
       setLoading(false);
     };
   } catch (error) {
@@ -131,6 +130,7 @@ const getData = React.useCallback(() => {
         ? item
         : {};
     });
+    
     const filteredData = Mydata.filter(item => Object.keys(item).length !== 0);
     setMyDataleader(filteredData);
   }, [leaderBoards]);
@@ -644,11 +644,6 @@ const getData = React.useCallback(() => {
               ListHeaderComponent={
                 mydataleaderboard
               }
-              // refreshControl={
-
-              
-              //   <RefreshControl refreshing={onRefresh} onRefresh={getData} />
-              // }
             />
           ) : (
             <AppText
