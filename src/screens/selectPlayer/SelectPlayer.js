@@ -148,7 +148,6 @@ const SelectPlayer = () => {
   const timeDifference = Math.floor(
     (inputDate - currentDate) / (24 * 60 * 60 * 1000),
   );
-
   const [saveTeam, setSaveTeam] = useState({});
   const convertToTeamsTitle2 = arr => {
     const TeamsTitle2 = arr && arr?.map(title => title.trim());
