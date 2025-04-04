@@ -4,7 +4,8 @@ import { AppSafeAreaView } from "../../common/AppSafeAreaView";
 import CommonImageBackground from "../../common/commonImageBackground";
 import CommonHeader from "../../components/matchCard/commonHeader/CommonHeader";
 import { AppText, BLACK, FORTEEN, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, RBBACKGROUND, SIXTEEN, TEN } from "../../common/AppText";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
+
 import { addsubstitues, all_rounderIcon, batsmanIcon, bowlerIcon, rightArrow, subfour, subminus, subone, subthree, subtwo, wicket_keeperIcon } from "../../helper/image";
 import styles from "./styles";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";

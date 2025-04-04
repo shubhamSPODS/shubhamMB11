@@ -14,7 +14,7 @@ import PrimaryButton from '../common/primaryButton';
 import { checkUPIDlNumber, toastAlert } from '../helper/utility';
 import { useDispatch } from 'react-redux'
 import { getUpiVerifiy } from '../slices/matchSlice';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { scanIcon } from '../helper/image';
 
 const VerifyUPI = () => {

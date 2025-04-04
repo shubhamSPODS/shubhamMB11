@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import {AppSafeAreaView} from '../common/AppSafeAreaView';
 import {KeyBoardAware} from '../common/KeyboardAware';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {
   BattleIcon,
   FairIcon,

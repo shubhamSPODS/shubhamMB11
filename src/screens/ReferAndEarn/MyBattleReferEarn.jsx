@@ -17,7 +17,7 @@ import {
   BackIcon
 } from '../../helper/image';
 import { ArrowBackIcon, Button, StatusBar } from 'native-base';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { NewColor, colors } from '../../theme/color';
 import LinearGradient from 'react-native-linear-gradient';
 import {

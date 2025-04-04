@@ -30,7 +30,7 @@ import { RootState } from '../../libs/rootReducer';
 import styles from './styles';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import { KeyBoardAware } from '../../common/KeyboardAware';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { userLogout } from '../../actions/authActions';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import NavigationService from '../../navigation/NavigationService';

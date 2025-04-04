@@ -1,7 +1,7 @@
 import React, {useState, useRef, useEffect} from 'react';
 import {View, StyleSheet, ScrollView, FlatList, RefreshControl} from 'react-native';
 import {universalPaddingHorizontal} from '../theme/dimens';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {CurrentStar, downArrow} from '../helper/image';
 import {
   AppText,

@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {FlatList, View, RefreshControl} from 'react-native';
 import {TabView, SceneMap, TabBar} from 'react-native-tab-view';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
 import {useDispatch, useSelector} from 'react-redux';
 import {AppSafeAreaView} from '../../common/AppSafeAreaView';

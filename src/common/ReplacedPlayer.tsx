@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { AppText, BLUE, EIGHT, GREEN, POPPINS_BOLD, POPPINS_SEMI_BOLD, RED, TEN, WHITE } from "./AppText";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { downArrow, subsituteAdd, subsituteAddRed, substituteIcon } from "../helper/image";
 import { NewColor, colors } from "../theme/color";
 import LinearGradient from "react-native-linear-gradient";

@@ -13,7 +13,8 @@ import PrimaryButton from "../common/primaryButton";
 import { checkVoterDlNumber, toastAlert } from "../helper/utility";
 import { useDispatch } from "react-redux";
 import { voterIDVerifiy } from "../slices/matchSlice";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
+
 import { BannerVerify, checkAdhaar, recommendedIcon } from "../helper/image";
 import Checkbox from "../common/CheckBox/CheckBox";
 

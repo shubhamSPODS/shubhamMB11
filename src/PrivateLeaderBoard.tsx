@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppSafeAreaView } from "./common/AppSafeAreaView";
 import { StatusBar } from "native-base";
 import CommonImageBackground from "./common/commonImageBackground";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { BackIcon, GLORY, GURANTEE, SINGLE, wallet } from "./helper/image";
 import { NewColor, colors } from "./theme/color";
 import NavigationService from "./navigation/NavigationService";

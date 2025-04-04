@@ -6,7 +6,7 @@ import Header from "../common/Header";
 import { universalPaddingHorizontal } from "../theme/dimens";
 import CommonImageBackground from "../common/commonImageBackground";
 import { TouchableOpacityView } from "../common/TouchableOpacityView";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { cameraIcon, gallaryIcon, upload } from "../helper/image";
 import RBSheet from "react-native-raw-bottom-sheet";
 import { AppText, BLACK, POPPINS_SEMI_BOLD } from "../common/AppText";

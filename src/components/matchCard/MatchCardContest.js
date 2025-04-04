@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Pressable } from 'react-native';
 import styles from './styles';
 import { notified } from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import moment from 'moment';
 import {
   AppText,

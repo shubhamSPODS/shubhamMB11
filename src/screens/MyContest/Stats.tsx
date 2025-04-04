@@ -5,7 +5,7 @@ import { universalPaddingHorizontal } from "../../theme/dimens";
 import { useDispatch, useSelector } from "react-redux";
 import { SaveTeamNameStats, getAllPlayerList, saveFilterStatsPlayer, savePointsFilter, saveSavePid } from "../../slices/matchSlice";
 import { TouchableOpacityView } from "../../common/TouchableOpacityView";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { all_rounderIcon, batsmanIcon, bowlerIcon, downArrow, dropDownRed, wicket_keeperIcon } from "../../helper/image";
 import { colors } from "../../theme/color";
 import { modifyNameTwo } from "../../helper/utility";

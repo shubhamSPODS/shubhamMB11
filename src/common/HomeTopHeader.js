@@ -12,7 +12,7 @@ import {
   WalletIcon,
   myBattleTextImg,
 } from '../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { useSelector } from 'react-redux';
 import { IMAGE_BASE_URL } from '../helper/utility';
 import LinearGradient from 'react-native-linear-gradient';

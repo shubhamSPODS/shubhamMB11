@@ -4,7 +4,7 @@ import './styles';
 
 import styles from './styles';
 import {TouchableOpacityView} from '../TouchableOpacityView';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 
 import {
   Mumbai,

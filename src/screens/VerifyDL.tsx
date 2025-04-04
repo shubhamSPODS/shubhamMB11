@@ -19,7 +19,8 @@ import moment from "moment";
 import { dlVerifiy } from "../slices/matchSlice";
 import { SpinnerSecond } from "../common/SpinnerSecond";
 import { BannerVerify, calanderIcon, checkAdhaar, recommendedIcon } from "../helper/image";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
+
 import Checkbox from "../common/CheckBox/CheckBox";
 
 const VerifyDL = () => {

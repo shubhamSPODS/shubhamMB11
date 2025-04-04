@@ -7,7 +7,7 @@ import { SpinnerSecond } from '../common/SpinnerSecond';
 import { USER_TOKEN_KEY } from '../libs/constants';
 import NavigationService from '../navigation/NavigationService';
 import { AUTHSTACK, LOGIN, OTP } from '../navigation/routes';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { MyBattleIcon, MyBattleLogo, splash } from '../helper/image';
 import { Dimensions } from 'react-native';
 

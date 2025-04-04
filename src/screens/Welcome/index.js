@@ -23,7 +23,7 @@ import {
 } from '../../navigation/routes';
 import {TouchableOpacityView} from '../../common/TouchableOpacityView';
 import {AppSafeAreaView} from '../../common/AppSafeAreaView';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 
 const Welcome = () => {
   const colors = useSelector((state: RootState) => {

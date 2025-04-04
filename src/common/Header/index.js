@@ -8,7 +8,7 @@ import styles from './styles';
 import {RootState} from '../../libs/rootReducer';
 import NavigationService from '../../navigation/NavigationService';
 import {TouchableOpacityView} from '../TouchableOpacityView';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {salPaddingHorizontal} from '../../theme/dimens';
 import {colors} from '../../theme/color';
 

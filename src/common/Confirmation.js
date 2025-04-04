@@ -15,7 +15,7 @@ import {
   WHITE,
 } from './AppText';
 import { useDispatch, useSelector } from 'react-redux';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { CLOSE_WHITE_ICON } from '../helper/image';
 import { poppinsBoldItalic } from '../theme/typography';
 import {

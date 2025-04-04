@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, ImageBackground, Text,Image,TouchableOpacity,StyleSheet} from 'react-native';
 import {LINEAR_GRADIENT, SHAPE, MI, SRH, LIVE} from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
 import NavigationService from '../../navigation/NavigationService';
 import {

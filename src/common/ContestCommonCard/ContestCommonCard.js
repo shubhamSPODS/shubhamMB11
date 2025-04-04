@@ -2,7 +2,7 @@ import {View, Text, ScrollView} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import ProgressBar from '../ProgressBar/ProgressBar';
 import ProgressBarComponent from '../ProgressBar/ProgressBar';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {Badge, Cup, Ellipse, Dollar, CheckMark} from '../../helper/image';
 import {
   contestCommonCardData,

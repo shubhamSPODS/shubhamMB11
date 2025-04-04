@@ -3,7 +3,7 @@ import React from 'react';
 import styles from './styles';
 import {TouchableOpacityView} from '../../TouchableOpacityView';
 import {AppText} from '../../AppText';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 const PrimaryGameButton = props => {
   const {gameName, cricketpng} = props;
   return (

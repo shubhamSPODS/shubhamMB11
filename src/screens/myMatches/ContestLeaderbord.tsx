@@ -14,7 +14,7 @@ import {
 } from '../../common/AppText';
 import {NewColor, colors} from '../../theme/color';
 import {universalPaddingHorizontal} from '../../theme/dimens';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
 import Winnings from '../../components/winnings/Winnings';
 import LeaderBoardList from '../../components/leaderBoardList/LeaderBoardList';

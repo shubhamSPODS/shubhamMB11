@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacityView } from '../../../common/TouchableOpacityView';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { right_arrow } from '../../../helper/image';
 import styles from './styles';
 import { AppText, ELEVEN, POPPINS_MEDIUM, WHITE } from '../../../common/AppText';

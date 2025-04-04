@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FlatList, ImageBackground, StyleSheet, View } from 'react-native';
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { all_rounderIcon, batsmanIcon, bowlerIcon, closeIcon, tick, wicket_keeperIcon } from "../helper/image";
 import { colors } from "../theme/color";
 import LinearGradient from "react-native-linear-gradient";

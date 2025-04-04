@@ -25,7 +25,7 @@ import { NewColor, colors } from '../../theme/color';
 import { panVerifiy } from '../../slices/matchSlice';
 import { SpinnerSecond } from '../../common/SpinnerSecond';
 import { calanderIcon, cameraIcon, gallaryIcon, panIconUpload, recommendedIcon, upload } from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import ImagePicker from 'react-native-image-crop-picker';
 import moment from 'moment';

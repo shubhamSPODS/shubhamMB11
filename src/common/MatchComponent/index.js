@@ -1,6 +1,6 @@
 import {View, Text, Image, ImageBackground} from 'react-native';
 import React from 'react';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {TouchableOpacityView} from '../TouchableOpacityView';
 import {Stadium, battle, person, wallet_icon, bell} from '../../helper/image';
 import styles from './styles';

@@ -4,7 +4,7 @@ import { useRoute } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import InputBox from '../common/InputBox';
 import { KeyBoardAware } from '../common/KeyboardAware';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { universalPaddingHorizontal } from '../theme/dimens';
 import {
   AppText,

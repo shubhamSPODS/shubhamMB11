@@ -5,7 +5,7 @@ import CommonImageBackground from "../common/commonImageBackground";
 import Header from "../common/Header";
 import { universalPaddingHorizontal } from "../theme/dimens";
 import { KeyBoardAware } from "../common/KeyboardAware";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { BannerVerify, adhaarFront, adhaarback, cameraIcon, checkAdhaar, gallaryIcon, recommendedIcon } from "../helper/image";
 import { TouchableOpacityView } from "../common/TouchableOpacityView";
 import { AppText, BLACKOPACITY, FORTEEN, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, THIRTEEN } from "../common/AppText";

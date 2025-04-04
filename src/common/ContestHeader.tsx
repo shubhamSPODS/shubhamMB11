@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dimensions, ImageBackground, StyleSheet, View } from "react-native";
 import { universalPaddingHorizontal } from "../theme/dimens";
 import { TouchableOpacityView } from "./TouchableOpacityView";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { colors } from "../theme/color";
 import { LEFT_ARROW, VS, WalletIcon, backIconMain, headerIner, notified, wallet } from "../helper/image";
 import NavigationService from "../navigation/NavigationService";

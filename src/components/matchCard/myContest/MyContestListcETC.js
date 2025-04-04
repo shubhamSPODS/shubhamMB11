@@ -24,7 +24,7 @@ import { formatDateTime, modifyName, numberWithCommas } from '../../../helper/ut
 import { useDispatch, useSelector } from 'react-redux';
 import { colors } from '../../../theme/color';
 import { PENCIL, arrow } from '../../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { getAllPlayerList, getTab, setAllPlayers } from '../../../slices/matchSlice';
 import { universalPaddingHorizontal } from '../../../theme/dimens';
 import { shareLinkTeam } from '../../../screens/ContestShare';

@@ -3,7 +3,7 @@ import React, {useEffect, useState} from 'react';
 import {View, ImageBackground, Text, Pressable, Alert,StyleSheet,Image} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {LINEAR_GRADIENT, SHAPE, MI, SRH, LIVE} from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import moment from 'moment';
 import {
   AppText,

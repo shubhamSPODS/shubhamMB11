@@ -6,7 +6,7 @@ import CommonImageBackground from '../common/commonImageBackground';
 import Header from '../common/Header';
 import { AppText, BLACK, BLACKOPACITY, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, THIRTEEN, TWELVE, WHITE } from '../common/AppText';
 import { TouchableOpacityView } from '../common/TouchableOpacityView';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { NewColor, colors } from '../theme/color';
 import { universalPaddingHorizontal } from '../theme/dimens';
 import { callIcon, emailIcon, right_arrow } from '../helper/image';

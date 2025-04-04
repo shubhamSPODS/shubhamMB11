@@ -40,7 +40,7 @@ import {PrivateValueStore, useIsFocused} from '@react-navigation/native';
 import PrimaryButton from '../../common/primaryButton';
 import DropdownComponent from '../../common/Dropdown';
 import {bankIcon, deleteIcon, icici, upiIcon} from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {BASE_URL, IMAGE_BASE_URL, toastAlert} from '../../helper/utility';
 import {NewColor, colors} from '../../theme/color';
 import {TouchableOpacityView} from '../../common/TouchableOpacityView';

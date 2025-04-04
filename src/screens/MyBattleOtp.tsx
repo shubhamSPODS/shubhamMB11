@@ -26,7 +26,7 @@ import {
 import {useDispatch, useSelector} from 'react-redux';
 import {otpVerification, resetSignUpOtp} from '../actions/authActions';
 import {toastAlert} from '../helper/utility';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import PrimaryButton from '../common/primaryButton';
 import {
   getHash,

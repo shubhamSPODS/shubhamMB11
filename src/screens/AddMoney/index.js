@@ -16,7 +16,7 @@ import {
 } from '../../common/AppText';
 import styles from './styles';
 import InputBox from '../../common/InputBox';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {
   horizontalLine,
   cross,

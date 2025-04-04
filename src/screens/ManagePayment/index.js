@@ -28,7 +28,7 @@ import InputBox from '../../common/InputBox';
 import {RootState} from '../../libs/rootReducer';
 import Modal from 'react-native-modal';
 
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {
   phone,
   masterCard,
