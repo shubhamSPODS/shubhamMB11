@@ -1,7 +1,7 @@
 import {View, ImageBackground, Text} from 'react-native';
 import React, {useState} from 'react';
 import styles from './styles';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {
   BAT,
   BAT_BOWL,

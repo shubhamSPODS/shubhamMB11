@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { AppText, BLACK, EIGHT, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, TEN, THIRTEEN, WHITE } from "./AppText";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { downArrow, substituteIcon } from "../helper/image";
 import { colors } from "../theme/color";
 import { modifyName, playerRollImageTwo } from "../helper/utility";

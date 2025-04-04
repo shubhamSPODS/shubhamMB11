@@ -8,7 +8,7 @@ import {
   Text,
 } from 'react-native';
 import LottieView from 'lottie-react-native';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {SpinnerProps} from '../types/common';
 import {Applogo} from '../helper/image';
 

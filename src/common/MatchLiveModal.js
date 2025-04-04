@@ -15,7 +15,7 @@ import {
 } from './AppText';
 import { TouchableOpacityView } from './TouchableOpacityView';
 import LinearGradient from 'react-native-linear-gradient';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { Alertlogo } from '../helper/image';
 import NavigationService from '../navigation/NavigationService';
 import { BOTTOM_NAVIGATION_STACK } from '../navigation/routes';

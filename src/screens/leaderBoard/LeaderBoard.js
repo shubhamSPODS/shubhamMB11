@@ -11,7 +11,7 @@ import {
   Alert,
   Text,
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import {

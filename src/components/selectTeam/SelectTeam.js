@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import styles from './styles';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 
 import { CLOSE_WHITE_ICON, greenmark } from '../../helper/image';
 import {

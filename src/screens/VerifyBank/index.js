@@ -15,7 +15,7 @@ import { RootState } from '../../libs/rootReducer';
 import { ifsclNumber, toastAlert } from '../../helper/utility';
 import { updateKyc } from '../../actions/profileAction';
 import { StatusBar } from 'native-base';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { bank, cameraIcon, gallaryIcon, upload } from '../../helper/image';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import ImagePicker from 'react-native-image-crop-picker';

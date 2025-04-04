@@ -27,7 +27,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import ActivityCard from '../../common/Profile/activityCard';
 import Level from '../../common/Profile/level';
 import styles from './styles';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import SecondaryButton from '../../common/secondaryButton';
 import NavigationService from '../../navigation/NavigationService';
 import {

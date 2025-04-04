@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@codler/react-native-keyboard-aware-scroll-view": "^2.0.1",
+    "@d11/react-native-fast-image": "^8.9.2",
     "@react-native-async-storage/async-storage": "^1.21.0",
     "@react-native-community/blur": "^4.4.0",
     "@react-native-community/clipboard": "@react-native-community/clipboard",
@@ -43,7 +44,6 @@
     "react-native-device-info": "^11.1.0",
     "react-native-dropdown-picker": "^5.4.6",
     "react-native-element-dropdown": "^2.10.1",
-    "react-native-fast-image": "^8.6.3",
     "react-native-geolocation-service": "^5.3.1",
     "react-native-gesture-handler": "^2.14.1",
     "react-native-get-location": "^5.0.0",

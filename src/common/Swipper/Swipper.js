@@ -3,7 +3,7 @@ import React from 'react';
 import Swiper from 'react-native-swiper';
 import styles from './styles';
 import {TouchableOpacityView} from '../TouchableOpacityView';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {AppText} from '../AppText';
 import SliderBg from '../../../assets/images/sliderBg.png';
 import {iplTextContainer} from '../../helper/image';

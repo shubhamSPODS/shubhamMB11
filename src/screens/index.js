@@ -53,7 +53,7 @@ import { SolidButton } from '../common/SolidButton';
 import { KeyBoardAware } from '../common/KeyboardAware';
 import { NewColor, colors } from '../theme/color';
 import { universalPaddingHorizontal } from '../theme/dimens';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { TouchableOpacityView } from '../common/TouchableOpacityView';
 import NavigationService from '../navigation/NavigationService';
 import MyBattleLogin from './MyBattleLogin';

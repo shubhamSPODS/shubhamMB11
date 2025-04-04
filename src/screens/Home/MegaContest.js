@@ -1,7 +1,7 @@
 import {View, Text,StyleSheet} from 'react-native';
 import React from 'react';
 // import {TouchableOpacityView} from '../TouchableOpacityView';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 // import MumbaiIndianImg from '../../../assets/images/MumbaiIndian.png';
 // import OpponentTeamImg from '../../../assets/images/sunriseHyd.png';
 // import {AppSafeAreaView} from '../AppSafeAreaView';

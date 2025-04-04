@@ -4,7 +4,8 @@ import { useSelector } from "react-redux";
 import { AppSafeAreaView } from "../common/AppSafeAreaView";
 import { AppText, BLACK, BLACKOPACITY, ELEVEN, POPPINS_BOLD, POPPINS_SEMI_BOLD, THIRTEEN, WHITE } from "../common/AppText";
 import CommonImageBackground from "../common/commonImageBackground";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
+
 import { CLOSE_WHITE_ICON, SHARE } from "../helper/image";
 import { colors } from "../theme/color";
 import { universalPaddingHorizontal } from "../theme/dimens";

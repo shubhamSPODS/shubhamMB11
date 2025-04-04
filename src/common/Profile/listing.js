@@ -1,6 +1,6 @@
 import {StyleSheet, View} from 'react-native';
 import React from 'react';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {right_arrow} from '../../helper/image';
 import {AppText, BOLD, FOURTEEN, NORMAL, POPPINS_MEDIUM, WHITE} from '../AppText';
 import {TouchableOpacityView} from '../TouchableOpacityView';

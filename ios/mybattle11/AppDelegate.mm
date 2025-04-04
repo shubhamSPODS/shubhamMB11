@@ -3,67 +3,87 @@
 #import <React/RCTBundleURLProvider.h>
 #import <UserNotifications/UserNotifications.h>
 #import <RNCPushNotificationIOS.h>
+
 @implementation AppDelegate
 
-// Required for the register event.
+// ✅ Register for push notifications
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+{
+    if ([FIRApp defaultApp] == nil) {
+        [FIRApp configure];
+        NSLog(@"🔥 Firebase initialized successfully!");
+    } else {
+        NSLog(@"✔️ Firebase is already initialized.");
+    }
+
+    // ✅ Set up push notification center delegate
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    center.delegate = self;  // ✅ This line is now correct!
+
+    // ✅ Request permission for notifications
+    [center requestAuthorizationWithOptions:(UNAuthorizationOptionAlert | UNAuthorizationOptionSound | UNAuthorizationOptionBadge)
+                          completionHandler:^(BOOL granted, NSError * _Nullable error) {
+        if (granted) {
+            NSLog(@"✅ Push Notification permission granted.");
+        } else {
+            NSLog(@"❌ Push Notification permission denied.");
+        }
+    }];
+    
+    [[UIApplication sharedApplication] registerForRemoteNotifications];
+
+    self.moduleName = @"mybattle11";  // ✅ This property now works!
+    self.initialProps = @{};
+
+    return [super application:application didFinishLaunchingWithOptions:launchOptions];
+}
+
+// ✅ Successfully registered for remote notifications
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
 {
- [RNCPushNotificationIOS didRegisterForRemoteNotificationsWithDeviceToken:deviceToken];
+    [RNCPushNotificationIOS didRegisterForRemoteNotificationsWithDeviceToken:deviceToken];
+    NSLog(@"✅ Registered for remote notifications.");
 }
-// Required for the notification event. You must call the completion handler after handling the remote notification.
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo
-fetchCompletionHandler:(void (^)(UIBackgroundFetchResult))completionHandler
-{
-  [RNCPushNotificationIOS didReceiveRemoteNotification:userInfo fetchCompletionHandler:completionHandler];
-}
-// Required for the registrationError event.
+
+// ✅ Failed to register for push notifications
 - (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error
 {
- [RNCPushNotificationIOS didFailToRegisterForRemoteNotificationsWithError:error];
+    NSLog(@"❌ Failed to register for remote notifications: %@", error.localizedDescription);
 }
-// Required for localNotification event
+
+// ✅ Handle push notifications when app is in foreground
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+       willPresentNotification:(UNNotification *)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
+{
+    NSLog(@"📩 Notification received in foreground: %@", notification.request.content.userInfo);
+    completionHandler(UNNotificationPresentationOptionSound | 
+                      UNNotificationPresentationOptionAlert | 
+                      UNNotificationPresentationOptionBadge);
+}
+
+// ✅ Handle push notifications when user taps on them
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
 didReceiveNotificationResponse:(UNNotificationResponse *)response
          withCompletionHandler:(void (^)(void))completionHandler
 {
-  [RNCPushNotificationIOS didReceiveNotificationResponse:response];
-}
--(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
-{
-  completionHandler(UNNotificationPresentationOptionSound | UNNotificationPresentationOptionAlert | UNNotificationPresentationOptionBadge);
-}
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
-{
-   UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-  if ([FIRApp defaultApp] == nil) {
-    [FIRApp configure];
-    NSLog(@"Firebase initialized successfully!");
-} else {
-    NSLog(@"Firebase is already initialized.");
-}
-  
-  center.delegate = self;
-   
-
-  self.moduleName = @"mybattle11";
-  // You can add your custom initial props in the dictionary below.
-  // They will be passed down to the ViewController used by React Native.
-  self.initialProps = @{};
- 
-  return [super application:application didFinishLaunchingWithOptions:launchOptions];
+    NSLog(@"📨 User tapped on notification: %@", response.notification.request.content.userInfo);
+    [RNCPushNotificationIOS didReceiveNotificationResponse:response];
+    completionHandler();
 }
 
+// ✅ Specify the bundle URL
 - (NSURL *)sourceURLForBridge:(RCTBridge *)bridge
 {
-  return [self getBundleURL];
+    return [self getBundleURL];
 }
 
 - (NSURL *)getBundleURL
 {
 #if DEBUG
-  return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];
+    return [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index"];
 #else
-  return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
+    return [[NSBundle mainBundle] URLForResource:@"main" withExtension:@"jsbundle"];
 #endif
 }
 

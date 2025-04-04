@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import React, { useState } from 'react';
 import styles from './styles';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { MATCH_REMAINDER_CLOSE_ICON } from '../../helper/image';
 import {
   AppText,

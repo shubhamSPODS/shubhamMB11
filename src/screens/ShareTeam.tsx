@@ -6,7 +6,7 @@ import { CAPTAIN, LEFT_ARROW, VICE_CAPTAIN, blurBackground, green_ground, wicket
 import { universalPaddingHorizontal } from "../theme/dimens";
 import { TouchableOpacityView } from "../common/TouchableOpacityView";
 import NavigationService from "../navigation/NavigationService";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { AppText, ELEVEN, FORTEEN, POPPINS_BOLD, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, TEN, THIRTEEN, TWELVE, WHITE } from "../common/AppText";
 import { useRoute } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";

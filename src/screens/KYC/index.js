@@ -26,7 +26,7 @@ import { useSelector } from 'react-redux';
 import InputBox from '../../common/InputBox';
 import { RootState } from '../../libs/rootReducer';
 import { scan, copy, downArrow, done, kycLogo, panIcon, bankIcon, upiIcon, checkAdhaar, panIconUpload, greenmark, adhaarIcon, passportIcon, votericon, dlicon, callIcon } from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { phone, email, bank, panCard } from '../../helper/image';
 import { universalPaddingHorizontal } from '../../theme/dimens';
 import SecondaryButton from '../../common/secondaryButton';

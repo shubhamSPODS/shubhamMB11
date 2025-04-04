@@ -26,7 +26,7 @@ import { getVersion } from 'react-native-device-info';
 import { USER_TOKEN_KEY } from '../../libs/constants';
 import { userLogout } from '../../actions/authActions';
 import { Screen } from '../../theme/dimens';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { BASE_URL } from '../../helper/utility';
 
 const Home = () => {

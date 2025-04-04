@@ -1,7 +1,7 @@
 import React from 'react';
 import {View, TouchableOpacity, StyleSheet, FlatList} from 'react-native';
 import {AppText, FORTEEN, POPPINS_SEMI_BOLD} from '../../common/AppText';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {universalPaddingHorizontal} from '../../theme/dimens';
 import {NewColor, colors} from '../../theme/color';
 import LinearGradient from 'react-native-linear-gradient';

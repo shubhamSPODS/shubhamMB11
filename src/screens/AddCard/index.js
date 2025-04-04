@@ -23,7 +23,7 @@ import {PrivateValueStore} from '@react-navigation/native';
 import PrimaryButton from '../../common/primaryButton';
 import DropdownComponent from '../../common/Dropdown';
 import {icici} from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {RootState} from '../../libs/rootReducer';
 import {universalPaddingHorizontal} from '../../theme/dimens';
 

@@ -5,7 +5,7 @@ import { KeyBoardAware } from "../common/KeyboardAware";
 import CommonImageBackground from "../common/commonImageBackground";
 import Header from "../common/Header";
 import { AppText, FORTEEN, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, THIRTEEN, WHITE } from "../common/AppText";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { CurrentStar, PhonePeSamIcon, googlepay, panCard, paytmIcon, phonepay } from "../helper/image";
 import { colors } from "../theme/color";
 import { Screen, universalPaddingHorizontal } from "../theme/dimens";

@@ -37,8 +37,6 @@ import {
   Notification__SCREEN,
   SELECT_CAPTAIN,
   ALL_CONTEST_LIST,
-  OTP,
-  LOGIN,
   LEADERBOARD,
   MY_CONTEST,
   AUTH_LOADING_SCREEN,
@@ -94,7 +92,7 @@ import {
   refer_earn,
   wallet_icon,
 } from '../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import ReferAndEarn from '../screens';
 import EditProfile from '../screens/EditProfile/editProfile';
 import Nfc from '../screens/NFC/Nfc';
@@ -105,7 +103,6 @@ import Contest from '../screens/CONTESTPAGE/Contest';
 import AuthLoading from '../screens/AuthLoading';
 import MyBalance from '../screens/MyBalance';
 // import Splash from '../screens/Splash';
-import Login from '../screens/login';
 import Otp from '../screens/Otp';
 import VerifyEmail from '../screens/VerifyEmail';
 import VerifyEmailOTP from '../screens/VerifyEmailOTP';

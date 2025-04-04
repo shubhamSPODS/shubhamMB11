@@ -1,7 +1,7 @@
 import React from 'react';
 import {StyleSheet, View, ScrollView} from 'react-native';
 import {AppText} from './AppText';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {FILTER_ICON, cross} from '../helper/image';
 import {TouchableOpacityView} from './TouchableOpacityView';
 import { colors } from '../theme/color';

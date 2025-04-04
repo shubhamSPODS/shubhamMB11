@@ -9,7 +9,7 @@ import {
   bellIcon,
   walletIcon,
 } from '../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import NavigationService from '../navigation/NavigationService';
 import {Match_Remainder} from '../navigation/routes';
 const HomeTopHeader = ({handleModel, arrow}) => {

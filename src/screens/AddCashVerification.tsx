@@ -5,7 +5,7 @@ import CommonImageBackground from "../common/commonImageBackground";
 import Header from "../common/Header";
 import { universalPaddingHorizontal } from "../theme/dimens";
 import { AppText, BLACKOPACITY, FORTEEN, GREEN, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, SIXTEEN, THIRTEEN } from "../common/AppText";
-import FastImage from "react-native-fast-image";
+import FastImage from "@d11/react-native-fast-image";
 import { adhaarIcon, dlicon, kycLogo, passportIcon, votericon } from "../helper/image";
 import { KeyBoardAware } from "../common/KeyboardAware";
 import { colors } from "../theme/color";

@@ -5,7 +5,7 @@ import { AppText, BLACK, BLACKOPACITY, BROWNYELLOW, ELEVEN, FORTEEN, LATO_SEMI_B
 import { toastAlert } from '../../helper/utility';
 import styles from './styles';
 import { SpinnerSecond } from '../../common/SpinnerSecond';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { Layer_1 } from '../../helper/image';
 import { Screen } from '../../theme/dimens';
 import { useIsFocused } from '@react-navigation/native';

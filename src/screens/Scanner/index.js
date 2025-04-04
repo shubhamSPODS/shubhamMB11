@@ -2,7 +2,7 @@ import React from 'react';
 import {ImageBackground, StyleSheet, Text, View} from 'react-native';
 import styles from './styles';
 import {scanner, arrow, imagePlaceholder, vector} from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 
 const Scanner = () => (
   <View style={styles.container}>

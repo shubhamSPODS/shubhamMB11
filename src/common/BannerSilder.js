@@ -2,7 +2,7 @@ import React, {useRef, useState} from 'react';
 import {View, StyleSheet, ImageBackground} from 'react-native';
 import Carousel, {Pagination} from 'react-native-snap-carousel';
 import {Screen} from '../theme/dimens';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {IMAGE_BASE_URL} from '../helper/utility';
 import {BannerLoop, ContextBg} from '../helper/image';
 

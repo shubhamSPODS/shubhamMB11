@@ -19,7 +19,7 @@ import { MY_CONTEST } from '../../navigation/routes';
 import { nameSlice, nameSliceTwo, toastAlert } from '../../helper/utility';
 import { useDispatch, useSelector } from 'react-redux';
 import { setContestData } from '../../slices/matchSlice';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { NewColor, colors } from '../../theme/color';
 import { VS, joinMatch, myMatchbackGround } from '../../helper/image';
 import { Screen, universalPaddingHorizontal } from '../../theme/dimens';

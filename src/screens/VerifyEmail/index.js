@@ -28,7 +28,7 @@ import { sendKycOtp } from '../../actions/profileAction';
 import NavigationService from '../../navigation/NavigationService';
 import { checkAdhaar, recommendedIcon } from '../../helper/image';
 import { NewColor } from '../../theme/color';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { addharVerifiy, emailVerifiyOtp } from '../../slices/matchSlice';
 
 const VerifyEmail = () => {

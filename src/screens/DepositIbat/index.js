@@ -17,7 +17,7 @@ import {useSelector} from 'react-redux';
 import InputBox from '../../common/InputBox';
 import {RootState} from '../../libs/rootReducer';
 import {scan, copy} from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 
 const DepositIbat = () => {
   const colors = useSelector((state: RootState) => {

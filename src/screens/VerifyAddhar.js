@@ -38,7 +38,7 @@ import {
   recommendedIcon,
   upload,
 } from '../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {universalPaddingHorizontal} from '../theme/dimens';
 import ImagePicker from 'react-native-image-crop-picker';
 import {TouchableOpacityView} from '../common/TouchableOpacityView';

@@ -23,7 +23,7 @@ import {useSelector} from 'react-redux';
 import InputBox from '../../common/InputBox';
 import {RootState} from '../../libs/rootReducer';
 
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {
   masterCard,
   paytm,

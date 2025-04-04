@@ -1,7 +1,7 @@
 import { useRoute } from '@react-navigation/native';
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { FlatList, ImageBackground, Pressable, View } from 'react-native';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import {

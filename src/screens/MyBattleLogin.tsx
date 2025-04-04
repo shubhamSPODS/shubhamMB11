@@ -21,7 +21,7 @@ import { State } from 'react-native-gesture-handler';
 import Checkbox from '../common/CheckBox/CheckBox';
 import PrimaryButton from '../common/primaryButton';
 import { universalPaddingHorizontal } from '../theme/dimens';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import { toastAlert, validateMobile } from '../helper/utility';
 import { userSignup } from '../actions/authActions';
 import { TouchableOpacityView } from '../common/TouchableOpacityView';

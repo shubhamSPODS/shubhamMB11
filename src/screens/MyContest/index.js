@@ -75,7 +75,7 @@ import {
   headerIner,
   rightArrow,
 } from '../../helper/image';
-import FastImage from 'react-native-fast-image';
+import FastImage from "@d11/react-native-fast-image";
 import {TouchableOpacityView} from '../../common/TouchableOpacityView';
 import LinearGradient from 'react-native-linear-gradient';
 import {LiveTime} from '../../common/LiveTime';
