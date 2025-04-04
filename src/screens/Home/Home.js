@@ -28,6 +28,7 @@ import { userLogout } from '../../actions/authActions';
 import { Screen } from '../../theme/dimens';
 import FastImage from "@d11/react-native-fast-image";
 import { BASE_URL } from '../../helper/utility';
+import { PERMISSIONS, request } from 'react-native-permissions';
 
 const Home = () => {
   const dispatch = useDispatch();
@@ -181,12 +182,19 @@ const Home = () => {
       InstallAPK();
     } 
   }, []);
+  const requestPermission=async()=>{
+var result = await request(PERMISSIONS.IOS.CAMERA) 
+console.log(result,"===PERMSSIOn");
+
+  }
   const InstallAPK = async () => {
     Alert.alert(
       'Update APK',
       'Please Update the latest verison.',
       [
-        // { text: 'Cancel', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel',onPress:()=> {
+          requestPermission()
+        }},
         { text: 'Update', onPress: () => DownloadApk() }
       ]
     );

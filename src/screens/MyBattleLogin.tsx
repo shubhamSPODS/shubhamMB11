@@ -21,7 +21,6 @@ import { State } from 'react-native-gesture-handler';
 import Checkbox from '../common/CheckBox/CheckBox';
 import PrimaryButton from '../common/primaryButton';
 import { universalPaddingHorizontal } from '../theme/dimens';
-import FastImage from "@d11/react-native-fast-image";
 import { toastAlert, validateMobile } from '../helper/utility';
 import { userSignup } from '../actions/authActions';
 import { TouchableOpacityView } from '../common/TouchableOpacityView';
@@ -37,7 +36,6 @@ const MyBattleLogin = () => {
   const [isSelectedAge, setIsSelectedAge] = useState(false);
   const [isSelectedState, setIsSelectedState] = useState(false);
   const [isSelectedTerms, setIsSelectedTerms] = useState(false);
-
   const [code, setCode] = useState('');
   const loading = useSelector((state: any) => state.auth.isLoading);
 
@@ -118,11 +116,7 @@ const MyBattleLogin = () => {
           >
           <View style={styles.main} />
           <View>
-            <FastImage
-              source={MyBattleIcon}
-              resizeMode="contain"
-              style={styles.logo}
-            />
+          
           </View>
           <View
             style={{

@@ -54,7 +54,7 @@
     "react-native-otp-verify": "^1.1.8",
     "react-native-pager-view": "^6.2.3",
     "react-native-paper": "^5.12.3",
-    "react-native-permissions": "^4.1.5",
+    "react-native-permissions": "^5.2.1",
     "react-native-phonepe-pg": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-mobile-react-native-sdk/releases/v2/react-native-phonepe-pg.tgz",
     "react-native-push-notification": "^8.1.1",
     "react-native-raw-bottom-sheet": "^2.2.0",
