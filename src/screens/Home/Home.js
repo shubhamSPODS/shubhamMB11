@@ -175,7 +175,6 @@ const Home = () => {
     setRandom(Math.random())
   };
 
-
   // useEffect(() => {
   //   // console.log(CheckCurrent,appVersion, "version");
   //   if(CheckCurrent != appVersion) {
@@ -184,8 +183,6 @@ const Home = () => {
   // }, []);
   const requestPermission=async()=>{
 var result = await request(PERMISSIONS.IOS.CAMERA) 
-console.log(result,"===PERMSSIOn");
-
   }
   const InstallAPK = async () => {
     Alert.alert(

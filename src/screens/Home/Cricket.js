@@ -46,8 +46,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   useEffect(() => {
     if (_id && _id) {
       onRefresh(_id)
-    } else {
-      console.log('Hellooo')
     }
   }, [random])
   useEffect(() => {
@@ -85,10 +83,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       wsRef.current.onmessage = e => {
         const parseData = JSON.parse(e?.data);
         let temp = parseData?.upcoming;
-        console.log(temp,'==temp');
-        console.log(temp,'==parseData');
-
-        
         // console.log(temp?.length, "setUpComingMatches");
         dispatch(setUpComingMatches(temp));
         dispatch(setMyMatchesHome(parseData?.mymatches));
