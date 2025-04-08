@@ -83,7 +83,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       wsRef.current.onmessage = e => {
         const parseData = JSON.parse(e?.data);
         let temp = parseData?.upcoming;
-        // console.log(temp?.length, "setUpComingMatches");
+        console.log(parseData, "setUpComingMatches>");
         dispatch(setUpComingMatches(temp));
         dispatch(setMyMatchesHome(parseData?.mymatches));
       };
@@ -96,7 +96,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     }
   }, [isConnected]);
   const getData = React.useCallback((_id) => {
-    const URL = `ws://app.mybattle11.com/upcoming-matches?limit=20&skip=0&userid=${_id}`;
+    const URL = `wss://app.mybattle11.com/upcoming-matches?limit=20&skip=0&userid=${_id}`;
     if (isConnected && wsRef.current) {
       wsRef.current.close();
       setIsConnected(false);

@@ -1,16 +1,17 @@
-import {useIsFocused, useRoute} from '@react-navigation/native';
-import React, {useEffect, useState, useMemo, useRef} from 'react';
+import { useIsFocused, useRoute } from '@react-navigation/native';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   FlatList,
   ImageBackground,
   Pressable,
+  StyleSheet,
   TouchableOpacity,
   View,
   useWindowDimensions,
 } from 'react-native';
 import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
-import {AppSafeAreaView} from '../../common/AppSafeAreaView';
+import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import {
   AppText,
   BLACK,
@@ -18,6 +19,7 @@ import {
   BROWNYELLOW,
   ELEVEN,
   FORTEEN,
+  GREEN,
   GRY,
   LIGHTBLUE,
   POPPINS,
@@ -26,9 +28,10 @@ import {
   RED,
   SEMI_BOLD,
   TEN,
+  TWELVE,
   WHITE,
 } from '../../common/AppText';
-import {TouchableOpacityView} from '../../common/TouchableOpacityView';
+import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import PlayerRoleBadge from '../../components/playerRoleBedge/PlayerRoleBedge';
 import {
   BAT,
@@ -36,9 +39,11 @@ import {
   GLOVE,
   GREEN_PLUS_ICON,
   LEFT_ARROW,
+  MyBattleIcon,
   PANT,
   RED_MINUS,
   StopIcon,
+  addsubstitues,
   all_rounder,
   all_rounderIcon,
   backIconMain,
@@ -50,28 +55,29 @@ import {
   wicket_keeper,
   wicket_keeperIcon,
 } from '../../helper/image';
-import {modifyName, modifyNameTwo, toastAlert} from '../../helper/utility';
+import { modifyName, modifyNameTwo, toastAlert } from '../../helper/utility';
 import NavigationService from '../../navigation/NavigationService';
-import {PLAYER_PREVIEW, SELECT_CAPTAIN} from '../../navigation/routes';
+import { PLAYER_PREVIEW, SELECT_CAPTAIN } from '../../navigation/routes';
 import styles from './styles';
-import {useDispatch, useSelector} from 'react-redux';
-import {getAllPlayerList, getPlayerDetail} from '../../slices/matchSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { getAllPlayerList, getPlayerDetail } from '../../slices/matchSlice';
 import PlayerBedge from '../../components/playerBedge/PlayerBedge';
-import {StatusBar} from 'native-base';
+import { AddIcon, StatusBar } from 'native-base';
 import CommonImageBackground from '../../common/commonImageBackground';
 import SecondaryButton from '../../common/secondaryButton';
 import PrimaryButton from '../../common/primaryButton';
 import PlayerDetailModal from '../../common/PlayerDetailModal';
 import moment from 'moment';
-import {NewColor, colors} from '../../theme/color';
-import {LiveTime} from '../../common/LiveTime';
-import {SpinnerSecond} from '../../common/SpinnerSecond';
-import {MatchLiveModal} from '../../common/MatchLiveModal';
+import { NewColor, colors } from '../../theme/color';
+import { LiveTime } from '../../common/LiveTime';
+import { SpinnerSecond } from '../../common/SpinnerSecond';
+import { MatchLiveModal } from '../../common/MatchLiveModal';
 import RBSheet from 'react-native-raw-bottom-sheet';
-import {Screen, universalPaddingHorizontal} from '../../theme/dimens';
+import { Screen, universalPaddingHorizontal } from '../../theme/dimens';
 import UnannouncedPlayer from '../UnannouncedPlayer';
-import {black} from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
-import {SceneMap, TabBar, TabView} from 'react-native-tab-view';
+import { black } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
+import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
+import { Image, Text } from 'react-native-svg';
 export const data = [
   {
     imageSource: GLOVE,
@@ -112,9 +118,11 @@ const SelectPlayer = () => {
   const dispatch = useDispatch();
   const contestData = useSelector(state => state?.match?.contestData);
   const isLoading = useSelector(state => state?.match?.isLoading);
-  const {_id, TeamA, TeamB, TeamAlogo, TeamsShortNames, TeamBlogo, SeriesId} =
+  const { _id, TeamA, TeamB, TeamAlogo, TeamsShortNames, TeamBlogo, SeriesId } =
     contestData ?? '';
   const allPlayers = useSelector(state => state?.match?.allPlayers);
+  // console.log(allPlayers?.length,'==allplayer');
+
   const getPlayerTab = useSelector(state => state?.match?.getPlayerTab);
   const route = useRoute();
   const AleartLive = useRef();
@@ -145,7 +153,6 @@ const SelectPlayer = () => {
   const timeDifference = Math.floor(
     (inputDate - currentDate) / (24 * 60 * 60 * 1000),
   );
-
   const [saveTeam, setSaveTeam] = useState({});
   const convertToTeamsTitle2 = arr => {
     const TeamsTitle2 = arr && arr?.map(title => title.trim());
@@ -276,7 +283,7 @@ const SelectPlayer = () => {
         animated: false,
       });
     }
-  }, []); // This effect runs once, to restore scroll position after initial render
+  }, []);
 
   useEffect(() => {
     if (
@@ -291,7 +298,6 @@ const SelectPlayer = () => {
       }
     }
   }, [Unannounced]);
-
   const getPlayersData = () => {
     if (route?.params?.isEditMode || route?.params?.isCloneMode) {
       const customSort = (a, b) => {
@@ -312,7 +318,7 @@ const SelectPlayer = () => {
         }
         return -1;
       };
-      if (index === 1 || activeTab === 'BAT') {
+      if (index === 2 || activeTab === 'BAT') {
         const updatedDatanew = allPlayers?.map(player => {
           const pid = player.pid;
           const matchingData = route?.params?.selectedPlayers?.find(
@@ -320,7 +326,7 @@ const SelectPlayer = () => {
           );
 
           if (matchingData) {
-            return {...player, substitute: matchingData.substitute};
+            return { ...player, substitute: matchingData.substitute };
           }
 
           return player;
@@ -329,7 +335,7 @@ const SelectPlayer = () => {
           .filter(player => player.playing_role == 'bat')
           .sort(customSortRating)
           .sort(customSort);
-      } else if (index === 3 || activeTab === 'BOWL') {
+      } else if (index === 4 || activeTab === 'BOWL') {
         const updatedDatanew = allPlayers?.map(player => {
           const pid = player.pid;
           const matchingData = route?.params?.selectedPlayers?.find(
@@ -337,7 +343,7 @@ const SelectPlayer = () => {
           );
 
           if (matchingData) {
-            return {...player, substitute: matchingData.substitute};
+            return { ...player, substitute: matchingData.substitute };
           }
 
           return player;
@@ -346,7 +352,7 @@ const SelectPlayer = () => {
           .filter(player => player.playing_role == 'bowl')
           .sort(customSortRating)
           .sort(customSort);
-      } else if (index === 0 || activeTab === 'WK') {
+      } else if (index === 1 || activeTab === 'WK') {
         const updatedDatanew = allPlayers?.map(player => {
           const pid = player.pid;
           const matchingData = route?.params?.selectedPlayers?.find(
@@ -354,7 +360,7 @@ const SelectPlayer = () => {
           );
 
           if (matchingData) {
-            return {...player, substitute: matchingData.substitute};
+            return { ...player, substitute: matchingData.substitute };
           }
 
           return player;
@@ -363,7 +369,7 @@ const SelectPlayer = () => {
           .filter(player => player.playing_role == 'wk')
           .sort(customSortRating)
           .sort(customSort);
-      } else if (index === 2 || activeTab === 'AR') {
+      } else if (index === 3 || activeTab === 'AR') {
         const updatedDatanew = allPlayers?.map(player => {
           const pid = player.pid;
           const matchingData = route?.params?.selectedPlayers?.find(
@@ -371,7 +377,7 @@ const SelectPlayer = () => {
           );
 
           if (matchingData) {
-            return {...player, substitute: matchingData.substitute};
+            return { ...player, substitute: matchingData.substitute };
           }
 
           return player;
@@ -400,7 +406,7 @@ const SelectPlayer = () => {
         }
         return -1;
       };
-      if (index === 1 || activeTab === 'BAT') {
+      if (index === 2 || activeTab === 'BAT') {
         if (
           allPlayers.some(
             player =>
@@ -489,7 +495,7 @@ const SelectPlayer = () => {
               .sort(customSort);
           }
         }
-      } else if (index === 3 || activeTab === 'BOWL') {
+      } else if (index === 4 || activeTab === 'BOWL') {
         if (
           allPlayers.some(
             player =>
@@ -579,7 +585,7 @@ const SelectPlayer = () => {
               .sort(customSort);
           }
         }
-      } else if (index == 0 || activeTab == 'wk') {
+      } else if (index == 1 || activeTab == 'wk') {
         if (
           allPlayers.some(
             player =>
@@ -668,7 +674,7 @@ const SelectPlayer = () => {
               .sort(customSort);
           }
         }
-      } else if (index == 2 || activeTab === 'AR') {
+      } else if (index == 3 || activeTab === 'AR') {
         if (
           allPlayers.some(
             player =>
@@ -802,7 +808,6 @@ const SelectPlayer = () => {
         `Please select player from ${removedSpacesTeamsTitle[0]} team`,
       );
     }
-
     // Save current scroll position
 
     if (selectLength >= 8) {
@@ -844,7 +849,6 @@ const SelectPlayer = () => {
       }
     }
 
-    // Set state without updating FlatList position
     if (items?.title == removedSpacesTeamsTitle[0]) {
       let array = [...player];
       array?.push(items);
@@ -856,7 +860,6 @@ const SelectPlayer = () => {
     }
     setSelectedPlayersDetails([...selectedPlayerDetails, items]);
     setAvailableCredits(availableCredits - items?.fantasy_player_rating);
-
     setSelectedPlayers([...selectedPlayers, items.pid]);
   };
 
@@ -918,22 +921,22 @@ const SelectPlayer = () => {
     setlogo(item?.logo_url);
     setIsVisible(true);
   };
-  const renderItem = ({item}) => {
+  const renderItem = ({ item }) => {
     const playerIcon =
       item?.playing_role === 'wk'
         ? wicket_keeperIcon
         : item?.playing_role === 'bowl'
-        ? bowlerIcon
-        : item?.playing_role === 'bat'
-        ? batsmanIcon
-        : item?.playing_role === 'all'
-        ? all_rounderIcon
-        : null;
+          ? bowlerIcon
+          : item?.playing_role === 'bat'
+            ? batsmanIcon
+            : item?.playing_role === 'all'
+              ? all_rounderIcon
+              : null;
     return selectedPlayers?.includes(item?.pid) ? (
       <LinearGradient
         colors={['#343434', '#FF5252']}
-        start={{x: 0, y: 0.1}}
-        end={{x: 1, y: 0}}
+        start={{ x: 0, y: 0.1 }}
+        end={{ x: 1, y: 0 }}
         style={[styles.selectPlayerContainer]}>
         <Pressable
           style={{
@@ -945,16 +948,16 @@ const SelectPlayer = () => {
           onPress={() => removePlayerFromTeam(item)}>
           <TouchableOpacityView
             onPress={() => onDetail(item?.pid, item)}
-            style={{flex: 1, alignItems: 'flex-start'}}>
+            style={{ flex: 1, alignItems: 'flex-start' }}>
             <FastImage
               source={
-                item?.profile_image ? {uri: item?.profile_image} : playerIcon
+                item?.profile_image ? { uri: item?.profile_image } : playerIcon
               }
               style={styles.playerImage}
               resizeMode="contain"
             />
           </TouchableOpacityView>
-          <View style={{flex: 1.5, alignItems: 'flex-start', marginLeft: 15}}>
+          <View style={{ flex: 1.5, alignItems: 'flex-start', marginLeft: 15 }}>
             <AppText color={WHITE} numberOfLines={1} style={styles.playerName}>
               {modifyNameTwo(item?.first_name)}
             </AppText>
@@ -964,7 +967,7 @@ const SelectPlayer = () => {
             {item?.playing11 == undefined ? (
               <>
                 {item?.last_play ? (
-                  <View style={{flexDirection: 'row'}}>
+                  <View style={{ flexDirection: 'row' }}>
                     <View
                       style={{
                         height: 5,
@@ -992,7 +995,7 @@ const SelectPlayer = () => {
             ) : (
               <>
                 {item?.playing11 == 'true' ? (
-                  <View style={{flexDirection: 'row'}}>
+                  <View style={{ flexDirection: 'row' }}>
                     <View
                       style={{
                         height: 6,
@@ -1013,7 +1016,7 @@ const SelectPlayer = () => {
                     </AppText>
                   </View>
                 ) : (
-                  <View style={{flexDirection: 'row'}}>
+                  <View style={{ flexDirection: 'row' }}>
                     <View
                       style={{
                         height: 6,
@@ -1037,13 +1040,13 @@ const SelectPlayer = () => {
               </>
             )}
           </View>
-          <View style={{flex: 1, alignItems: 'center', marginEnd: 0}}>
+          <View style={{ flex: 1, alignItems: 'center', marginEnd: 0 }}>
             <AppText weight={POPPINS_MEDIUM} style={styles.points}>
               {item?.average_point ? item?.average_point?.toFixed(2) : 0}
             </AppText>
           </View>
           <View style={styles.creditBtnView}>
-            <AppText style={{marginLeft: 15}} weight={POPPINS_MEDIUM}>
+            <AppText style={{ marginLeft: 15 }} weight={POPPINS_MEDIUM}>
               {item?.fantasy_player_rating}
             </AppText>
 
@@ -1069,16 +1072,16 @@ const SelectPlayer = () => {
         }>
         <TouchableOpacityView
           onPress={() => onDetail(item?.pid, item)}
-          style={{flex: 1, alignItems: 'flex-start'}}>
+          style={{ flex: 1, alignItems: 'flex-start' }}>
           <FastImage
             source={
-              item?.profile_image ? {uri: item?.profile_image} : playerIcon
+              item?.profile_image ? { uri: item?.profile_image } : playerIcon
             }
             style={styles.playerImage}
             resizeMode="contain"
           />
         </TouchableOpacityView>
-        <View style={{flex: 1.5, alignItems: 'flex-start', marginLeft: 15}}>
+        <View style={{ flex: 1.5, alignItems: 'flex-start', marginLeft: 15 }}>
           <AppText
             weight={POPPINS_MEDIUM}
             numberOfLines={1}
@@ -1087,12 +1090,11 @@ const SelectPlayer = () => {
           </AppText>
           <AppText numberOfLines={1} weight={POPPINS_MEDIUM} type={TEN}>
             {item?.teamName}
-            {/* <Text style={{color: '#21B5F6'}}>DC</Text> Sel By 91.84%**/}
           </AppText>
           {item?.playing11 == undefined ? (
             <>
               {item?.last_play ? (
-                <View style={{flexDirection: 'row'}}>
+                <View style={{ flexDirection: 'row' }}>
                   <View
                     style={{
                       height: 5,
@@ -1120,7 +1122,7 @@ const SelectPlayer = () => {
           ) : (
             <>
               {item?.playing11 == 'true' ? (
-                <View style={{flexDirection: 'row'}}>
+                <View style={{ flexDirection: 'row' }}>
                   <View
                     style={{
                       height: 6,
@@ -1141,7 +1143,7 @@ const SelectPlayer = () => {
                   </AppText>
                 </View>
               ) : (
-                <View style={{flexDirection: 'row'}}>
+                <View style={{ flexDirection: 'row' }}>
                   <View
                     style={{
                       height: 6,
@@ -1165,13 +1167,13 @@ const SelectPlayer = () => {
             </>
           )}
         </View>
-        <View style={{flex: 1, alignItems: 'center', marginEnd: 0}}>
-          <AppText style={[styles.points, {marginLeft: -5}]}>
+        <View style={{ flex: 1, alignItems: 'center', marginEnd: 0 }}>
+          <AppText style={[styles.points, { marginLeft: -5 }]}>
             {item?.average_point ? item?.average_point?.toFixed(2) : 0}
           </AppText>
         </View>
         <View style={styles.creditBtnView}>
-          <AppText style={{marginLeft: 15}} weight={POPPINS_MEDIUM}>
+          <AppText style={{ marginLeft: 15 }} weight={POPPINS_MEDIUM}>
             {item?.fantasy_player_rating}
           </AppText>
 
@@ -1241,39 +1243,179 @@ const SelectPlayer = () => {
       toastAlert.showToastError('Please select Unannounced player to remove');
     }
   };
+  const renderPastLineupItem = ({ item, index }) => {
+// console.log(item,'----item');
 
-  const PlayersList = () => (
-    <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center' }}>
-      <FlatList
-        ref={flatListRef}
-        data={getPlayersData().sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid))}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-      />
-    </View>
-  );
+    
+    const totalItems = allPlayers?.length 
+    const isLastItem = index === totalItems - 1;
+    const isOdd = index % 2 !== 0;
+    const itemStyle = {
+      width: isLastItem ? '100%' : '48%',  
+      padding: 10,
+      alignSelf: isLastItem ? "center" : isOdd ? "flex-end" : "center", 
+      borderRightWidth: !isLastItem && index % 2 === 0 ? 1 : 0,
+      borderColor: !isLastItem && index % 2 === 0 ? colors.gray : '',
+      borderStyle: 'dotted',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.gray,
+    };
+    const playerIcon =
+      item?.playing_role === 'wk'
+        ? wicket_keeperIcon
+        : item?.playing_role === 'bowl'
+          ? bowlerIcon
+          : item?.playing_role === 'bat'
+            ? batsmanIcon
+            : item?.playing_role === 'all'
+              ? all_rounderIcon
+              : null;
+    return (
+      selectedPlayers?.includes(item?.pid) ?
+        <LinearGradient
+          colors={['#343434', '#FF5252']}
+          start={{ x: 0, y: 0.1 }}
+          end={{ x: 1, y: 0 }}
+          style={itemStyle}>
+          <TouchableOpacity activeOpacity={0.9} onPress={() => removePlayerFromTeam(item)}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: "space-between", width: '100%' }}>
+              <View style={{ flexDirection: "row", alignItems: 'center', width: '70%', }}>
+                <FastImage
+                  style={{ width: 30, height: 30, resizeMode: 'contain' }}
+                  source={
+                    item?.profile_image ? { uri: item?.profile_image } : playerIcon
+                  }
+                  resizeMode="contain"
+                />
+                <View>
+                  <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.first_name}</AppText>
+                  <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>
+                </View>
+              </View>
+
+              <View style={{ width: '30%', alignItems: 'flex-end', marginTop: 5 }}>
+                <FastImage
+                  tintColor={colors.green}
+                  style={{ width: 18, height: 18, resizeMode: 'contain', }}
+                  source={
+                    addsubstitues
+                  }
+                  resizeMode="contain"
+                />
+                <AppText type={ELEVEN} style={{ marginVertical: 5 }}>{(item?.average_point).toFixed(2)}</AppText>
+         
+             
+                
+              </View>
+
+            </View>
+          </TouchableOpacity>
+        </LinearGradient>
+        :
+        <TouchableOpacity activeOpacity={0.9} onPress={() => {
+          selectedPlayers?.length == 11 ? null : addPlayerInTeam(item)
+        }} style={itemStyle}>
+          <View style={{ flexDirection: 'row', justifyContent: "space-between", width: '100%' }}>
+            <View style={{ flexDirection: "row", alignItems: 'center', width: '70%', }}>
+              <FastImage
+                style={{ width: 30, height: 30, resizeMode: 'contain' }}
+                source={
+                  item?.profile_image ? { uri: item?.profile_image } : playerIcon
+                }
+                resizeMode="contain"
+              />
+              {console.log(item,'==item>>')
+              }
+              <View>
+                <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.short_name}</AppText>
+                <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>
+              </View>
+            </View>
+
+            <View style={{ width: '30%', alignItems: 'flex-end', marginTop: 5 }}>
+              <FastImage
+                tintColor={colors.green}
+                style={{ width: 18, height: 18, resizeMode: 'contain', }}
+                source={
+                  addsubstitues
+                }
+                resizeMode="contain"
+              />
+              <AppText type={ELEVEN} style={{ marginVertical: 5 }}>{(item?.average_point)?.toFixed(2)}</AppText>
+            </View>
+
+          </View>
+        </TouchableOpacity>
+    );
+  };
+
+
+
+  
+  
+  const PlayersList = ({ route }) => {
+    const allPlayers = useSelector(state => state?.match?.allPlayers);
+    const getFilteredPlayers = () => {
+      if (route?.key === 'pl') {
+        return allPlayers;
+      }
+      return getPlayersData(route?.key);
+    };
+
+    return (
+      <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center' }}>
+        {route?.key === 'pl' ? <FlatList
+          data={getFilteredPlayers()?.sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid)) || []}
+          renderItem={renderPastLineupItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingBottom: 20,
+            alignItems: "center",
+            justifyContent: "flex-start",
+          }}
+          numColumns={2}
+        />
+          :
+          <FlatList
+            data={getFilteredPlayers()?.sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid)) || []}
+            renderItem={renderItem}
+            showsVerticalScrollIndicator={false}
+          />}
+      </View>
+    );
+  };
+
 
   const renderScene = SceneMap({
-    wk: PlayersList,
-    bat: PlayersList,
-    ar: PlayersList,
-    bowl: PlayersList,
+    pl: props => <PlayersList route={props.route} />,
+    wk: props => <PlayersList route={props.route} />,
+    bat: props => <PlayersList route={props.route} />,
+    ar: props => <PlayersList route={props.route} />,
+    bowl: props => <PlayersList route={props.route} />,
   });
-
   const layout = useWindowDimensions();
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
-    {key: 'wk', title: 'WK'},
-    {key: 'bat', title: 'BAT'},
-    {key: 'ar', title: 'AR'},
-    {key: 'bowl', title: 'BOWL'},
+    { key: 'pl', title: 'Squads' },
+    { key: 'wk', title: 'WK' },
+    { key: 'bat', title: 'BAT' },
+    { key: 'ar', title: 'AR' },
+    { key: 'bowl', title: 'BOWL' },
   ]);
   const handleTabChange = e => {
     setIndex(e);
     setActiveTab(
-      e == 0 ? 'WK' : e == 1 ? 'BAT' : e == 2 ? 'AR' : e == 3 ? 'BOWL' : '',
+      e === 0 ? 'PL'
+        : e === 1 ? 'WK'
+          : e === 2 ? 'BAT'
+            : e === 3 ? 'AR'
+              : e === 4 ? 'BOWL'
+                : ''
     );
   };
+
   return (
     <AppSafeAreaView hidden={false}>
       <StatusBar
@@ -1298,7 +1440,7 @@ const SelectPlayer = () => {
           source={headerIner}
           resizeMode="contain"
           style={styles.header}>
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <FastImage
               source={{
                 uri:
@@ -1310,12 +1452,12 @@ const SelectPlayer = () => {
               resizeMode="contain"
             />
             <View>
-              <AppText style={{paddingLeft: 5}}>
+              <AppText style={{ paddingLeft: 5 }}>
                 {TeamsShortNames && TeamsShortNames?.length !== 0
                   ? TeamsShortNames[0]
                   : ''}
               </AppText>
-              <AppText weight={POPPINS_MEDIUM} style={{paddingLeft: 5}}>
+              <AppText weight={POPPINS_MEDIUM} style={{ paddingLeft: 5 }}>
                 {player?.length}
               </AppText>
             </View>
@@ -1327,9 +1469,9 @@ const SelectPlayer = () => {
             details={contestData}
             setRemoveTabs={setRemoveTabs}
           />
-          <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View>
-              <AppText style={{paddingRight: 5}}>
+              <AppText style={{ paddingRight: 5 }}>
                 {' '}
                 {TeamsShortNames &&
                   TeamsShortNames.length >= 1 &&
@@ -1358,7 +1500,7 @@ const SelectPlayer = () => {
         </ImageBackground>
         <View style={styles.card}>
           <View style={styles.midContainer}>
-            <View style={{justifyContent: 'center'}}>
+            <View style={{ justifyContent: 'center' }}>
               <AppText type={TEN}>Selection</AppText>
               <AppText type={TEN} weight={POPPINS_BOLD}>
                 {`${selectedPlayers?.length}/11`}
@@ -1415,18 +1557,19 @@ const SelectPlayer = () => {
           </View>
         </View>
 
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
           <TabView
-            navigationState={{index, routes}}
+            navigationState={{ index, routes }}
             renderScene={renderScene}
             onIndexChange={handleTabChange}
-            initialLayout={{width: layout.width}}
+            initialLayout={{ width: layout.width }}
             renderTabBar={props => (
               <RenderTabBar
                 {...props}
                 onTabChange={e => {
                   setActiveTab(e);
                 }}
+                allPlayers={allPlayers}
                 filterSelectedPlayer={filterSelectedPlayer}
                 newAllPlayer={newAllPlayer}
                 saveTitle={saveTitle}
@@ -1448,7 +1591,7 @@ const SelectPlayer = () => {
               },
             ]}
             title={'TEAM PREVIEW'}
-            titleStyle={{color: colors.brownYellow}}
+            titleStyle={{ color: colors.brownYellow }}
           />
           <PrimaryButton
             buttonStyle={styles.buttonStyle}
@@ -1476,10 +1619,10 @@ const SelectPlayer = () => {
           Unannounced?.length == 1
             ? 230
             : Unannounced?.length == 2
-            ? 330
-            : Unannounced?.length >= 3
-            ? 450
-            : 450
+              ? 330
+              : Unannounced?.length >= 3
+                ? 450
+                : 450
         }
         customStyles={{
           container: {
@@ -1511,6 +1654,8 @@ const SelectPlayer = () => {
 };
 
 export default SelectPlayer;
+
+
 export const RenderTabBar = props => {
   const {
     onTabChange,
@@ -1518,9 +1663,11 @@ export const RenderTabBar = props => {
     filterSelectedPlayer,
     filterDataOfSorting,
     newAllPlayer,
+    allPlayers
   } = props;
 
   return (
+
     <>
       <TabBar
         {...props}
@@ -1528,52 +1675,59 @@ export const RenderTabBar = props => {
           onTabChange(e?.route?.key);
         }}
         scrollEnabled={false}
-        tabStyle={[{flex: 1}, props.tabStyle]}
-        renderLabel={({route, focused}) => (
+        tabStyle={[{ flex: 1 }, props.tabStyle]}
+        renderLabel={({ route, focused }) => (
           <View
             style={{
               flexDirection: 'column',
               justifyContent: 'center',
               alignItems: 'center',
+              minHeight: 40,
             }}>
-            <AppText
-              type={FORTEEN}
-              color={focused ? BROWNYELLOW : WHITE}
-              weight={POPPINS_MEDIUM}>
-              {`${route.title} (${
-                route.key === 'wk'
+            <View style={{ alignItems: 'center' }}>
+              <AppText
+                type={ELEVEN}
+                color={focused ? BROWNYELLOW : WHITE}
+                weight={POPPINS_MEDIUM}
+                style={{ fontSize: 10, textAlign: 'center' }}
+              >
+                {`${route.title} (${route.key === 'wk'
                   ? filterSelectedPlayer?.wk?.length
                   : route.key === 'bat'
-                  ? filterSelectedPlayer?.bat?.length
-                  : route.key === 'ar'
-                  ? filterSelectedPlayer?.all?.length
-                  : route.key === 'bowl'
-                  ? filterSelectedPlayer?.bowl?.length
-                  : ''
-              })`}
-            </AppText>
+                    ? filterSelectedPlayer?.bat?.length
+                    : route.key === 'ar'
+                      ? filterSelectedPlayer?.all?.length
+                      : route.key === 'bowl'
+                        ? filterSelectedPlayer?.bowl?.length
+                        : route.key === 'pl'
+                          ? allPlayers?.length
+                          : 0
+                  })`}
+              </AppText>
+            </View>
+
             {focused ? (
               <LinearGradient
-                style={{height: 2, width: 65}}
-                start={{x: 0, y: 1}}
-                end={{x: 1, y: 0}}
+                style={{ height: 2, width: 65 }}
+                start={{ x: 0, y: 1 }}
+                end={{ x: 1, y: 0 }}
                 colors={[
                   colors.playerDetailsLinerOne,
                   colors.playerDetailsLinerTwo,
                 ]}
               />
             ) : (
-              <View style={{height: 2, width: 102}} />
+              <View style={{ height: 2, width: 65 }} />
             )}
           </View>
         )}
-        indicatorStyle={{backgroundColor: 'transparent'}}
+        indicatorStyle={{ backgroundColor: 'transparent' }}
         pressColor={'transparent'}
-        style={[{width: '100%', backgroundColor: 'transparent', elevation: 0}]}
+        style={[{ width: '100%', backgroundColor: 'transparent', elevation: 0 }]}
       />
       <View style={styles.playerListingHead}>
         <AppText
-          style={{flex: 1}}
+          style={{ flex: 1 }}
           type={ELEVEN}
           weight={POPPINS_MEDIUM}
           color={'#B1B1B1'}>
@@ -1598,7 +1752,7 @@ export const RenderTabBar = props => {
                 marginLeft: 5,
                 marginTop: -1,
                 transform: [
-                  {rotate: newAllPlayer === 'high' ? '180deg' : '0deg'},
+                  { rotate: newAllPlayer === 'high' ? '180deg' : '0deg' },
                 ],
               }}
               source={dropDownRed}
@@ -1625,7 +1779,7 @@ export const RenderTabBar = props => {
                 marginLeft: 5,
                 marginTop: -1,
                 transform: [
-                  {rotate: newAllPlayer === 'high' ? '180deg' : '0deg'},
+                  { rotate: newAllPlayer === 'high' ? '180deg' : '0deg' },
                 ],
               }}
               source={dropDownRed}
@@ -1634,7 +1788,7 @@ export const RenderTabBar = props => {
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          style={{padding: 2, flexDirection: 'row', alignItems: 'center'}}
+          style={{ padding: 2, flexDirection: 'row', alignItems: 'center' }}
           onPress={() => filterDataOfSorting('CREDITS')}>
           <AppText color={'#B1B1B1'} type={ELEVEN} weight={POPPINS_MEDIUM}>
             CREDITS
@@ -1647,7 +1801,7 @@ export const RenderTabBar = props => {
                 marginLeft: 5,
                 marginTop: -1,
                 transform: [
-                  {rotate: newAllPlayer === 'high' ? '180deg' : '0deg'},
+                  { rotate: newAllPlayer === 'high' ? '180deg' : '0deg' },
                 ],
               }}
               source={dropDownRed}

@@ -47,7 +47,6 @@ const Home = () => {
   const [refershing, setRefreshingTwo] = useState(false);
   const [random, setRandom] = useState(0);
   const [CheckCurrent, setCheckCurrent] = useState(getVersion());
-  console.log(CheckCurrent,'checkCu??rrent>>>',appVersion);
   
   const onClick = Cricket => {
     setSelectedLabel(Cricket);
@@ -62,53 +61,7 @@ const Home = () => {
    
     
  
-  // const requestLocationPermission = async () => {
-  //   const isIos = Platform.OS === 'ios';
-  //   if (isIos) {
-  //     Geolocation.requestAuthorization();
-  //     fetchLocation();
-  //   } else {
-  //     const checkLocationPermission = await PermissionsAndroid.check(
-  //       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-  //     );
-  //     if (checkLocationPermission) {
-  //       fetchLocation();
-  //     } else {
-  //       try {
-  //         const granted = await PermissionsAndroid.request(
-  //           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
 
-  //         );
-  //         if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-  //           fetchLocation();
-  //         } else {
-  //           Alert.alert(
-  //             'This app needs location access',
-  //             'Please grant location assess so this app can detect beacons in the background',
-
-  //           );
-  //         }
-  //       } catch (err) {
-  //         console.log(err);
-
-  //       }
-  //     }
-  //   }
-  // };
-  // const getLatituteLongitute = (lat, long) => {
-  //   setLatitude(lat)
-  //   setLongitute(long)
-  // }
-  // const fetchLocation = () => {
-  //   Geolocation.getCurrentPosition(
-  //     position => {
-  //       getLatituteLongitute(
-  //         position.coords.latitude,
-  //         position.coords.longitude,
-  //       );
-  //     }
-  //   );
-  // };
   const handleDynamicLink = link => {
 
     if (link && link?.url) {
