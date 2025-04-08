@@ -16,11 +16,12 @@ const AppSafeAreaView = ({
   });
  
   return Platform.OS === 'ios' ? (
-    <View style={[{flex: 1}, style]}>
+    <View style={[{flex: 1,backgroundColor:"black"}, style]}>
       <SafeAreaView
         edges={['right', 'left']}
         style={{
           flex: 1,
+          
         }}>
         {children}
       </SafeAreaView>
