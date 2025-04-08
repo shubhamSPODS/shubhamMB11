@@ -91,7 +91,6 @@ const MyBattleLogin = () => {
         mobile_number: number,
         resend: true,
       };
-      console.log(data,'===>>data');
       
       dispatch(userSignup(data, true));
     }

@@ -53,7 +53,7 @@ export const createLinkRefer = async (refercode: any) => {
       link: `https://mybattle11.page.link/eNh4?refercode=${refercode}`,
       domainUriPrefix: 'https://mybattle11.page.link',
       android: {
-        packageName: 'com.mybattle11'
+        packageName: 'com.myapp.mybattle11'
       },
       navigation: {
         forcedRedirectEnabled: true,

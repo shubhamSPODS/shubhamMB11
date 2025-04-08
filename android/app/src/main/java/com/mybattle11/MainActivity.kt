@@ -1,4 +1,4 @@
-package com.mybattle11
+package com.myapp.mybattle11
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

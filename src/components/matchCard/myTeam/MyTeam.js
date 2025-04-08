@@ -56,7 +56,7 @@ export const createLink = async (teamid, userId, matchId) => {
       link: `https://mybattle11.page.link/eNh4?teamId=${teamid}&userId=${userId}&matchID=${matchId}`,
       domainUriPrefix: 'https://mybattle11.page.link',
       android: {
-        packageName: 'com.mybattle11'
+        packageName: 'com.myapp.mybattle11'
       },
       navigation: {
         forcedRedirectEnabled: true,

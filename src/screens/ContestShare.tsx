@@ -22,7 +22,7 @@ export const createLink = async (id: any, category: any) => {
             link: `https://mybattle11.page.link/eNh4?match_id=${id}&category=${category}`,
             domainUriPrefix: 'https://mybattle11.page.link',
             android: {
-                packageName: 'com.mybattle11'
+                packageName: 'com.myapp.mybattle11'
             },
             navigation: {
                 forcedRedirectEnabled: true,

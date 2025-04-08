@@ -1,4 +1,4 @@
-package com.mybattle11
+package com.myapp.mybattle11
 
 import android.app.Application
 import com.facebook.react.PackageList

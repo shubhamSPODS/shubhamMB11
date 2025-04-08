@@ -41,7 +41,6 @@ export const userLogin = data => async dispatch => {
 export const userSignup = (data, permissionSave) => async dispatch => {
   try {
     const response = await appOperation.guest.register(data);
-    console.log(response,'==respomse<<<');
     
     dispatch(setLoading(true));
     if (response?.success) {

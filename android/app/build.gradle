@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.mybattle11"
+    namespace "com.myapp.mybattle11"
     defaultConfig {
-        applicationId "com.mybattle11"
+        applicationId "com.myapp.mybattle11"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 4
