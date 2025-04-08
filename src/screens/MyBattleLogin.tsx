@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ImageBackground, Keyboard, StyleSheet, View } from 'react-native';
+import { Image, ImageBackground, Keyboard, StyleSheet, View } from 'react-native';
 import { AppSafeAreaView } from '../common/AppSafeAreaView';
 import { KeyBoardAware } from '../common/KeyboardAware';
 import { AgeIcon, MyBattleIcon, MyBattleScreen } from '../helper/image';
@@ -115,6 +115,13 @@ const MyBattleLogin = () => {
           style={styles.MyBattleScreen}
           >
           <View style={styles.main} />
+          <View>
+            <Image
+              source={MyBattleIcon}
+              resizeMode="contain"
+              style={styles.logo}
+            />
+          </View>
           <View>
           
           </View>
