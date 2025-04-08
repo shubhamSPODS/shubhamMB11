@@ -166,12 +166,11 @@ const Home = () => {
   };
 
 
-  useEffect(() => {
-    // console.log(CheckCurrent,appVersion, "version");
-    if(CheckCurrent != appVersion) {
-      InstallAPK();
-    } 
-  }, []);
+  // useEffect(() => {
+  //   if(CheckCurrent != appVersion) {
+  //     InstallAPK();
+  //   } 
+  // }, []);
   const requestPermission=async()=>{
 var result = await request(PERMISSIONS.IOS.CAMERA) 
 console.log(result,"===PERMSSIOn");
