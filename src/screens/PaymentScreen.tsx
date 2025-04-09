@@ -1,5 +1,5 @@
-import React, { useRef, useState } from "react";
-import { StatusBar, StyleSheet, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Platform, StatusBar, StyleSheet, View } from "react-native";
 import { AppSafeAreaView } from "../common/AppSafeAreaView";
 import { KeyBoardAware } from "../common/KeyboardAware";
 import CommonImageBackground from "../common/commonImageBackground";
@@ -27,24 +27,85 @@ const PaymentScreen = ({ route }: any) => {
     let merchantId = "MYBATTLE11ONLINE";
     let appId = packageSignture;
     let enableLogging = true;
-    PhonePePaymentSDK.getPackageSignatureForAndroid().then((packageSignture: any) => {
-        setPackageSignture(packageSignture)
-    })
-    PhonePePaymentSDK.init(
-        environmentForSDK,
-        merchantId,
-        appId,
-        enableLogging,
-    ).then(result => {
-        console.log("result", result);
-    })
-    PhonePePaymentSDK.getUpiAppsForAndroid().then(upiApps => {
-        console.log(upiApps, "upiApps");
-        if (upiApps != null)
-            setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-    }).catch(error => {
-        setUpiApps("error:" + error.message);
-    });
+
+
+useEffect(() => {
+    if (Platform.OS === 'android') {
+        PhonePePaymentSDK.getPackageSignatureForAndroid()
+            .then((signature: string) => {
+                setPackageSignture(signature);
+
+                return PhonePePaymentSDK.init({
+                    environment: environmentForSDK,
+                    merchantId,
+                    flowId: signature, // In Android, we're using package signature as flowId
+                    enableLogging,
+                });
+            })
+            .then((result) => {
+                console.log("Android SDK Init result:", result);
+            })
+            .catch((err) => {
+                console.log("Android Init Error:", err.message);
+            });
+
+        PhonePePaymentSDK.getUpiAppsForAndroid()
+            .then(upiApps => {
+                console.log("Android UPI Apps:", upiApps);
+                if (upiApps) {
+                    setUpiApps(JSON.stringify(JSON.parse(upiApps)));
+                }
+            })
+            .catch(error => {
+                setUpiApps("error:" + error.message);
+            });
+    } else if (Platform.OS === 'ios') {
+        const flowId = "someUserIdOrFlowId"; 
+        PhonePePaymentSDK.init({
+            environment: "PRODUCTION",
+            merchantId: "MYBATTLE11ONLINE",
+            flowId: "userId123",
+            enableLogging: true
+        })
+        
+            .then((result) => {
+                console.log("iOS SDK Init result:", result);
+            })
+            .catch((err) => {
+                console.log("iOS Init Error:", err.message);
+            });
+
+        PhonePePaymentSDK.getUpiAppsForIos()
+            .then(upiApps => {
+                console.log("iOS UPI Apps:", upiApps);
+                if (upiApps) {
+                    setUpiApps(JSON.stringify(JSON.parse(upiApps)));
+                }
+            })
+            .catch(error => {
+                setUpiApps("error:" + error.message);
+            });
+    }
+}, []);
+
+    // PhonePePaymentSDK.getPackageSignatureForAndroid().then((packageSignture: any) => {
+    //     setPackageSignture(packageSignture)
+    // })
+    // PhonePePaymentSDK.init(
+    //     environmentForSDK,
+    //     merchantId,
+    //     appId,
+    //     enableLogging,
+    // ).then(result => {
+    //     console.log("result", result);
+    // })
+    // PhonePePaymentSDK.getUpiAppsForAndroid().then(upiApps => {
+    //     console.log(upiApps, "upiApps");
+    //     if (upiApps != null)
+    //         setUpiApps(JSON.stringify(JSON.parse(upiApps)));
+    // }).catch(error => {
+    //     setUpiApps("error:" + error.message);
+    // });
     let data = [
         {
             id: 1,
