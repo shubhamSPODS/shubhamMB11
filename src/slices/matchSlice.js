@@ -1,5 +1,5 @@
 import {createSlice} from '@reduxjs/toolkit';
-import {Linking} from 'react-native';
+import {Linking, Platform} from 'react-native';
 import {appOperation} from '../appOperation';
 import {toastAlert} from '../helper/utility';
 import NavigationService from '../navigation/NavigationService';
@@ -625,7 +625,7 @@ export const paymentGetwayPhonepeText =
           PhonePePaymentSDK.startTransaction(
             res?.base64,
             res?.sha256,
-            targetapp,
+            Platform.OS === 'android' ? targetapp : '',
             res?.callbackUrl,
           )
             .then(response => {

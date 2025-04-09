@@ -15,6 +15,7 @@ import {
   RESULTS,
 } from 'react-native-permissions';
 import {Alert, Platform} from 'react-native';
+import PhonePePaymentSDK from 'react-native-phonepe-pg' 
 
 // List of permissions to request
 const permissionsList = [
