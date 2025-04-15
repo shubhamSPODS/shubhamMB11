@@ -1,8 +1,8 @@
-import {View, StatusBar, TextInput, Platform} from 'react-native';
-import React, {useState, useRef} from 'react';
+import { View, StatusBar, TextInput, Platform } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
 import Header from '../../common/Header';
-import {AppSafeAreaView} from '../../common/AppSafeAreaView';
-import {KeyBoardAware} from '../../common/KeyboardAware';
+import { AppSafeAreaView } from '../../common/AppSafeAreaView';
+import { KeyBoardAware } from '../../common/KeyboardAware';
 import CommonImageBackground from '../../common/commonImageBackground';
 import {
   AppText,
@@ -24,12 +24,12 @@ import {
   rightArrow,
   closeIcon,
 } from '../../helper/image';
-import {TouchableOpacityView} from '../../common/TouchableOpacityView';
-import {useDispatch, useSelector} from 'react-redux';
+import { TouchableOpacityView } from '../../common/TouchableOpacityView';
+import { useDispatch, useSelector } from 'react-redux';
 import PrimaryButton from '../../common/primaryButton';
-import {universalPaddingHorizontal} from '../../theme/dimens';
-import {fixedToTwo, toastAlert} from '../../helper/utility';
-import {NewColor, colors} from '../../theme/color';
+import { universalPaddingHorizontal } from '../../theme/dimens';
+import { fixedToTwo, toastAlert } from '../../helper/utility';
+import { NewColor, colors } from '../../theme/color';
 import NavigationService from '../../navigation/NavigationService';
 import {
   ADDCASH_VERIFICATION,
@@ -46,6 +46,8 @@ const AddMoney = () => {
   const [message, setMessage] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [upiApps, setUpiApps] = useState('');
+  console.log(upiApps,'==upiapps');
+  
   const rbsheet = useRef();
   const userData = useSelector(state => {
     return state.profile.userData;
@@ -53,12 +55,12 @@ const AddMoney = () => {
   const kycDetails = useSelector(state => {
     return state.profile.kycDetails;
   });
-  const {totaldeposit} = userData ?? '';
+  const { totaldeposit } = userData ?? '';
   const data = [
-    {id: '1', rupay: '100'},
-    {id: '2', rupay: '250'},
-    {id: '3', rupay: '500'},
-    {id: '4', rupay: '1000'},
+    { id: '1', rupay: '100' },
+    { id: '2', rupay: '250' },
+    { id: '3', rupay: '500' },
+    { id: '4', rupay: '1000' },
   ];
 
   const bannerData = [
@@ -80,61 +82,48 @@ const AddMoney = () => {
     kycDetails?.voter_verified == 1 ||
     kycDetails?.adhar_verified == 1;
   const isUserVerifiedPanding = kycDetails?.adhar_verified == 2;
-  if (Platform.OS === 'android') {
-    PhonePePaymentSDK.getUpiAppsForAndroid()
-      .then(upiApps => {
-        if (upiApps != null) {
-          setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-        }
-      })
-      .catch(error => {
-        setUpiApps('error:' + error.message);
-      });
-  } else if (Platform.OS === 'ios') {
-    PhonePePaymentSDK.getUpiAppsForIos()
-      .then(upiApps => {
-        if (upiApps != null) {
-          setUpiApps(JSON.stringify(upiApps));
-        }
-      })
-      .catch(error => {
-        setUpiApps('error:' + error.message);
-      });
-  }
-  // PhonePePaymentSDK.getUpiAppsForAndroid()
-  //   .then(upiApps => {
-  //     if (upiApps != null) setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-  //   })
-  //   .catch(error => {
-  //     setUpiApps('error:' + error.message);
-  //   });
+  // useEffect(() => {
+  //   if (Platform.OS === 'android') {
+  //     PhonePePaymentSDK.getUpiAppsForAndroid()
+  //       .then(upiApps => {
+  //         console.log(upiApps,'==upiapps');
+          
+  //         if (upiApps != null) setUpiApps(JSON.stringify(JSON.parse(upiApps)));
+  //       })
+  //       .catch(error => {
+  //         setUpiApps('error:' + error.message);
+  //       });
+  //   } else {
+  //   }
+  // }, [])
+
   const AddMoney = () => {
-    NavigationService.navigate(PAYMENT_SCREEN, {data: data});
-    // if (!isUserVerified) {
-    //   if (isUserVerifiedPanding) {
-    //     toastAlert.showToastError('Your aadhaar verification is panding');
-    //   } else {
-    //     // NavigationService.navigate(UPLOAD_AADHAR);
-    //     NavigationService.navigate(ADDCASH_VERIFICATION);
-    //   }
-    // } else if (amount == '') {
-    //   toastAlert.showToastError('Please enter amount');
-    // } else if (amount.charAt(0) === '0') {
-    //   toastAlert.showToastError('Please enter vaild amount');
-    // }
-    // else if (amount <= 99) {
-    //   toastAlert.showToastError('Please enter amount minimum 100')
-    // }
+    if (!isUserVerified) {
+      if (isUserVerifiedPanding) {
+        toastAlert.showToastError('Your aadhaar verification is panding');
+      } else {
+        // NavigationService.navigate(UPLOAD_AADHAR);
+        NavigationService.navigate(ADDCASH_VERIFICATION);
+      }
+    } else if (amount == '') {
+      toastAlert.showToastError('Please enter amount');
+    } else if (amount.charAt(0) === '0') {
+      toastAlert.showToastError('Please enter vaild amount');
+    }
+    else if (amount <= 99) {
+      toastAlert.showToastError('Please enter amount minimum 100')
+    }
     // else if (upiApps?.length == 0) {
     //   toastAlert.showToastError("You don't have any kind of UPI App");
-    // } else {
-    //   let data = {
-    //     amount: amount,
-    //     type: '',
-    //     targetapp: '',
-    //   };
-    //   NavigationService.navigate(PAYMENT_SCREEN, {data: data});
     // }
+     else {
+      let data = {
+        amount: amount,
+        type: '',
+        targetapp: '',
+      };
+      NavigationService.navigate(PAYMENT_SCREEN, { data: data });
+    }
   };
 
   let tdsamount = parseFloat((amount / 128) * 28).toFixed(2);
@@ -182,10 +171,10 @@ const AddMoney = () => {
               <AppText color={WHITE} type={TWELVE}>
                 Add cash to your account
               </AppText>
-              <View style={{flexDirection: 'row'}}>
+              <View style={{ flexDirection: 'row' }}>
                 <InputBox
                   placeholder="Enter amount"
-                  style={{flex: 1, marginTop: 10}}
+                  style={{ flex: 1, marginTop: 10 }}
                   textInputBox={styles.textInputBox}
                   onChange={value => setAmount(value)}
                   closeImage={true}
@@ -360,7 +349,7 @@ const AddMoney = () => {
               source={closeIcon}
               tintColor={colors.white}
               resizeMode="contain"
-              style={{height: 15, width: 15}}
+              style={{ height: 15, width: 15 }}
             />
           </TouchableOpacityView>
           <View style={styles.inputContainer}>

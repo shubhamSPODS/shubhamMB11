@@ -45,6 +45,7 @@ target 'mybattle11' do
 	pod 'GoogleUtilities', :modular_headers => true
 	pod 'FirebaseCore', :modular_headers => true
 	pod 'GoogleSignIn', '~> 7.0.0'
+	pod 'PhonePePayment'
   
 	# Enables Flipper.
 	#

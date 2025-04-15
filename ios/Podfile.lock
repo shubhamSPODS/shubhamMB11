@@ -1422,6 +1422,7 @@ DEPENDENCIES:
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
   - libevent (~> 2.1.12)
   - OpenSSL-Universal (= 1.1.1100)
+  - PhonePePayment
   - RCT-Folly (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCT-Folly/Fabric (from `../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec`)
   - RCTRequired (from `../node_modules/react-native/Libraries/RCTRequired`)
@@ -1812,6 +1813,6 @@ SPEC CHECKSUMS:
   Yoga: a813a6d82538ccba91c54406404e3ed80b48a692
   YogaKit: f782866e155069a2cca2517aafea43200b01fd5a
 
-PODFILE CHECKSUM: 17d900cf37c19aa1eb766f477e5d7036c5b46acc
+PODFILE CHECKSUM: 919138299ce917e9155f8223857f3c302aab71b8
 
 COCOAPODS: 1.16.2

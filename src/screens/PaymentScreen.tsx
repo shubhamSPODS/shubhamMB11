@@ -22,90 +22,50 @@ const PaymentScreen = ({ route }: any) => {
     const amount = route?.params?.data?.amount ?? "";
     const [upiApps, setUpiApps] = useState('');
     const [packageSignture, setPackageSignture] = useState('');
-    
+    const [isPhonePeInstalled, setIsPhonePeInstalled] = useState(false);
+    const [isPaytmInstalled, setIsPaytmInstalled] = useState(false);
+    const [isGPayInstalled, setIsGPayInstalled] = useState(false);
     let environmentForSDK = "PRODUCTION";
     let merchantId = "MYBATTLE11ONLINE";
     let appId = packageSignture;
     let enableLogging = true;
+    useEffect(() => {
+        const checkApps = async () => {
+            const isPhonePe = await PhonePePaymentSDK.isPhonePeInstalled();
+            const isPaytm = await PhonePePaymentSDK.isPaytmAppInstalled();
+            const isGPay = await PhonePePaymentSDK.isGPayAppInstalled();
+
+            const installed: any = [];
+
+            if (isPhonePe) {
+                installed.push("com.phonepe.app", "com.phonepe.simulator"); 
+            }
+            if (isPaytm) {
+                installed.push("net.one97.paytm");
+            }
+            if (isGPay) {
+                installed.push("com.google.android.apps.nbu.paisa.user");
+            }
+            setIsGPayInstalled(installed)
+            setIsPaytmInstalled(installed)
+            setIsPhonePeInstalled(installed)
+            setUpiApps(installed);
+        };
+
+        checkApps();
+    }, []);
 
 
-useEffect(() => {
-    if (Platform.OS === 'android') {
-        PhonePePaymentSDK.getPackageSignatureForAndroid()
-            .then((signature: string) => {
-                setPackageSignture(signature);
+    PhonePePaymentSDK.init(
+        environmentForSDK,
+        merchantId,
+        appId,
+        enableLogging,
+    ).then(result => {
+        console.log("result", result);
+    })
 
-                return PhonePePaymentSDK.init({
-                    environment: environmentForSDK,
-                    merchantId,
-                    flowId: signature, // In Android, we're using package signature as flowId
-                    enableLogging,
-                });
-            })
-            .then((result) => {
-                console.log("Android SDK Init result:", result);
-            })
-            .catch((err) => {
-                console.log("Android Init Error:", err.message);
-            });
 
-        PhonePePaymentSDK.getUpiAppsForAndroid()
-            .then(upiApps => {
-                console.log("Android UPI Apps:", upiApps);
-                if (upiApps) {
-                    setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-                }
-            })
-            .catch(error => {
-                setUpiApps("error:" + error.message);
-            });
-    } else if (Platform.OS === 'ios') {
-        const flowId = "someUserIdOrFlowId"; 
-        PhonePePaymentSDK.init({
-            environment: "PRODUCTION",
-            merchantId: "MYBATTLE11ONLINE",
-            flowId: "userId123",
-            enableLogging: true
-        })
-        
-            .then((result) => {
-                console.log("iOS SDK Init result:", result);
-            })
-            .catch((err) => {
-                console.log("iOS Init Error:", err.message);
-            });
-
-        PhonePePaymentSDK.getUpiAppsForIos()
-            .then(upiApps => {
-                console.log("iOS UPI Apps:", upiApps);
-                if (upiApps) {
-                    setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-                }
-            })
-            .catch(error => {
-                setUpiApps("error:" + error.message);
-            });
-    }
-}, []);
-
-    // PhonePePaymentSDK.getPackageSignatureForAndroid().then((packageSignture: any) => {
-    //     setPackageSignture(packageSignture)
-    // })
-    // PhonePePaymentSDK.init(
-    //     environmentForSDK,
-    //     merchantId,
-    //     appId,
-    //     enableLogging,
-    // ).then(result => {
-    //     console.log("result", result);
-    // })
-    // PhonePePaymentSDK.getUpiAppsForAndroid().then(upiApps => {
-    //     console.log(upiApps, "upiApps");
-    //     if (upiApps != null)
-    //         setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-    // }).catch(error => {
-    //     setUpiApps("error:" + error.message);
-    // });
     let data = [
         {
             id: 1,
@@ -151,7 +111,6 @@ useEffect(() => {
     //     }
     //     dispatch(paymentGetwayPhonepeText(data, title, sheet))
     // }
-    console.log(upiApps, "upiApps");
     return (
         <AppSafeAreaView hidden={false}>
             <StatusBar
@@ -176,33 +135,42 @@ useEffect(() => {
                             </AppText>
                         </View>
                         {data?.map((item) => {
-                            const isMatchingPackage = upiApps?.includes(item.packageName);
-                            console.log(isMatchingPackage, "isMatchingPackage");
-                            if (isMatchingPackage) {
+                            const isAppInstalled =
+                                (item.packageName === "com.phonepe.app" && isPhonePeInstalled) ||
+                                (item.packageName === "net.one97.paytm" && isPaytmInstalled) ||
+                                (item.packageName === "com.google.android.apps.nbu.paisa.user" && isGPayInstalled)
+
+                            if (isAppInstalled) {
                                 return (
-                                    <View style={styles.upiConatiner}>
+                                    <View style={styles.upiConatiner} key={item.id}>
                                         <View style={styles.underContainer}>
-                                            <FastImage source={item.icon} resizeMode="contain" style={styles.appIcon} />
+                                            <FastImage source={item.icon} style={styles.appIcon} />
                                             <AppText weight={POPPINS_MEDIUM}>
-                                                UPI{'\n'}<AppText weight={POPPINS_SEMI_BOLD} type={THIRTEEN}>{item.appName}
+                                                UPI{'\n'}
+                                                <AppText weight={POPPINS_SEMI_BOLD} type={THIRTEEN}>
+                                                    {item.appName}
                                                 </AppText>
                                             </AppText>
                                         </View>
-                                        <TouchableOpacityView onPress={() => PayUpi(item.packageName)} style={styles.payContainer}>
+                                        <TouchableOpacityView
+                                            onPress={() => PayUpi(item.packageName)}
+                                            style={styles.payContainer}
+                                        >
                                             <AppText type={FORTEEN} weight={POPPINS_SEMI_BOLD}>
                                                 ADD ₹{amount}
                                             </AppText>
                                         </TouchableOpacityView>
                                     </View>
-                                )
+                                );
                             }
                         })}
-                        
+
+
                     </View>
-                    {upiApps && <View style={{justifyContent: "center", alignItems: "center"}}>
-                            <AppText color={WHITE} type={FORTEEN}>Please Install UPI Apps in your Device to add funds</AppText>
-                            <AppText color={WHITE} type={FORTEEN}>Ex. Paytm, Phonepe,Gpay.</AppText>
-                        </View>}
+                    {upiApps && <View style={{ justifyContent: "center", alignItems: "center" }}>
+                        <AppText color={WHITE} type={FORTEEN}>Please Install UPI Apps in your Device to add funds</AppText>
+                        <AppText color={WHITE} type={FORTEEN}>Ex. Paytm, Phonepe,Gpay.</AppText>
+                    </View>}
                     {/* <View style={[styles.preferredContainer, {
                         flexDirection: "row",
                         alignItems: "center", justifyContent: "space-between"
