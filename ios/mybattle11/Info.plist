@@ -46,6 +46,9 @@
 	<string>This app needs permission to save photos to your library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app requires access to your photo library to save images.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+<string>This app requires location access to provide location-based features and improve user experience.</string>
+
 	<key>UIAppFonts</key>
 	<array>
 		<string>Lato-Bold.ttf</string>
