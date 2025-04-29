@@ -78,7 +78,7 @@ export default appOperation => ({
     ),
   phonePeGetway: data =>
     appOperation.post(
-      `payment/gateway`,
+      `phonepe/createOrder`,
       data,
       CUSTOMER_TYPE,
     ),

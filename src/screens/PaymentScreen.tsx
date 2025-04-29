@@ -1,112 +1,37 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Platform, StatusBar, StyleSheet, View } from "react-native";
+import { Image, Platform, StatusBar, StyleSheet, TouchableOpacity, View } from "react-native";
 import { AppSafeAreaView } from "../common/AppSafeAreaView";
 import { KeyBoardAware } from "../common/KeyboardAware";
 import CommonImageBackground from "../common/commonImageBackground";
 import Header from "../common/Header";
 import { AppText, FORTEEN, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, THIRTEEN, WHITE } from "../common/AppText";
 import FastImage from "@d11/react-native-fast-image";
-import { CurrentStar, PhonePeSamIcon, googlepay, panCard, paytmIcon, phonepay } from "../helper/image";
+import { CurrentStar, PhonePeSamIcon, googlepay, paytmIcon, phonepay } from "../helper/image";
 import { colors } from "../theme/color";
 import { Screen, universalPaddingHorizontal } from "../theme/dimens";
-import PhonePePaymentSDK from 'react-native-phonepe-pg'
 import { TouchableOpacityView } from "../common/TouchableOpacityView";
 import { useDispatch } from "react-redux";
 import { paymentGetwayPhonepeText } from "../slices/matchSlice";
 import RBSheet from "react-native-raw-bottom-sheet";
 import { WebViewComponent } from "../components/WebView";
+import DeviceInfo from "react-native-device-info";
+import PhonePePaymentSDK from "react-native-phonepe-pg";
 
 const PaymentScreen = ({ route }: any) => {
     const dispatch = useDispatch();
     const sheet = useRef();
-    const amount = route?.params?.data?.amount ?? "";
-    const [upiApps, setUpiApps] = useState('');
-    const [packageSignture, setPackageSignture] = useState('');
-    
-    let environmentForSDK = "PRODUCTION";
-    let merchantId = "MYBATTLE11ONLINE";
-    let appId = packageSignture;
-    let enableLogging = true;
+    const amount = route?.params?.amount || 0;
 
+    const [upiApps, setUpiApps]:any = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
+    const [packageSignature, setPackageSignature] = useState('');
 
-useEffect(() => {
-    if (Platform.OS === 'android') {
-        PhonePePaymentSDK.getPackageSignatureForAndroid()
-            .then((signature: string) => {
-                setPackageSignture(signature);
+    const environmentForSDK = 'SANDBOX'; 
+    const merchantId = 'MYBATTLE11UAT';
+    const flowId = 'NjkzMzMzMWMtM2NhMC00NWE4LWJjMjItY2ZjY2U3YWQ1YWNi';
+    const enableLogging = true;
 
-                return PhonePePaymentSDK.init({
-                    environment: environmentForSDK,
-                    merchantId,
-                    flowId: signature, // In Android, we're using package signature as flowId
-                    enableLogging,
-                });
-            })
-            .then((result) => {
-                console.log("Android SDK Init result:", result);
-            })
-            .catch((err) => {
-                console.log("Android Init Error:", err.message);
-            });
-
-        PhonePePaymentSDK.getUpiAppsForAndroid()
-            .then(upiApps => {
-                console.log("Android UPI Apps:", upiApps);
-                if (upiApps) {
-                    setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-                }
-            })
-            .catch(error => {
-                setUpiApps("error:" + error.message);
-            });
-    } else if (Platform.OS === 'ios') {
-        const flowId = "someUserIdOrFlowId"; 
-        PhonePePaymentSDK.init({
-            environment: "PRODUCTION",
-            merchantId: "MYBATTLE11ONLINE",
-            flowId: "userId123",
-            enableLogging: true
-        })
-        
-            .then((result) => {
-                console.log("iOS SDK Init result:", result);
-            })
-            .catch((err) => {
-                console.log("iOS Init Error:", err.message);
-            });
-
-        PhonePePaymentSDK.getUpiAppsForIos()
-            .then(upiApps => {
-                console.log("iOS UPI Apps:", upiApps);
-                if (upiApps) {
-                    setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-                }
-            })
-            .catch(error => {
-                setUpiApps("error:" + error.message);
-            });
-    }
-}, []);
-
-    // PhonePePaymentSDK.getPackageSignatureForAndroid().then((packageSignture: any) => {
-    //     setPackageSignture(packageSignture)
-    // })
-    // PhonePePaymentSDK.init(
-    //     environmentForSDK,
-    //     merchantId,
-    //     appId,
-    //     enableLogging,
-    // ).then(result => {
-    //     console.log("result", result);
-    // })
-    // PhonePePaymentSDK.getUpiAppsForAndroid().then(upiApps => {
-    //     console.log(upiApps, "upiApps");
-    //     if (upiApps != null)
-    //         setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-    // }).catch(error => {
-    //     setUpiApps("error:" + error.message);
-    // });
-    let data = [
+    const staticUPIData = [
         {
             id: 1,
             packageName: "com.phonepe.simulator",
@@ -131,40 +56,96 @@ useEffect(() => {
             icon: googlepay,
             appName: "Google Pay",
         }
-    ]
-    const PayUpi = (packageName: any) => {
-        let title = "UPI_INTENT";
-        let targetapp = packageName;
-        let sheet = null;
-        let data = {
-            amount: amount,
-            type: 'UPI_INTENT',
-            targetapp: packageName
+    ];
+
+    const initPhonePeSDK = () => {
+        PhonePePaymentSDK.init(
+          environmentForSDK,
+          merchantId,
+          flowId,
+          true
+        ).then(result => {
+        console.log("Message: SDK Initialisation ->" + JSON.stringify(result));
+        }).catch(error => {
+            console.log("error:" + error.message);
+        })
+      };
+
+    const checkApps = async () => {
+        try {
+            initPhonePeSDK();
+            const response = await PhonePePaymentSDK.getUpiAppsForAndroid();
+            console.log('Available UPI Apps:', response);
+            console.log('Response Type:', typeof response);
+            console.log('Response Content:', response);
+   
+            // Parse the response if it's a string
+            let parsedResponse = [];
+            if (typeof response === 'string') {
+                parsedResponse = JSON.parse(response);
+                console.log('Parsed Response:', parsedResponse);
+            } else {
+                parsedResponse = response;
+            }
+   
+            // Now handle parsedResponse as an array
+            if (Array.isArray(parsedResponse)) {
+                setUpiApps(parsedResponse);
+                const installedPackages = parsedResponse.map(app => app.packageName?.toLowerCase());
+                console.log('installedPackages =>', installedPackages);
+   
+                const matchedData:any = staticUPIData.filter(item => {
+                    console.log(item, '==itemMatchedData');
+                    return installedPackages.includes(item.packageName?.toLowerCase());
+                });
+                console.log('matchedData= =>', matchedData);
+                setFilteredData(matchedData);
+            } else {
+                console.warn('Response is still not an array:', parsedResponse);
+                setUpiApps([]);
+            }
+    
+        } catch (error) {
+            console.error('Error fetching installed UPI apps:', error);
         }
-        dispatch(paymentGetwayPhonepeText(data, title, sheet, targetapp, appId))
-    }
-    // const PayCard = () => {
-    //     let title = "UPI_INTENT";
-    //     let data = {
-    //         amount: amount,
-    //         type: 'UPI_INTENT'
-    //     }
-    //     dispatch(paymentGetwayPhonepeText(data, title, sheet))
-    // }
-    console.log(upiApps, "upiApps");
+    };
+   
+   
+ 
+
+    const generateTransactionId = () => {
+        const timeStamp = Date.now();
+        const random = Math.floor(Math.random() * 1000000);
+        const merchantPrefix = '1';
+        return `${merchantPrefix}${timeStamp}${random}`;
+    };
+
+    const handleUPIPayment = (packageName: string) => {
+        const title = "UPI_INTENT";
+        const data = {
+            amount: amount,
+            type: title,
+            targetapp: packageName,
+        };
+
+        dispatch(paymentGetwayPhonepeText(data));
+    };
+
+    useEffect(() => {
+        checkApps()
+        const bundleId = DeviceInfo.getBundleId(); 
+        setPackageSignature(bundleId);
+    }, []);
+    console.log(filteredData,'==flter');
+    
+
     return (
         <AppSafeAreaView hidden={false}>
-            <StatusBar
-                backgroundColor={'transparent'}
-                translucent={true}
-                networkActivityIndicatorVisible={true}
-            />
+            <StatusBar backgroundColor={'transparent'} translucent={true} networkActivityIndicatorVisible={true} />
             <KeyBoardAware>
                 <CommonImageBackground common>
                     <Header
-                        style={{
-                            marginTop: '12%',
-                        }}
+                        style={{ marginTop: '12%' }}
                         commonHeader
                         title="Payment Option"
                     />
@@ -175,71 +156,63 @@ useEffect(() => {
                                 {'  '}PREFERRED PAYMENT
                             </AppText>
                         </View>
-                        {data?.map((item) => {
-                            const isMatchingPackage = upiApps?.includes(item.packageName);
-                            console.log(isMatchingPackage, "isMatchingPackage");
-                            if (isMatchingPackage) {
-                                return (
-                                    <View style={styles.upiConatiner}>
-                                        <View style={styles.underContainer}>
-                                            <FastImage source={item.icon} resizeMode="contain" style={styles.appIcon} />
-                                            <AppText weight={POPPINS_MEDIUM}>
-                                                UPI{'\n'}<AppText weight={POPPINS_SEMI_BOLD} type={THIRTEEN}>{item.appName}
-                                                </AppText>
-                                            </AppText>
-                                        </View>
-                                        <TouchableOpacityView onPress={() => PayUpi(item.packageName)} style={styles.payContainer}>
-                                            <AppText type={FORTEEN} weight={POPPINS_SEMI_BOLD}>
-                                                ADD ₹{amount}
-                                            </AppText>
-                                        </TouchableOpacityView>
-                                    </View>
-                                )
-                            }
-                        })}
-                        
+
+                        {/* Show available filtered UPI apps */}
+                        {filteredData.length > 0 ? filteredData.map((item:any) => (
+                            <View style={styles.upiContainer} key={item.id}>
+                                <View style={styles.underContainer}>
+                                    <Image source={item.icon} style={styles.appIcon} />
+                                    <AppText weight={POPPINS_MEDIUM}>
+                                        UPI{'\n'}
+                                        <AppText weight={POPPINS_SEMI_BOLD} type={THIRTEEN}>
+                                            {item.appName}
+                                        </AppText>
+                                    </AppText>
+                                </View>
+                                <TouchableOpacityView
+                                    onPress={() => handleUPIPayment(item.packageName)}
+                                    style={styles.payContainer}
+                                >
+                                    <AppText type={FORTEEN} weight={POPPINS_SEMI_BOLD}>
+                                        ADD ₹{amount}
+                                    </AppText>
+                                </TouchableOpacityView>
+                            </View>
+                        )) : (
+                            <View style={{ alignItems: 'center', marginTop: 20 }}>
+                                <AppText color={WHITE} type={FORTEEN}>
+                                    No UPI apps found. Please install Paytm, PhonePe, or GPay.
+                                </AppText>
+                            </View>
+                        )}
                     </View>
-                    {upiApps && <View style={{justifyContent: "center", alignItems: "center"}}>
-                            <AppText color={WHITE} type={FORTEEN}>Please Install UPI Apps in your Device to add funds</AppText>
-                            <AppText color={WHITE} type={FORTEEN}>Ex. Paytm, Phonepe,Gpay.</AppText>
-                        </View>}
-                    {/* <View style={[styles.preferredContainer, {
-                        flexDirection: "row",
-                        alignItems: "center", justifyContent: "space-between"
-                    }]}>
-                        <View style={styles.underContainer}>
-                            <FastImage tintColor={colors.white} source={panCard} resizeMode="contain" style={styles.cardIcon} />
-                            <AppText type={THIRTEEN} weight={POPPINS_SEMI_BOLD}>
-                                {'  '}Pay With Card
-                            </AppText>
-                        </View>
-                        <TouchableOpacityView onPress={() => PayCard()} style={styles.payContainer}>
-                            <AppText type={FORTEEN} weight={POPPINS_SEMI_BOLD}>
-                                ADD ₹{amount}
-                            </AppText>
-                        </TouchableOpacityView>
-                    </View> */}
+
                 </CommonImageBackground>
             </KeyBoardAware>
+
+            {/* Bottom Sheet */}
             <RBSheet
                 ref={sheet}
                 closeOnDragDown={true}
-                height={201}
+                height={Screen.Height}
                 customStyles={{
                     container: {
-                        height: Screen.Height
+                        height: Screen.Height,
                     },
                     draggableIcon: {
                         backgroundColor: 'transparent',
                         display: 'none',
                     },
-                }}>
+                }}
+            >
                 <WebViewComponent />
             </RBSheet>
         </AppSafeAreaView>
-    )
+    );
 };
+
 export default PaymentScreen;
+
 const styles = StyleSheet.create({
     preferredContainer: {
         paddingHorizontal: universalPaddingHorizontal,
@@ -259,7 +232,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center"
     },
-    upiConatiner: {
+    upiContainer: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
@@ -282,9 +255,5 @@ const styles = StyleSheet.create({
         width: "35%",
         alignItems: "center",
         justifyContent: "center"
-    },
-    cardIcon: {
-        height: 35,
-        width: 35
     }
-})
+});

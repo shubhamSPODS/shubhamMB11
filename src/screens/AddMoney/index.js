@@ -37,7 +37,7 @@ import {
   UPLOAD_AADHAR,
 } from '../../navigation/routes';
 import RBSheet from 'react-native-raw-bottom-sheet';
-import PhonePePaymentSDK from 'react-native-phonepe-pg';
+// import PhonePePaymentSDK from 'react-native-phonepe-pg';
 
 const AddMoney = () => {
   const dispatch = useDispatch();
@@ -80,27 +80,27 @@ const AddMoney = () => {
     kycDetails?.voter_verified == 1 ||
     kycDetails?.adhar_verified == 1;
   const isUserVerifiedPanding = kycDetails?.adhar_verified == 2;
-  if (Platform.OS === 'android') {
-    PhonePePaymentSDK.getUpiAppsForAndroid()
-      .then(upiApps => {
-        if (upiApps != null) {
-          setUpiApps(JSON.stringify(JSON.parse(upiApps)));
-        }
-      })
-      .catch(error => {
-        setUpiApps('error:' + error.message);
-      });
-  } else if (Platform.OS === 'ios') {
-    PhonePePaymentSDK.getUpiAppsForIos()
-      .then(upiApps => {
-        if (upiApps != null) {
-          setUpiApps(JSON.stringify(upiApps));
-        }
-      })
-      .catch(error => {
-        setUpiApps('error:' + error.message);
-      });
-  }
+  // if (Platform.OS === 'android') {
+  //   PhonePePaymentSDK.getUpiAppsForAndroid()
+  //     .then(upiApps => {
+  //       if (upiApps != null) {
+  //         setUpiApps(JSON.stringify(JSON.parse(upiApps)));
+  //       }
+  //     })
+  //     .catch(error => {
+  //       setUpiApps('error:' + error.message);
+  //     });
+  // } else if (Platform.OS === 'ios') {
+  //   PhonePePaymentSDK.getUpiAppsForIos()
+  //     .then(upiApps => {
+  //       if (upiApps != null) {
+  //         setUpiApps(JSON.stringify(upiApps));
+  //       }
+  //     })
+  //     .catch(error => {
+  //       setUpiApps('error:' + error.message);
+  //     });
+  // }
   // PhonePePaymentSDK.getUpiAppsForAndroid()
   //   .then(upiApps => {
   //     if (upiApps != null) setUpiApps(JSON.stringify(JSON.parse(upiApps)));
@@ -109,7 +109,7 @@ const AddMoney = () => {
   //     setUpiApps('error:' + error.message);
   //   });
   const AddMoney = () => {
-    NavigationService.navigate(PAYMENT_SCREEN, {data: data});
+    NavigationService.navigate(PAYMENT_SCREEN, {amount: amount});
     // if (!isUserVerified) {
     //   if (isUserVerifiedPanding) {
     //     toastAlert.showToastError('Your aadhaar verification is panding');

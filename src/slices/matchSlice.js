@@ -1,5 +1,5 @@
 import {createSlice} from '@reduxjs/toolkit';
-import {Linking} from 'react-native';
+import {Linking, Platform} from 'react-native';
 import {appOperation} from '../appOperation';
 import {toastAlert} from '../helper/utility';
 import NavigationService from '../navigation/NavigationService';
@@ -605,50 +605,63 @@ export const paymentGetwayPhonepe = (data, title, sheet) => async dispatch => {
     dispatch(setLoading(false));
   }
 };
-export const paymentGetwayPhonepeText =
-  (data, title, sheet, targetapp, appId) => async dispatch => {
-    try {
-      const res = await appOperation.customer.phonePeGetway(data);
-      if (res?.success) {
-        if (title == 'Noting') {
-        } else if (title == 'PAY_PAGE') {
-          dispatch(setPhonePeGewat(res?.data?.data));
-          sheet.current.open();
-        } else {
-          let environmentForSDK = 'PRODUCTION';
-          PhonePePaymentSDK.init(
-            environmentForSDK,
-            res?.merchantid,
-            appId,
-            true,
-          ).then(result => {});
-          PhonePePaymentSDK.startTransaction(
-            res?.base64,
-            res?.sha256,
-            targetapp,
-            res?.callbackUrl,
-          )
-            .then(response => {
-              if (response.status == 'SUCCESS') {
-                toastAlert.showToastError('Your payment is in processing');
-                sheet?.current?.close();
-                dispatch(getUserProfile(false, false));
-                NavigationService.navigate(MY_BALANCE);
-              } else if (response?.status == 'FAILURE') {
-                toastAlert.showToastError('Your payment has been cancelled');
-                dispatch(getUserProfile(false, false));
-              }
-            })
-            .catch(error => {
-              console.error('Start Transaction Error:', error);
-            });
-        }
+export const paymentGetwayPhonepeText = (data, title, sheet, appId) => async dispatch => {
+  try {
+    dispatch(setLoading(true));
+    const res = await appOperation.customer.phonePeGetway(data);
+    console.log(data,'==daya',res);
+    
+    if (res?.code ==200) {
+      const merchantId = 'MYBATTLE11UAT';
+      const targetApp = data?.targetapp;
+      const { orderId, token } = res || {};
+      if (!orderId || !token) {
+        console.error('Missing orderId or token');
+        toastAlert.showToastError('Invalid payment details received');
+        return;
       }
-    } catch (e) {
-    } finally {
-      dispatch(setLoading(false));
+      const requestBodyAsString = JSON.stringify({
+        orderId:  orderId,
+        merchantId: merchantId,
+        token: token,
+        paymentMode: {
+          type: "UPI_INTENT"
+        },
+        amount:data?.amount,
+        targetAppPackageName:targetApp
+      });
+
+      PhonePePaymentSDK.startTransaction(requestBodyAsString,'reactDemoAppScheme')
+        .then(response => {
+          console.log(response, '==PhonePe Transaction Response');
+
+          if (response.status === 'SUCCESS') {
+            toastAlert.showToastError('Your payment is in processing');
+            sheet?.current?.close();
+            dispatch(getUserProfile(false, false));
+            NavigationService.navigate(MY_BALANCE);
+          } else if (response?.status === 'FAILURE') {
+            toastAlert.showToastError('Your payment has been cancelled');
+            dispatch(getUserProfile(false, false));
+          } else {
+            toastAlert.showToastError('Unexpected response from PhonePe');
+          }
+        })
+        .catch(error => {
+          console.error('Start Transaction Error:', error);
+          toastAlert.showToastError('Transaction failed to start');
+        });
+    } else {
+      toastAlert.showToastError(res?.message || 'Payment gateway failed');
     }
-  };
+  } catch (e) {
+    console.error('PhonePe Payment Error:', e);
+    toastAlert.showToastError('Something went wrong with the payment');
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
 export const setRemaning = data => async dispatch => {
   try {
     dispatch(setRemaningPlayer(data));
