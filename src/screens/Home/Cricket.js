@@ -23,7 +23,6 @@ import NavigationService from '../../navigation/NavigationService';
 import { universalPaddingHorizontal } from '../../theme/dimens';
 import { setMyMatchesHome, setUpComingMatches } from '../../slices/matchSlice';
 import { KeyBoardAware } from '../../common/KeyboardAware';
-import { BASE_URL } from '../../helper/utility';
 
 const search = element => getDate(element).hour < 0;
 const Cricket = ({ random, setRefreshingTwo }) => {

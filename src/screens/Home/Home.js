@@ -44,6 +44,8 @@ const Home = () => {
   const bannerList = useSelector(state => {
     return  state.profile.bannerList;
   })
+
+    
   const [refershing, setRefreshingTwo] = useState(false);
   const [random, setRandom] = useState(0);
   const [CheckCurrent, setCheckCurrent] = useState(getVersion());

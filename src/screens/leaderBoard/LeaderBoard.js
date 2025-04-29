@@ -47,7 +47,7 @@ import {
   setSelectedMatch,
 } from '../../slices/matchSlice';
 import CommonHeader from '../../components/matchCard/commonHeader/CommonHeader';
-import { BASE_URL, numberWithCommas, toastAlert } from '../../helper/utility';
+import { toastAlert } from '../../helper/utility';
 import Confirmation from '../../common/Confirmation';
 import CommonImageBackground from '../../common/commonImageBackground';
 import { NewColor, colors } from '../../theme/color';

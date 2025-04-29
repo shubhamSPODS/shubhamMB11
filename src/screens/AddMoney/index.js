@@ -109,7 +109,7 @@ const AddMoney = () => {
   //     setUpiApps('error:' + error.message);
   //   });
   const AddMoney = () => {
-    NavigationService.navigate(PAYMENT_SCREEN, {data: data});
+    NavigationService.navigate(PAYMENT_SCREEN, {amount: amount});
     // if (!isUserVerified) {
     //   if (isUserVerifiedPanding) {
     //     toastAlert.showToastError('Your aadhaar verification is panding');
