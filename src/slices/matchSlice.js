@@ -609,7 +609,6 @@ export const paymentGetwayPhonepeText = (data, title, sheet, appId) => async dis
   try {
     dispatch(setLoading(true));
     const res = await appOperation.customer.phonePeGetway(data);
-    console.log(data,'==daya',res);
     
     if (res?.code ==200) {
       const merchantId = 'MYBATTLE11UAT';
@@ -628,7 +627,8 @@ export const paymentGetwayPhonepeText = (data, title, sheet, appId) => async dis
           type: "UPI_INTENT"
         },
         amount:data?.amount,
-        targetAppPackageName:targetApp
+        targetAppPackageName:targetApp,
+        transactionId:data?.transactionId
       });
 
       PhonePePaymentSDK.startTransaction(requestBodyAsString,'reactDemoAppScheme')

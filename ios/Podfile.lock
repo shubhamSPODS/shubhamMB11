@@ -236,7 +236,7 @@ PODS:
   - nanopb/decode (2.30909.1)
   - nanopb/encode (2.30909.1)
   - OpenSSL-Universal (1.1.1100)
-  - PhonePePayment (3.0.3)
+  - PhonePePayment (4.0.0)
   - PromisesObjC (2.4.0)
   - RCT-Folly (2022.05.16.00):
     - boost
@@ -1125,9 +1125,9 @@ PODS:
     - glog
     - RCT-Folly (= 2022.05.16.00)
     - React-Core
-  - react-native-phonepe-pg (2.0.2):
+  - react-native-phonepe-pg (3.0.1):
     - glog
-    - PhonePePayment (= 3.0.3)
+    - PhonePePayment (= 4.0.0)
     - RCT-Folly (= 2022.05.16.00)
     - React-Core
   - react-native-progress-bar-android (1.0.5):
@@ -1733,7 +1733,7 @@ SPEC CHECKSUMS:
   libwebp: 02b23773aedb6ff1fd38cec7a77b81414c6842a8
   nanopb: d4d75c12cd1316f4a64e3c6963f879ecd4b5e0d5
   OpenSSL-Universal: ebc357f1e6bc71fa463ccb2fe676756aff50e88c
-  PhonePePayment: 5a37a381127bfdd635b3a85123ad96a421288b2a
+  PhonePePayment: c720ada91c0976d6888a44571ced348ed8cd7d83
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
   RCT-Folly: cd21f1661364f975ae76b3308167ad66b09f53f5
   RCTRequired: 415e56f7c33799a6483e41e4dce607f3daf1e69b
@@ -1761,7 +1761,7 @@ SPEC CHECKSUMS:
   react-native-geolocation-service: 32b2c2a3b91e70ce2a8d0c684801aaeb0a07e0ec
   react-native-otp-verify: 6d153f8a8e8392c6a51f9d94c090dc16d7c756b2
   react-native-pager-view: ef2dfe6dbe24352056abc7dab58c93d272750139
-  react-native-phonepe-pg: 88e1f3a36e88a863ffb4c9712d444664eb114ad4
+  react-native-phonepe-pg: a3360f911d7bf8a60c4186993226036e25dff560
   react-native-progress-bar-android: 70caf8832e7a6378a3340bc81f361f65ad406a54
   react-native-safe-area-context: 758e894ca5a9bd1868d2a9cfbca7326a2b6bf9dc
   react-native-splash-screen: 95994222cc95c236bd3cdc59fe45ed5f27969594

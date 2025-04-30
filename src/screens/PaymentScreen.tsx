@@ -22,79 +22,84 @@ const PaymentScreen = ({ route }: any) => {
     const sheet = useRef();
     const amount = route?.params?.amount || 0;
 
-    const [upiApps, setUpiApps]:any = useState([]);
+    const [upiApps, setUpiApps]: any = useState([]);
     const [filteredData, setFilteredData] = useState([]);
     const [packageSignature, setPackageSignature] = useState('');
 
-    const environmentForSDK = 'SANDBOX'; 
+    const environmentForSDK = 'SANDBOX';
     const merchantId = 'MYBATTLE11UAT';
     const flowId = 'NjkzMzMzMWMtM2NhMC00NWE4LWJjMjItY2ZjY2U3YWQ1YWNi';
     const enableLogging = true;
-
     const staticUPIData = [
-        {
-            id: 1,
-            packageName: "com.phonepe.simulator",
-            icon: PhonePeSamIcon,
-            appName: "PhonePe Simulator",
-        },
-        {
-            id: 2,
-            packageName: "com.phonepe.app",
-            icon: phonepay,
-            appName: "PhonePe",
-        },
-        {
-            id: 3,
-            packageName: "net.one97.paytm",
-            icon: paytmIcon,
-            appName: "Paytm",
-        },
-        {
-            id: 4,
-            packageName: "com.google.android.apps.nbu.paisa.user",
-            icon: googlepay,
-            appName: "Google Pay",
-        }
+        { id: 1, name: 'PAYTM', packageName: 'com.paytm', icon: paytmIcon, appName: 'Paytm' },
+        { id: 2, name: 'GPAY', packageName: 'com.google.android.apps.nbu.paisa.user', icon: googlepay, appName: 'Google Pay' },
+        { id: 3, name: 'PHONEPE', packageName: 'com.phonepe.app', icon: phonepay, appName: 'PhonePe' },
+        { id: 4, name: 'PhonePe Simulator', packageName: 'com.phonepe.simulator', icon: PhonePeSamIcon, appName: 'PhonePe Simulator' },
     ];
+
+    // const staticUPIData = [
+    //     {
+    //         id: 1,
+    //         packageName: "com.phonepe.simulator",
+    //         icon: PhonePeSamIcon,
+    //         appName: "PhonePe Simulator",
+    //     },
+    //     {
+    //         id: 2,
+    //         packageName: "com.phonepe.app",
+    //         icon: phonepay,
+    //         appName: "PhonePe",
+    //     },
+    //     {
+    //         id: 3,
+    //         packageName: "net.one97.paytm",
+    //         icon: paytmIcon,
+    //         appName: "Paytm",
+    //     },
+    //     {
+    //         id: 4,
+    //         packageName: "com.google.android.apps.nbu.paisa.user",
+    //         icon: googlepay,
+    //         appName: "Google Pay",
+    //     }
+    // ];
 
     const initPhonePeSDK = () => {
         PhonePePaymentSDK.init(
-          environmentForSDK,
-          merchantId,
-          flowId,
-          true
+            environmentForSDK,
+            merchantId,
+            flowId,
+            true
         ).then(result => {
-        console.log("Message: SDK Initialisation ->" + JSON.stringify(result));
+            console.log("Message: SDK Initialisation ->>" + JSON.stringify(result));
         }).catch(error => {
             console.log("error:" + error.message);
         })
-      };
-
-    const checkApps = async () => {
+    };
+    const checkAppsAndroid = async () => {
         try {
             initPhonePeSDK();
             const response = await PhonePePaymentSDK.getUpiAppsForAndroid();
             console.log('Available UPI Apps:', response);
             console.log('Response Type:', typeof response);
             console.log('Response Content:', response);
-   
+
             // Parse the response if it's a string
-            let parsedResponse = [];
+            let parsedResponse: any = [];
             if (typeof response === 'string') {
                 parsedResponse = JSON.parse(response);
                 console.log('Parsed Response:', parsedResponse);
             } else {
                 parsedResponse = response;
             }
-   
+
             // Now handle parsedResponse as an array
             if (Array.isArray(parsedResponse)) {
                 setUpiApps(parsedResponse);
                 const installedPackages = parsedResponse.map(app => app.packageName?.toLowerCase());
                 console.log('installedPackages =>', installedPackages);
-   
-                const matchedData:any = staticUPIData.filter(item => {
+
+                const matchedData: any = staticUPIData.filter(item => {
                     console.log(item, '==itemMatchedData');
                     return installedPackages.includes(item.packageName?.toLowerCase());
                 });
@@ -104,14 +109,57 @@ const PaymentScreen = ({ route }: any) => {
                 console.warn('Response is still not an array:', parsedResponse);
                 setUpiApps([]);
             }
-    
+
         } catch (error) {
             console.error('Error fetching installed UPI apps:', error);
         }
     };
-   
-   
- 
+    const checkAppsIos = async () => {
+        try {
+            initPhonePeSDK();
+
+            let response;
+
+
+            if (Platform.OS === 'android') {
+                response = await PhonePePaymentSDK.getUpiAppsForAndroid();
+            } else if (Platform.OS === 'ios') {
+                response = await PhonePePaymentSDK.getUPIAppsInstalledforIos();
+            } else {
+                console.warn('Unsupported platform');
+                return;
+            }
+            console.log('Available UPI Apps:>>', response);
+            console.log('Response Type:', typeof response);
+            console.log('Response Content:', response);
+            let parsedResponse = [];
+            if (typeof response === 'string') {
+                parsedResponse = JSON.parse(response);
+            } else {
+                parsedResponse = response;
+            }
+            if (Array.isArray(parsedResponse)) {
+                setUpiApps(parsedResponse);
+                const installedPackages = parsedResponse.map(app => {
+                    return app.toLowerCase();
+                });
+                const matchedData: any = staticUPIData.filter(item =>
+                    installedPackages.includes(item.name.toLowerCase())
+                );
+                setFilteredData(matchedData)
+            } else {
+                console.warn('Response is not an array:', parsedResponse);
+                setUpiApps([]);
+            }
+
+        } catch (error) {
+            console.error('Error fetching installed UPI apps:', error);
+        }
+    };
+
+
+
+
 
     const generateTransactionId = () => {
         const timeStamp = Date.now();
@@ -126,18 +174,23 @@ const PaymentScreen = ({ route }: any) => {
             amount: amount,
             type: title,
             targetapp: packageName,
+            transactionId: generateTransactionId(),
         };
 
         dispatch(paymentGetwayPhonepeText(data));
     };
 
     useEffect(() => {
-        checkApps()
-        const bundleId = DeviceInfo.getBundleId(); 
+        if (Platform.OS === 'android') {
+            checkAppsAndroid()
+        } else {
+            checkAppsIos()
+        }
+
+        const bundleId = DeviceInfo.getBundleId();
         setPackageSignature(bundleId);
     }, []);
-    console.log(filteredData,'==flter');
-    
+
 
     return (
         <AppSafeAreaView hidden={false}>
@@ -158,7 +211,7 @@ const PaymentScreen = ({ route }: any) => {
                         </View>
 
                         {/* Show available filtered UPI apps */}
-                        {filteredData.length > 0 ? filteredData.map((item:any) => (
+                        {filteredData.length > 0 ? filteredData.map((item: any) => (
                             <View style={styles.upiContainer} key={item.id}>
                                 <View style={styles.underContainer}>
                                     <Image source={item.icon} style={styles.appIcon} />
