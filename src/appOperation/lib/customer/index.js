@@ -200,4 +200,6 @@ export default appOperation => ({
       `payment/withdraw`, data, CUSTOMER_TYPE),
     getBannerList: () => appOperation.get(`ViewBanner`, undefined, undefined, CUSTOMER_TYPE),
     getrefferalList: () => appOperation.get(`users/referals`, undefined, undefined, CUSTOMER_TYPE),
+    getBannedStates: () => appOperation.get(`States/BanState`, undefined, undefined, CUSTOMER_TYPE),
+
 });

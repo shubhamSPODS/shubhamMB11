@@ -13,6 +13,7 @@ export const initialState = {
   appVersion: undefined,
   bannerList: [],
   refferalList: [],
+  bannedList:[]
 };
 export const profileSlice = createSlice({
   name: 'profile',
@@ -51,6 +52,9 @@ export const profileSlice = createSlice({
     setBannerList: (state, { payload }) => {
       state.bannerList = payload;
     },
+    setBannedStateList: (state, { payload }) => {
+      state.bannedList = payload;
+    },
     setRefferalList: (state, { payload }) => {
       state.refferalList = payload;
     },
@@ -69,6 +73,7 @@ export const {
   setAppVersion,
   setBannerList,
   setRefferalList,
+  setBannedStateList
 } = profileSlice.actions;
 
 export default profileSlice.reducer;

@@ -174,7 +174,6 @@ export const updateDeviceToken = () => async dispatch => {
   };
   try {
     const response = await appOperation.customer.fcm_token(data);
-    console.log(response, "updateDeviceToken");
   } catch (e) {
     logError(e);
   }

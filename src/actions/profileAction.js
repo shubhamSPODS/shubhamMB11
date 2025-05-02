@@ -102,6 +102,21 @@ export const getBannerList = () => async (dispatch: Dispatch<any>) => {
   }
 };
 
+export const getAllBannedStates = () => async (dispatch: Dispatch<any>) => {
+  try {
+    dispatch(setLoading(true));
+    const response = await appOperation.customer.getBannedStates();
+    
+    if (response?.success) {
+      dispatch(setBannerList(response?.data));
+    }
+  } catch (e) {
+    logError(e);
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
 export const getRefferalList = () => async (dispatch: Dispatch<any>) => {
   try {
     dispatch(setLoading(true));
@@ -186,7 +201,7 @@ export const editProfile = (data, id) => async dispatch => {
     dispatch(setLoading(true));
     const res = await appOperation.customer.editProfile(data, id);
     if (res?.code == 200) {
-      toastAlert.showToastError(res?.message);
+      // toastAlert.showToastError(res?.message);
       dispatch(getUserProfile(false, true));
       NavigationService.reset(BOTTOM_NAVIGATION_STACK)
     }
