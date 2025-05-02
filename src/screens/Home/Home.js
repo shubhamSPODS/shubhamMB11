@@ -126,7 +126,7 @@ const getCurrentLocation = () => {
 const handleSubmit = (coords) => {
   const currentState = coords?.state?.toLowerCase();
   const bannedStates = banStateData?.map(item => item?.stateName?.toLowerCase());
-  console.log(coords,'==coords');
+  console.log(currentState,'==coords',bannedStates);
   
 
   if (bannedStates?.includes(currentState)) {
@@ -183,9 +183,8 @@ useEffect(() => {
     });
 
     const banStateData = useSelector(state => {
-      return state?.profile?.bannedList
+      return state?.profile?.bannerList
     });
-// console.log(banStateData,'==banstate data');
    
     
  
