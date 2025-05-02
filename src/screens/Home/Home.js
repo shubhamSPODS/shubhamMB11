@@ -37,6 +37,9 @@ const Home = () => {
    const userProfileData = useSelector(state => {
       return state.profile.userData;
     });
+    const appVersion = useSelector(state => {
+      return state.profile.appVersion;
+    });
     
   const [selectedLabel, setSelectedLabel] = useState('Cricket');
   // const [latitude, setLatitude] = useState('');
@@ -265,7 +268,12 @@ useEffect(() => {
       });
   }
 
-  
+  useEffect(() => {
+    // console.log(CheckCurrent,appVersion, "version");
+    if(CheckCurrent != appVersion) {
+      InstallAPK();
+    } 
+  }, []);
   
   return (
     <AppSafeAreaView
@@ -279,7 +287,6 @@ useEffect(() => {
         }
       />
       
-          {/* <BannerSlider bannerData={bannerList}/> */}
       <KeyBoardAware
         refreshControl={
           <RefreshControl refreshing={refershing} onRefresh={onRefresh} />

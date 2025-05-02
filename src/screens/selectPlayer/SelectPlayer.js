@@ -75,9 +75,7 @@ import { MatchLiveModal } from '../../common/MatchLiveModal';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { Screen, universalPaddingHorizontal } from '../../theme/dimens';
 import UnannouncedPlayer from '../UnannouncedPlayer';
-import { black } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
 import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
-import { Image, Text } from 'react-native-svg';
 export const data = [
   {
     imageSource: GLOVE,
@@ -121,9 +119,8 @@ const SelectPlayer = () => {
   const { _id, TeamA, TeamB, TeamAlogo, TeamsShortNames, TeamBlogo, SeriesId } =
     contestData ?? '';
   const allPlayers = useSelector(state => state?.match?.allPlayers);
-  // console.log(allPlayers?.length,'==allplayer');
-
-  const getPlayerTab = useSelector(state => state?.match?.getPlayerTab);
+  console.log(allPlayers,'=allpla');
+  
   const route = useRoute();
   const AleartLive = useRef();
   const refsheetUnannounced = useRef();
@@ -1325,8 +1322,7 @@ const SelectPlayer = () => {
                 }
                 resizeMode="contain"
               />
-              {console.log(item,'==item>>')
-              }
+            
               <View>
                 <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.short_name}</AppText>
                 <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>

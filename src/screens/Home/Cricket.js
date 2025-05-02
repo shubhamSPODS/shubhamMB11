@@ -130,9 +130,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         }, 1000);
         return () => clearInterval(interval);
       }
-    } else {
-      console.log(_id, 'ID Nahi hai')
-    }
+    } 
   }, [_id, userData]);
 
   return (
