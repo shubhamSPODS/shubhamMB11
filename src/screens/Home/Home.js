@@ -44,7 +44,6 @@ const Home = () => {
   const bannerList = useSelector(state => {
     return  state.profile.bannerList;
   })
-  console.log(bannerList,'==lis');
   
   const [refershing, setRefreshingTwo] = useState(false);
   const [random, setRandom] = useState(0);
@@ -70,7 +69,7 @@ const Home = () => {
         const permission = PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION;
         try {
             const result = await request(permission);
-
+ 
             if (result === RESULTS.GRANTED) {
                 getCurrentLocation();
             } else if (result === RESULTS.BLOCKED) {
@@ -97,13 +96,17 @@ const getCurrentLocation = () => {
           // console.log('Location:', position);
           const coords = position?.coords;
           if (!!coords) {
+            
             try {
+              
               const response = await fetch(`https://us1.locationiq.com/v1/reverse?key=pk.e22718d53262d006fc9518e14a3c470c&lat=${coords.latitude}&lon=${coords.longitude}&format=json`);
+
               const data = await response.json();
           setLocation(data);
 
-              // console.log('Reverse Geocoded Address:', data);
+
               if (!!data?.address?.state) {
+
                 handleSubmit(data?.address);
               }
             } catch (apiError) {
@@ -122,53 +125,59 @@ const getCurrentLocation = () => {
   
 const handleSubmit = (coords) => {
   const currentState = coords?.state?.toLowerCase();
-
   const bannedStates = banStateData?.map(item => item?.stateName?.toLowerCase());
-  console.log(bannedStates,'==banned state');
+  console.log(coords,'==coords');
   
+
   if (bannedStates?.includes(currentState)) {
     Alert.alert(
       'Access Restricted',
       `Sorry, our services are not available in ${coords?.state}. You will be logged out.`,
       [
-        {
-          text: 'OK',
-          onPress: () => {
-            dispatch(userLogout());
-          }
-        }
+        { text: 'OK', onPress: () => dispatch(userLogout()) }
       ],
       { cancelable: false }
     );
     return;
   }
 
+  const currentSavedState = userProfileData?.location?.state?.toLowerCase?.();
+  if (currentSavedState === currentState) {
+    return;
+  }
+
   const data = {
-    full_name: userProfileData?.full_name,
+    ...userProfileData,
     email: '',
-    gender: userProfileData?.gender,
-    mobile_number: userProfileData?.mobile_number,
-    dob: '',
-    username: userProfileData?.username,
-    firsttime: userProfileData?.firsttime,
+    dob: '',  
     location: coords,
   };
 
   dispatch(editProfile(data, userProfileData?._id));
 };
 
-useEffect(()=>{
-  requestLocationPermission()
-},[])
+
 
   const onClick = Cricket => {
     setSelectedLabel(Cricket);
   };
+
   useEffect(() => {
+
+
+
     dispatch(getBannerList());
     dispatch(getKycDetails());
     dispatch(getAllBannedStates())
   }, []);
+  const hasFetchedLocation = useRef(false);
+
+useEffect(() => {
+  if (!hasFetchedLocation.current) {
+    requestLocationPermission();
+    hasFetchedLocation.current = true;
+  }
+}, []);
     const userData = useSelector(state => {
       return state.profile.userData;
     });
