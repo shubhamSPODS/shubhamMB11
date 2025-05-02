@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Linking, Alert, StyleSheet, RefreshControl } from 'react-native';
+import { View, Linking, Alert, StyleSheet, RefreshControl, Platform } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import Basketball from './Basketball';
@@ -7,47 +7,24 @@ import Football from './Football';
 import Cricket from './Cricket';
 import Kabbadi from './Kabbadi';
 import NavigationService from '../../navigation/NavigationService';
-import {
-  BOTTOM_TAB_PROFILE_SCREEN,
-} from '../../navigation/routes';
-import Carousel from 'react-native-snap-carousel';
 import { _createwallet, editProfile, getAllBannedStates, getBannerList, getKycDetails } from '../../actions/profileAction';
 import { NewColor } from '../../theme/color';
 import { KeyBoardAware } from '../../common/KeyboardAware';
 import { HomeTopHeader } from '../../common/HomeTopHeader';
-import BannerSlider from '../../common/BannerSilder';
-import { BannerLoop } from '../../helper/image';
-import { Button } from '../../common/Button';
 import dynamicLinks from '@react-native-firebase/dynamic-links';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MycreateShareContest, shareTeam } from '../../slices/matchSlice';
 import { getVersion } from 'react-native-device-info';
 import { USER_TOKEN_KEY } from '../../libs/constants';
 import { userLogout } from '../../actions/authActions';
-import { Screen } from '../../theme/dimens';
-import FastImage from "@d11/react-native-fast-image";
-import { BASE_URL } from '../../helper/utility';
 import { PERMISSIONS, request, RESULTS } from 'react-native-permissions';
 import Geolocation from 'react-native-geolocation-service';
-
-
-
 const Home = () => {
   const dispatch = useDispatch();
    const userProfileData = useSelector(state => {
       return state.profile.userData;
     });
-    const appVersion = useSelector(state => {
-      return state.profile.appVersion;
-    });
-    
   const [selectedLabel, setSelectedLabel] = useState('Cricket');
-  // const [latitude, setLatitude] = useState('');
-  // const [longitute, setLongitute] = useState('');
-  const bannerList = useSelector(state => {
-    return  state.profile.bannerList;
-  })
-  
   const [refershing, setRefreshingTwo] = useState(false);
   const [random, setRandom] = useState(0);
   const [CheckCurrent, setCheckCurrent] = useState(getVersion());
@@ -244,7 +221,9 @@ useEffect(() => {
     setRandom(Math.random())
   };
 
- 
+  const appVersion = useSelector(state => {
+    return state.profile.appVersion;
+  });
 
   const InstallAPK = async () => {
     Alert.alert(
@@ -270,9 +249,12 @@ useEffect(() => {
 
   useEffect(() => {
     // console.log(CheckCurrent,appVersion, "version");
-    if(CheckCurrent != appVersion) {
-      InstallAPK();
-    } 
+    if (Platform.OS==='android') {
+      if(CheckCurrent != appVersion) {
+        InstallAPK();
+      } 
+    }
+   
   }, []);
   
   return (

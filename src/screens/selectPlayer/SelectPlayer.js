@@ -119,7 +119,6 @@ const SelectPlayer = () => {
   const { _id, TeamA, TeamB, TeamAlogo, TeamsShortNames, TeamBlogo, SeriesId } =
     contestData ?? '';
   const allPlayers = useSelector(state => state?.match?.allPlayers);
-  console.log(allPlayers,'=allpla');
   
   const route = useRoute();
   const AleartLive = useRef();
@@ -1721,7 +1720,7 @@ export const RenderTabBar = props => {
         pressColor={'transparent'}
         style={[{ width: '100%', backgroundColor: 'transparent', elevation: 0 }]}
       />
-      <View style={styles.playerListingHead}>
+      {/* <View style={styles.playerListingHead}>
         <AppText
           style={{ flex: 1 }}
           type={ELEVEN}
@@ -1805,7 +1804,7 @@ export const RenderTabBar = props => {
             />
           )}
         </TouchableOpacity>
-      </View>
+      </View> */}
     </>
   );
 };
