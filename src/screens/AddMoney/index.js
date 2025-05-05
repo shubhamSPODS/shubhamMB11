@@ -109,37 +109,29 @@ const AddMoney = () => {
   //     setUpiApps('error:' + error.message);
   //   });
   const AddMoney = () => {
-    NavigationService.navigate(PAYMENT_SCREEN, {amount: amount});
-    // if (!isUserVerified) {
-    //   if (isUserVerifiedPanding) {
-    //     toastAlert.showToastError('Your aadhaar verification is panding');
-    //   } else {
-    //     // NavigationService.navigate(UPLOAD_AADHAR);
-    //     NavigationService.navigate(ADDCASH_VERIFICATION);
-    //   }
-    // } else if (amount == '') {
-    //   toastAlert.showToastError('Please enter amount');
-    // } else if (amount.charAt(0) === '0') {
-    //   toastAlert.showToastError('Please enter vaild amount');
-    // }
-    // else if (amount <= 99) {
-    //   toastAlert.showToastError('Please enter amount minimum 100')
-    // }
-    // else if (upiApps?.length == 0) {
-    //   toastAlert.showToastError("You don't have any kind of UPI App");
-    // } else {
-    //   let data = {
-    //     amount: amount,
-    //     type: '',
-    //     targetapp: '',
-    //   };
-    //   NavigationService.navigate(PAYMENT_SCREEN, {data: data});
-    // }
-  };
+    
+    if (!isUserVerified) {
+      if (isUserVerifiedPanding) {
+        toastAlert.showToastError('Your aadhaar verification is panding');
+      } else {
+        // NavigationService.navigate(UPLOAD_AADHAR);
+        NavigationService.navigate(ADDCASH_VERIFICATION);
+      }
+    } else if (amount == '') {
+      toastAlert.showToastError('Please enter amount');
+    } else if (amount.charAt(0) === '0') {
+      toastAlert.showToastError('Please enter vaild amount');
+    }
+    else if (amount <= 99) {
+      toastAlert.showToastError('Please enter amount minimum 100')
+    }
+    else {
+      NavigationService.navigate(PAYMENT_SCREEN, {amount: amount});
 
+    }
+  };
   let tdsamount = parseFloat((amount / 128) * 28).toFixed(2);
   let amounttoadd = amount - tdsamount;
-  let dividTwo = tdsamount / 2;
   return (
     <AppSafeAreaView hidden={false}>
       <StatusBar

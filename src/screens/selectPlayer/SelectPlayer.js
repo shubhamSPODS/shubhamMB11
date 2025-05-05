@@ -1248,11 +1248,13 @@ const SelectPlayer = () => {
       // width: isLastItem ? '100%' : '48%',  
       padding: 10,
       alignSelf: isLastItem ? "center" : isOdd ? "flex-end" : "center", 
-      borderRightWidth: !isLastItem && index % 2 === 0 ? 1 : 0,
-      borderColor: !isLastItem && index % 2 === 0 ? colors.gray : '',
-      borderStyle: 'dotted',
-      borderBottomWidth: 1,
-      borderBottomColor: colors.gray,
+      // borderRightWidth: !isLastItem && index % 2 === 0 ? 1 : 0,
+      // borderColor: !isLastItem && index % 2 === 0 ? colors.gray : '',
+      // borderTopRightWidth: 1,
+      // borderBottomColor: 'white',
+      borderBottomWidth:0.6,
+      // borderLeftWidth:!isLastItem  === 0 ? 1 : 0,
+      borderColor:colors.white
     };
     const playerIcon =
       item?.playing_role === 'wk'
@@ -1386,7 +1388,7 @@ const SelectPlayer = () => {
        
         />
         </View>
-        <View style={{width:"50%"}}>
+        <View style={{width:"50%",borderLeftWidth:0.6,borderColor:colors.white}}>
            <FlatList
             scrollEnabled={false}
           data={teamBPlayers}
