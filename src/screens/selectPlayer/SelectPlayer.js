@@ -1240,14 +1240,11 @@ const SelectPlayer = () => {
     }
   };
   const renderPastLineupItem = ({ item, index }) => {
-// console.log(item,'----item');
-
-    
     const totalItems = allPlayers?.length 
     const isLastItem = index === totalItems - 1;
     const isOdd = index % 2 !== 0;
     const itemStyle = {
-      width: isLastItem ? '100%' : '48%',  
+      // width: isLastItem ? '100%' : '48%',  
       padding: 10,
       alignSelf: isLastItem ? "center" : isOdd ? "flex-end" : "center", 
       borderRightWidth: !isLastItem && index % 2 === 0 ? 1 : 0,
@@ -1286,7 +1283,7 @@ const SelectPlayer = () => {
                 />
                 <View>
                   <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.first_name}</AppText>
-                  <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>
+                  <AppText type={ELEVEN} style={{ marginLeft: 5 }}>{item?.teamName}</AppText>
                 </View>
               </View>
 
@@ -1324,7 +1321,7 @@ const SelectPlayer = () => {
             
               <View>
                 <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.short_name}</AppText>
-                <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>
+                <AppText type={ELEVEN} style={{ marginLeft: 5 }}>{item?.teamName}</AppText>
               </View>
             </View>
 
@@ -1350,6 +1347,7 @@ const SelectPlayer = () => {
   
   
   const PlayersList = ({ route }) => {
+    
     const allPlayers = useSelector(state => state?.match?.allPlayers);
     const getFilteredPlayers = () => {
       if (route?.key === 'pl') {
@@ -1357,11 +1355,30 @@ const SelectPlayer = () => {
       }
       return getPlayersData(route?.key);
     };
+    const filteredPlayers = getFilteredPlayers() || [];
+    const teamAPlayers = filteredPlayers.filter(player => {
+      const teamLabel = player?.team_label?.trim();
+      const isTeamA = teamLabel === 'Team A';
+      return isTeamA;
+    });
+
+    const teamBPlayers = filteredPlayers.filter(player => {
+      const teamLabel = player?.team_label?.trim();
+      const isTeamB = teamLabel === 'Team B';
+      return isTeamB;
+    });
+    
+  
+
+      
 
     return (
       <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center' }}>
-        {route?.key === 'pl' ? <FlatList
-          data={getFilteredPlayers()?.sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid)) || []}
+        {route?.key === 'pl' ?
+        <View style={{width:'100%',flexDirection:"row",}}>
+          <View style={{width:"50%",}}>
+         <FlatList
+          data={teamAPlayers}
           renderItem={renderPastLineupItem}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
@@ -1370,14 +1387,28 @@ const SelectPlayer = () => {
             alignItems: "center",
             justifyContent: "flex-start",
           }}
-          numColumns={2}
         />
+        </View>
+        <View style={{width:"50%"}}>
+           <FlatList
+          data={teamBPlayers}
+          renderItem={renderPastLineupItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: 20,
+            alignItems: "center",
+            justifyContent: "flex-start",
+          }}
+        />
+        </View>
+        </View>
           :
           <FlatList
             data={getFilteredPlayers()?.sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid)) || []}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
-          />}
+          />
+          }
       </View>
     );
   };

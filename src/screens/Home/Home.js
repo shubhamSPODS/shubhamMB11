@@ -230,9 +230,9 @@ useEffect(() => {
       'Update APK',
       'Please Update the latest verison.',
       [
-        { text: 'Cancel', style: 'cancel',onPress:()=> {
-          requestPermission()
-        }},
+        // { text: 'Cancel', style: 'cancel',onPress:()=> {
+        //   requestLocationPermission()
+        // }},
         { text: 'Update', onPress: () => DownloadApk() }
       ]
     );
@@ -249,6 +249,7 @@ useEffect(() => {
 
   useEffect(() => {
     // console.log(CheckCurrent,appVersion, "version");
+    return
     if (Platform.OS==='android') {
       if(CheckCurrent != appVersion) {
         InstallAPK();
