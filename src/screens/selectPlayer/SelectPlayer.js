@@ -4,6 +4,7 @@ import {
   FlatList,
   ImageBackground,
   Pressable,
+  ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -1282,7 +1283,7 @@ const SelectPlayer = () => {
                   resizeMode="contain"
                 />
                 <View>
-                  <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.first_name}</AppText>
+                  <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.short_name}</AppText>
                   <AppText type={ELEVEN} style={{ marginLeft: 5 }}>{item?.teamName}</AppText>
                 </View>
               </View>
@@ -1373,32 +1374,25 @@ const SelectPlayer = () => {
       
 
     return (
-      <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center' }}>
+      <ScrollView style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center' }}>
         {route?.key === 'pl' ?
         <View style={{width:'100%',flexDirection:"row",}}>
           <View style={{width:"50%",}}>
          <FlatList
+         scrollEnabled={false}
           data={teamAPlayers}
           renderItem={renderPastLineupItem}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingBottom: 20,
-            alignItems: "center",
-            justifyContent: "flex-start",
-          }}
+       
         />
         </View>
         <View style={{width:"50%"}}>
            <FlatList
+            scrollEnabled={false}
           data={teamBPlayers}
           renderItem={renderPastLineupItem}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingBottom: 20,
-            alignItems: "center",
-            justifyContent: "flex-start",
-          }}
+        
         />
         </View>
         </View>
@@ -1409,7 +1403,7 @@ const SelectPlayer = () => {
             showsVerticalScrollIndicator={false}
           />
           }
-      </View>
+      </ScrollView>
     );
   };
 
