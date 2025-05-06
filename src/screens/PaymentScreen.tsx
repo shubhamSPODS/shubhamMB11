@@ -97,10 +97,7 @@ const PaymentScreen = ({ route }: any) => {
             if (Array.isArray(parsedResponse)) {
                 setUpiApps(parsedResponse);
                 const installedPackages = parsedResponse.map(app => app.packageName?.toLowerCase());
-                console.log('installedPackages =>', installedPackages);
-
                 const matchedData: any = staticUPIData.filter(item => {
-                    console.log(item, '==itemMatchedData');
                     return installedPackages.includes(item.packageName?.toLowerCase());
                 });
                 console.log('matchedData= =>', matchedData);

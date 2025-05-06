@@ -114,7 +114,6 @@ const AddMoney = () => {
       if (isUserVerifiedPanding) {
         toastAlert.showToastError('Your aadhaar verification is panding');
       } else {
-        // NavigationService.navigate(UPLOAD_AADHAR);
         NavigationService.navigate(ADDCASH_VERIFICATION);
       }
     } else if (amount == '') {

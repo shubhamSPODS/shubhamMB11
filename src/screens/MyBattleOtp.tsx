@@ -48,35 +48,48 @@ const MyBattleOtp = ({route}) => {
   const loading = useSelector((state: any) => state.auth.isLoading);
 
   useEffect(() => {
-    getHash()
-      .then(hashArray => {
-        if (hashArray && hashArray.length > 0) {
-          setHash(hashArray[0]);
+    console.log('OTP useEffect mounted');
+    try {
+      getHash()
+        .then(hashArray => {
+          console.log('Got Hash Array:', hashArray);
+          if (hashArray && hashArray.length > 0) {
+            console.log('App Hash:', hashArray[0]);
+            setHash(hashArray[0]);
+          }
+        })
+        .catch(error => {
+          console.log('getHash error:', error);
+          setError(`Error getting hash: ${error.message}`);
+        });
+  
+      startOtpListener(receivedMessage => {
+        console.log('OTP Message Received:', receivedMessage);
+        setMessage(receivedMessage);
+        const otpMatch = /(\d{6})/g.exec(receivedMessage);
+        if (otpMatch && otpMatch[1]) {
+          const extractedOtp = otpMatch[1];
+          setOtp(extractedOtp);
+          setCode(extractedOtp);
+          onSubmit(extractedOtp);
         }
       })
-      .catch(error => {
-        setError(`Error getting hash: ${error.message}`);
-      });
-
-    startOtpListener(receivedMessage => {
-      setMessage(receivedMessage);
-      const otpMatch = /(\d{6})/g.exec(receivedMessage);
-      if (otpMatch && otpMatch[1]) {
-        const extractedOtp = otpMatch[1];
-        setOtp(extractedOtp);
-        setCode(extractedOtp);
-        onSubmit(extractedOtp);
-      }
-    })
-      .then(() => setIsListening(true))
-      .catch(error => {
-        setError(`Error starting listener: ${error.message}`);
-      });
-
-    return () => {
-      removeListener();
-      setIsListening(false);
-    };
+        .then(() => {
+          console.log('OTP Listener started');
+          setIsListening(true);
+        })
+        .catch(error => {
+          console.log('startOtpListener error:', error);
+          setError(`Error starting listener: ${error.message}`);
+        });
+  
+      return () => {
+        removeListener();
+        setIsListening(false);
+      };
+    } catch (err) {
+      console.log('Unexpected error in useEffect:', err);
+    }
   }, []);
 
   const handleOtpChange = input => {
