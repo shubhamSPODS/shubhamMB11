@@ -1,12 +1,56 @@
-import {View, Text} from 'react-native';
-import React from 'react';
+import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'
+import React from 'react'
+import { FANTASY_BANNER, LUDO_BANNER, RUMMY_BANNER } from '../../components/ImageAssets'
+import { useFocusEffect } from '@react-navigation/native'
+import { FULL_WIDTH } from '../../components/Typography'
+import { HOME_SCREEN_MAIN } from '../../navigation/routes'
+import { NewColor } from '../../theme/color'
+import { HomeTopHeader } from '../../common/HomeTopHeader'
 
-const HomeScreen = () => {
-  return (
-    <View>
-      <Text>HomeScreen</Text>
-    </View>
-  );
-};
+const HomeScreen = ({ navigation }) => {
+    return (
+        <View style={{ flex: 1, backgroundColor: NewColor.linerWhite }}>
+            <HomeTopHeader personClick={() => navigation.openDrawer()} />
+            <ScrollView showsVerticalScrollIndicator={false}>
+    
+                <TouchableOpacity activeOpacity={0.9} onPress={() => {
+                    navigation.navigate(HOME_SCREEN_MAIN)
 
-export default HomeScreen;
+                }}>
+                    <Image style={styles.banner}
+                        source={FANTASY_BANNER}
+                    />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => {
+                    // navigation.navigate('LudoGameMode')
+                }} activeOpacity={0.9}>
+                    <Image style={styles.banner}
+                        source={LUDO_BANNER}
+                    />
+                </TouchableOpacity>
+                <TouchableOpacity  onPress={()=>{
+                    //  navigation.navigate('RummyGameMode')
+                }} activeOpacity={0.9}>
+                    <Image style={styles.banner}
+                        source={RUMMY_BANNER}
+                    />
+                </TouchableOpacity>
+                <View style={{ height: 50 }}></View>
+            </ScrollView>
+
+        </View>
+    )
+}
+
+export default HomeScreen
+
+const styles = StyleSheet.create({
+    banner: {
+        width: FULL_WIDTH - 40,
+        height: 200,
+        alignSelf: "center",
+        resizeMode: "cover",
+        borderRadius: 10,
+        marginTop: 20
+    }
+})

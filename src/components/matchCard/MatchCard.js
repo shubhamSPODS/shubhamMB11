@@ -82,7 +82,7 @@ const MatchCard = ({
   // console.log(details, "details");
   return (
     <>
-      {details?.contest_details?.length > 0 ? (
+      {details?.contest_details?.data?.length > 0 ? (
         <Pressable
           style={
             contestDetails ? styles.cardContainer : styles.cardContainerTwo

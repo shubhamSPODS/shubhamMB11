@@ -301,6 +301,8 @@ export const phonepay = require('../../assets/images/phonepay.png');
 export const paytmIcon = require('../../assets/images/paytmIcon.png');
 export const myBattleTextImg = require('../../assets/images/myBattleTextImg.png')
 
+export const back = require('../../assets/images/BackIcon.png');
+
 
 
 

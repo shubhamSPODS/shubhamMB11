@@ -29,10 +29,12 @@ import { Screen } from '../../theme/dimens';
 import FastImage from "@d11/react-native-fast-image";
 import { BASE_URL } from '../../helper/utility';
 import { PERMISSIONS, request } from 'react-native-permissions';
+import { useNavigation } from '@react-navigation/native';
 
 const Home = () => {
   const dispatch = useDispatch();
   const carousel = useRef(null);
+  const navigation = useNavigation();
   const appVersion = useSelector(state => {
     return state.profile.appVersion;
   });
@@ -164,9 +166,9 @@ var result = await request(PERMISSIONS.IOS.CAMERA)
       style={{ backgroundColor: NewColor.linerWhite }}
       hidden={false}>
       <HomeTopHeader
-        walletIcon={true}
+        showBack={true}
         personClick={() =>
-          NavigationService.openDrawer()
+          navigation.goBack()
         }
       />
       

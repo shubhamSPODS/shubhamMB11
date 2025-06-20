@@ -11,6 +11,7 @@ import {
   UserIcon,
   WalletIcon,
   myBattleTextImg,
+  back,
 } from '../helper/image';
 import FastImage from "@d11/react-native-fast-image";
 import { useSelector } from 'react-redux';
@@ -24,7 +25,7 @@ import {
   WHITE,
 } from './AppText';
 
-const HomeTopHeader = ({ personClick, walletIcon }) => {
+const HomeTopHeader = ({ personClick, walletIcon, showBack }) => {
   const [random, setRandom] = useState('')
   const userData = useSelector(state => {
     return state.profile.userData;
@@ -47,21 +48,32 @@ const HomeTopHeader = ({ personClick, walletIcon }) => {
           <TouchableOpacityView
             style={{ height: 28, width: 28, }}
             onPress={personClick}>
-            <FastImage
-              resizeMode="contain"
-              source={
-                userData?.logo
-                  ? { uri: `${IMAGE_BASE_URL}${userData?.logo}` }
-                  : UserIcon
-              }
-              style={styles.personImage}
-            />
-            <View style={styles.userfilter}>
+            {showBack ? (
               <FastImage
-                source={ThreeIcon}
-                resizeMode='contain'
-                style={{ height: 10, width: 10 }} />
-            </View>
+                source={back}
+                style={styles.personImage}
+                resizeMode="contain"
+                tintColor={WHITE}
+              />
+            ) : (
+              <>
+                <FastImage
+                  resizeMode="contain"
+                  source={
+                    userData?.logo
+                      ? { uri: `${IMAGE_BASE_URL}${userData?.logo}` }
+                      : UserIcon
+                  }
+                  style={styles.personImage}
+                />
+                <View style={styles.userfilter}>
+                  <FastImage
+                    source={ThreeIcon}
+                    resizeMode='contain'
+                    style={{ height: 10, width: 10 }} />
+                </View>
+              </>
+            )}
           </TouchableOpacityView>
           <FastImage
             source={myBattleTextImg}

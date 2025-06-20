@@ -101,7 +101,6 @@ import KYC from '../screens/KYC';
 import Home from '../screens/Home/Home';
 import Contest from '../screens/CONTESTPAGE/Contest';
 import AuthLoading from '../screens/AuthLoading';
-import MyBalance from '../screens/MyBalance';
 // import Splash from '../screens/Splash';
 import Otp from '../screens/Otp';
 import VerifyEmail from '../screens/VerifyEmail';
@@ -164,6 +163,8 @@ import HomePrivacy from '../common/HomePrivacy';
 import UploadSelfie from '../screens/UploadSelfie';
 import MyContestSwipe from '../screens/MyContest/MyContestSwpie';
 import PaymentScreen from '../screens/PaymentScreen';
+import HomeScreen from '../screens/HomeScreen';
+import MyBalance from '../screens/MyBalance';
 // import LeaderBoard from '../screens/leaderBoard/LeaderBoard';
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -276,11 +277,8 @@ const HomeStack = () => (
     screenOptions={{
       headerShown: false,
     }}>
-    <Stack.Screen
-      name={HOME_SCREEN_MAIN}
-      component={Home}
-      options={{headerShown: false}}
-    />
+    <Stack.Screen name={BOTTOM_TAB_HOMESCREEN} component={HomeScreen} />
+    <Stack.Screen name={HOME_SCREEN_MAIN} component={Home} />
   </Stack.Navigator>
 );
 
@@ -581,7 +579,6 @@ const HomeDrawer = ({navigation}) => {
   const isFocused = useIsFocused();
   return (
     <Drawer.Navigator
-      initialRouteName="Home"
       drawerStyle={{width: '75%'}}
       drawerContent={props => (
         <CustomDrawer
@@ -629,7 +626,6 @@ const MyContestDrawer = ({navigation}) => {
   const isFocused = useIsFocused();
   return (
     <Drawer.Navigator
-      initialRouteName="Home"
       drawerStyle={{width: '75%'}}
       drawerContent={props => (
         <CustomDrawer
@@ -661,7 +657,6 @@ const MyReferDrawer = ({navigation}) => {
   const isFocused = useIsFocused();
   return (
     <Drawer.Navigator
-      initialRouteName="Home"
       drawerStyle={{width: '75%'}}
       drawerContent={props => (
         <CustomDrawer
