@@ -1,10 +1,10 @@
-import { Image, StyleSheet, Text, View } from 'react-native'
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
 import { AppSafeAreaView } from '../common/AppSafeAreaView'
 import { colors, NewColor } from '../theme/color'
 import Header from '../common/Header'
 import { universalPaddingHorizontal } from '../theme/dimens'
-import { AppText, SEMI_BOLD } from '../common/AppText'
+import { AppText, POPPINS_BOLD, SEMI_BOLD, SIXTEEN } from '../common/AppText'
 import { MEDIUM } from '../components/AppFonts'
 import { FULL_WIDTH, GET_WITH_TOKEN } from '../Backend/Backend'
 import { PROFILE } from '../navigation/routes'
@@ -17,14 +17,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import PrimaryButton from '../common/primaryButton'
 import Loader from '../components/Loader'
 import { USER_TOKEN_KEY } from '../libs/constants'
+import LinearGradient from 'react-native-linear-gradient'
 
 const GameJoinTable = ({ route, navigation }) => {
     const userData = useSelector(state => {
         return state.profile.userData;
-      });
-    //   console.log(userData,'==userdqata');
-      
-        
+    });
+    console.log(userData, '==userdqata');
+
+
     const [matchId, setMatchId] = useState('');
     const walletBalance = Number(userData?.winning_amount || 0) + Number(userData?.cash_bonus || 0) + Number(userData?.totaldeposit || 0);
     const socket = useRef(null);
@@ -40,20 +41,20 @@ const GameJoinTable = ({ route, navigation }) => {
     const isRummy = gameRoute === 'Rummy';
     const gameIcon = isRummy ? POOL : DICE;
     const [isWaitingForUnity, setIsWaitingForUnity] = useState(false);
-      const balanceAfterJoin = walletBalance - routeData?.bet;
- const getUserToken =async()=>{
-    try {
-        const token = await AsyncStorage.getItem(USER_TOKEN_KEY);
-        setUserToken(token)
-          
-    } catch (error) {
-        
+    const balanceAfterJoin = walletBalance - routeData?.bet;
+    const getUserToken = async () => {
+        try {
+            const token = await AsyncStorage.getItem(USER_TOKEN_KEY);
+            setUserToken(token)
+
+        } catch (error) {
+
+        }
     }
- }
- useEffect(()=>{
-    getUserToken()
- },[])
-   
+    useEffect(() => {
+        getUserToken()
+    }, [])
+
     const setupSocketConnection = () => {
         let url = `${BASE_URL}server/matchmaking`;
         let path = '/socket.io';
@@ -171,7 +172,7 @@ const GameJoinTable = ({ route, navigation }) => {
                             `${BASE_URL}`,
                             `${BASE_URL}`,
                             userToken,
-                            gameRoute=='Rummy' ?'rummy':'ludo',
+                            gameRoute == 'Rummy' ? 'rummy' : 'ludo',
                             matchId,
                             null,
                             () => {
@@ -190,13 +191,13 @@ const GameJoinTable = ({ route, navigation }) => {
     };
 
     useEffect(() => {
-      
+
 
         if (!!matchId) {
             onMatchIdFound();
         }
     }, [matchId]);
-     useEffect(() => {
+    useEffect(() => {
         if (isWaitingForUnity) {
             setIsCountdownActive(true);
             const timer = setInterval(() => {
@@ -231,30 +232,30 @@ const GameJoinTable = ({ route, navigation }) => {
             }
         };
     }, []);
-    
-       const formatTime = (seconds) => {
+
+    const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     };
-console.log(userToken,'==userToken');
+    console.log(userToken, '==userToken');
 
     return (
         <AppSafeAreaView
-        statusColor={true}
-        style={{ backgroundColor: NewColor.linerWhite }}
-        hidden={false}>
- <Loader visible={isLoading} textAppear={true} />
+            statusColor={true}
+            style={{ backgroundColor: NewColor.linerWhite }}
+            hidden={false}>
+            <Loader visible={isLoading} textAppear={true} />
 
-         <Header
-          commonHeader
-          title="Join Table"
-          style={{padding: universalPaddingHorizontal, }}
-        />
-          <View style={styles.card}>
+            <Header
+                commonHeader
+                title="Join Table"
+                style={{ padding: universalPaddingHorizontal, }}
+            />
+            <View style={styles.card}>
                 <View style={styles.tableHeader}>
                     <AppText size={16} weight={SEMI_BOLD}>{routeData?.gameMode}</AppText>
-                    <Image source={gameIcon} style={{width:30,height:30,tintColor:colors.golden,resizeMode:"contain"}}  />
+                    <Image source={gameIcon} style={{ width: 30, height: 30, tintColor: colors.golden, resizeMode: "contain" }} />
                 </View>
 
                 <View style={styles.tableInfo}>
@@ -320,22 +321,33 @@ console.log(userToken,'==userToken');
 
             <View style={styles.footer}>
                 <View style={styles.footerInfo}>
-                    <Image source={SECURE} style={{width:20,height:20,tintColor:colors.golden,resizeMode:'contain'}}/>
+                    <Image source={SECURE} style={{ width: 20, height: 20, tintColor: colors.golden, resizeMode: 'contain' }} />
                     <AppText size={12} color={colors.gray} style={{ marginLeft: 5 }}>Safe & Secure</AppText>
                 </View>
                 <View style={styles.footerInfo}>
-                    <Image source={PROFILE_2}  style={{width:20,height:20,resizeMode:'contain'}} />
-                    <AppText size={12}  color={colors.gray} style={{ marginLeft: 5 }}>24/7 Support</AppText>
+                    <Image source={PROFILE_2} style={{ width: 20, height: 20, resizeMode: 'contain' }} />
+                    <AppText size={12} color={colors.gray} style={{ marginLeft: 5 }}>24/7 Support</AppText>
                 </View>
             </View>
 
-             <PrimaryButton
-                          title={isWaitingForUnity ? formatTime(countdown) : (isJoining ? "Waiting for Match..." : "Join Table Now")}
-            buttonStyle={{marginTop:10,width:'90%',alignSelf:"center"}}
-            onPress={handleJoinTable}
-             disabled={isJoining || isWaitingForUnity || isCountdownActive}
-             
-            />
+            <TouchableOpacity
+                disabled={isJoining || isWaitingForUnity || isCountdownActive}
+                onPress={handleJoinTable}
+                style={{ width: '90%', alignSelf: 'center', marginTop: 10, borderRadius: 10 }}>
+                <LinearGradient
+                    colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1.0, y: 0 }}
+                    style={[styles.linearGradient, { paddingVertical: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 10 }]}>
+                    <AppText
+                        type={SIXTEEN}
+                        weight={POPPINS_BOLD}
+                        style={[styles.buttonText]}>
+                        {isWaitingForUnity ? formatTime(countdown) : (isJoining ? "Waiting for Match..." : "Join Table Now")}
+                    </AppText>
+                </LinearGradient>
+            </TouchableOpacity>
+
         </AppSafeAreaView>
     )
 }
@@ -391,7 +403,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         marginBottom: 8,
     },
-      footer: {
+    footer: {
         flexDirection: 'row',
         justifyContent: 'center',
         position: 'absolute',
