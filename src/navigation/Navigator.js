@@ -68,6 +68,10 @@ import {
   UPLOAD_SELFIE,
   MY_CONTEST_SWPIE,
   PAYMENT_SCREEN,
+  LUDO_GAME_MODE,
+  GAME_TABLE,
+  GAME_JOIN_TABLE,
+  RUMMY_GAME_MODE,
 } from './routes';
 import NavigationService from './NavigationService';
 import {useSelector, useDispatch} from 'react-redux';
@@ -165,6 +169,10 @@ import MyContestSwipe from '../screens/MyContest/MyContestSwpie';
 import PaymentScreen from '../screens/PaymentScreen';
 import HomeScreen from '../screens/HomeScreen';
 import MyBalance from '../screens/MyBalance';
+import LudoGameMode from '../screens/Ludo/LudoGameMode';
+import GameTable from '../screens/GameTable';
+import GameJoinTable from '../helper/GameJoinTable';
+import RummyGameModes from '../screens/Rummy/RummyGameMode';
 // import LeaderBoard from '../screens/leaderBoard/LeaderBoard';
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
@@ -252,6 +260,13 @@ const RootStackScreen = () => (
     <Stack.Screen name={UPLOAD_SELFIE} component={UploadSelfie} />
     <Stack.Screen name={MY_CONTEST_SWPIE} component={MyContestSwipe} />
     <Stack.Screen name={PAYMENT_SCREEN} component={PaymentScreen} />
+    <Stack.Screen name={LUDO_GAME_MODE} component={LudoGameMode} />
+    <Stack.Screen name={RUMMY_GAME_MODE} component={RummyGameModes} />
+
+    <Stack.Screen name={GAME_TABLE} component={GameTable} />
+    <Stack.Screen name={GAME_JOIN_TABLE} component={GameJoinTable} />
+
+    
   </Stack.Navigator>
 );
 

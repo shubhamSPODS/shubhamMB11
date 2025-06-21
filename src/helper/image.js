@@ -10,6 +10,21 @@ export const MyBattleReferBackground = require('../../assets/images/MyBattleRefe
 export const MyBattleProfileBox = require('../../assets/images/MyBattleProfileBox.png');
 export const splash = require('../../assets/images/splash.png');
 export const PhonePeSamIcon = require('../../assets/images/PhonePeSamIcon.png');
+export const DICE = require('../../assets/images/dice.png');
+export const DICE1 = require('../../assets/images/dice1.png');
+export const DICE2 = require('../../assets/images/dice2.png');
+export const PROFILE_2 = require('../../assets/images/profile2.png');
+export const WATCH = require('../../assets/images/watch.png');
+export const POOL = require('../../assets/images/pool.png');
+export const PRIZE = require('../../assets/images/prize.png');
+export const SECURE = require('../../assets/images/secure.png');
+
+
+
+
+
+
+
 
 
 

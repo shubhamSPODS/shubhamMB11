@@ -3,7 +3,7 @@ import React from 'react'
 import { FANTASY_BANNER, LUDO_BANNER, RUMMY_BANNER } from '../../components/ImageAssets'
 import { useFocusEffect } from '@react-navigation/native'
 import { FULL_WIDTH } from '../../components/Typography'
-import { HOME_SCREEN_MAIN } from '../../navigation/routes'
+import { HOME_SCREEN_MAIN, LUDO_GAME_MODE } from '../../navigation/routes'
 import { NewColor } from '../../theme/color'
 import { HomeTopHeader } from '../../common/HomeTopHeader'
 
@@ -22,14 +22,14 @@ const HomeScreen = ({ navigation }) => {
                     />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => {
-                    // navigation.navigate('LudoGameMode')
+                    navigation.navigate(LUDO_GAME_MODE)
                 }} activeOpacity={0.9}>
                     <Image style={styles.banner}
                         source={LUDO_BANNER}
                     />
                 </TouchableOpacity>
                 <TouchableOpacity  onPress={()=>{
-                    //  navigation.navigate('RummyGameMode')
+                     navigation.navigate('RummyGameMode')
                 }} activeOpacity={0.9}>
                     <Image style={styles.banner}
                         source={RUMMY_BANNER}

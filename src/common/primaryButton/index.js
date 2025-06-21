@@ -20,10 +20,12 @@ const PrimaryButton = ({
   smallBtn,
   titleStyle,
   type,
+  disabled,
   ...rest
 }: any) => {
   return (
     <TouchableOpacityView
+    disable={disabled}
       activeOpacity={0.1}
       {...rest}
       style={buttonStyle}

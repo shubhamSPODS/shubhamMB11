@@ -44,6 +44,7 @@ export const colors = {
   brownish:"#EC536A",
   ruffGreen:"#FF5252",
   lightWhite:"#FFFFFF33",
+  golden:'#C8A030'
 };
 export const NewColor = {
   linerBabyPink: '#803090',
