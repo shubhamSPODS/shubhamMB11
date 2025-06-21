@@ -16,12 +16,14 @@ import { useSelector } from 'react-redux'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PrimaryButton from '../common/primaryButton'
 import Loader from '../components/Loader'
+import { USER_TOKEN_KEY } from '../libs/constants'
 
 const GameJoinTable = ({ route, navigation }) => {
     const userData = useSelector(state => {
         return state.profile.userData;
       });
-   const userToken = userData?.fcm_token
+    //   console.log(userData,'==userdqata');
+      
         
     const [matchId, setMatchId] = useState('');
     const walletBalance = Number(userData?.winning_amount || 0) + Number(userData?.cash_bonus || 0) + Number(userData?.totaldeposit || 0);
@@ -31,6 +33,7 @@ const GameJoinTable = ({ route, navigation }) => {
     const [players, setPlayers] = useState([]);
     const [isJoining, setIsJoining] = useState(false);
     const [isSocketConnected, setIsSocketConnected] = useState(false);
+    const [userToken, setUserToken] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const routeData = route?.params?.playerDetails;
     const gameRoute = route?.params?.gameType;
@@ -38,7 +41,18 @@ const GameJoinTable = ({ route, navigation }) => {
     const gameIcon = isRummy ? POOL : DICE;
     const [isWaitingForUnity, setIsWaitingForUnity] = useState(false);
       const balanceAfterJoin = walletBalance - routeData?.bet;
-
+ const getUserToken =async()=>{
+    try {
+        const token = await AsyncStorage.getItem(USER_TOKEN_KEY);
+        setUserToken(token)
+          
+    } catch (error) {
+        
+    }
+ }
+ useEffect(()=>{
+    getUserToken()
+ },[])
    
     const setupSocketConnection = () => {
         let url = `${BASE_URL}server/matchmaking`;
@@ -165,7 +179,7 @@ const GameJoinTable = ({ route, navigation }) => {
                                 navigation.goBack();
                             }
                         );
-                    }, 10000);
+                    }, 4000);
                 }
             }
         } catch (error) {
@@ -223,6 +237,7 @@ const GameJoinTable = ({ route, navigation }) => {
         const secs = seconds % 60;
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     };
+console.log(userToken,'==userToken');
 
     return (
         <AppSafeAreaView

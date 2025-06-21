@@ -65,7 +65,7 @@ export const otpVerification =
     try {
       dispatch(setLoading(true));
       const response = await appOperation.guest.otp_verification(data);
- console.log(response,'==respomse>>>');
+//  console.log(response,'==respomse>>>');
  
       if (response?.success) {
         appOperation.setCustomerToken(response?.data?.accessToken);
