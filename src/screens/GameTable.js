@@ -106,7 +106,7 @@ const GameTable = ({ route,navigation }) => {
             <Header
                 commonHeader
               title={`${gameType} Tables`}
-                style={{ padding: universalPaddingHorizontal, }}
+                style={{ padding: universalPaddingHorizontal, paddingTop: 40 }}
             />
 
             <View style={styles.tabContainer}>

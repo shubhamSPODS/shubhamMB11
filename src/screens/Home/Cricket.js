@@ -40,14 +40,12 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   const [intro, setIntro] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [refershing, setRefreshing] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [ForConnectedTo, setForConnectedTo] = useState(false);
   // const URL = `${BASE_URL}upcoming-matches?limit=20&skip=0&userid=${_id}`;
   useEffect(() => {
-    if (_id && _id) {
-      onRefresh(_id)
+    if (_id) {
+      onRefresh()
     }
-  }, [random])
+  }, [random, _id])
   useEffect(() => {
     const interval = setInterval(() => {
       const itemIndex = upcomingMatches.findIndex(search);
@@ -59,31 +57,23 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     }, 1000);
     return () => clearInterval(interval);
   });
-  useEffect(() => {
-    if (upcomingMatches?.length !== 0) {
-      dispatch(setUpComingMatches(upcomingMatches));
-    }
-  }, [upcomingMatches]);
-  const onRefresh = React.useCallback((_id) => {
-    const URL = `ws://app.mybattle11.com/upcoming-matches?limit=20&skip=0&userid=${_id}`;
+  
+  const onRefresh = React.useCallback(() => {
+    const URL = `wss://app.mybattle11.com/upcoming-matches?limit=20&skip=0&userid=${_id}`;
     setRefreshing(true);
     setRefreshingTwo(true);
     // Disconnect the WebSocket if it's already connected
-    if (isConnected && wsRef.current) {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.close();
-      setIsConnected(false);
     }
     try {
       wsRef.current = new WebSocket(URL);
       wsRef.current.onopen = () => {
-
-        setIsConnected(true); // Set the connection status to true
       };
       if (!wsRef.current) return;
       wsRef.current.onmessage = e => {
         const parseData = JSON.parse(e?.data);
         let temp = parseData?.upcoming;
-        console.log(parseData, "setUpComingMatches>");
         dispatch(setUpComingMatches(temp));
         dispatch(setMyMatchesHome(parseData?.mymatches));
       };
@@ -94,46 +84,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       setRefreshingTwo(false);
       setRefreshing(false);
     }
-  }, [isConnected]);
-  const getData = React.useCallback((_id) => {
-    const URL = `wss://app.mybattle11.com/upcoming-matches?limit=20&skip=0&userid=${_id}`;
-    if (isConnected && wsRef.current) {
-      wsRef.current.close();
-      setIsConnected(false);
-    }
-    try {
-      wsRef.current = new WebSocket(URL);
-      wsRef.current.onopen = () => {
-        setIsConnected(true);
-      };
-      if (!wsRef.current) return;
-      wsRef.current.onmessage = e => {
-        const parseData = JSON.parse(e?.data);
-        let temp = parseData?.upcoming;
-        dispatch(setUpComingMatches(temp));
-        dispatch(setMyMatchesHome(parseData?.mymatches));
-      };
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [isConnected]);
-  useEffect(() => {
-    if (_id && _id) {
-      if (!ForConnectedTo) {
-        getData(_id);
-        setForConnectedTo(true);
-      } else {
-        const interval = setInterval(() => {
-          getData(_id);
-        }, 1000);
-        return () => clearInterval(interval);
-      }
-    } else {
-      console.log(_id, 'ID Nahi hai')
-    }
-  }, [_id, userData]);
+  }, [_id]);
 
   return (
     <View style={styles.container}>
@@ -184,6 +135,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         }
         style={styles.flatlistContainer}>
         {upcomingMatches?.map(item => {
+          console.log('Rendering MatchCard for item:', item);
           return <MatchCard details={item} />;
         })}
       </KeyBoardAware>

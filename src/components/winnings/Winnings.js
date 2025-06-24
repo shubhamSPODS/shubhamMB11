@@ -91,9 +91,9 @@ const Winnings = ({ id, privateis, notLive, rankData }) => {
             renderItem={renderWinnings}
             ListFooterComponent={()=>(
               <>
-          <AppText type={ELEVEN} color={BROWNYELLOW} weight={POPPINS_SEMI_BOLD} style={{ marginBottom: 8 }}>Disclaimer :</AppText>
+          <AppText type={ELEVEN} color={BROWNYELLOW} weight={POPPINS_SEMI_BOLD} style={{ marginBottom: 8, marginHorizontal: 5 }}>Disclaimer :</AppText>
         
-        <AppText type={ELEVEN} color={WHITE} weight={POPPINS_LIGHT} style={{ bottom: 10,lineHeight:18 }}>In case of a tie or contest does not fill up, the actual prizes may be different.
+        <AppText type={ELEVEN} color={WHITE} weight={POPPINS_LIGHT} style={{ bottom: 10,lineHeight:18,  marginHorizontal: 5  }}>In case of a tie or contest does not fill up, the actual prizes may be different.
           In cases of any dispute regarding the total prize pool amount, our decision shall be final and binding.{`\n\n`}
           <AppText type={ELEVEN} color={BROWNYELLOW} weight={POPPINS_MEDIUM} style={{lineHeight:18}}>Note: </AppText>
           <AppText type={ELEVEN} color={WHITE} weight={POPPINS_LIGHT} style={{ bottom: 10,lineHeight:18 }}> As per the government regulations, starting 1st April 2023, a tax of 30% will be levied at the time of withdrawal or at the end of financial year on the net winnings.</AppText></AppText>

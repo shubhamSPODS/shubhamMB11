@@ -62,4 +62,5 @@ export const NewColor = {
   linerBlackFive: '#3F3F3F',
   linerBlackFivegry: '#00000005',
   linerBlacklightEight: '#00000080',
+  linerGolden: ['#EAC982', '#A37724'],
 };

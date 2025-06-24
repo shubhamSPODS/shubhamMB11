@@ -87,7 +87,7 @@ const MyContest = () => {
   const route = useRoute();
   const filterSheet = useRef();
   const AleartLive = useRef();
-  const isLoading = useSelector((state: RootState) => state.auth.isLoading);
+  const isLoading = useSelector(state => state.auth.isLoading);
   const contestData = useSelector(state => state?.match?.contestData);
   const contestList = useSelector(state => state?.match?.contestList);
   const myTeam = useSelector(state => state?.match?.myTeams);
@@ -139,11 +139,22 @@ const MyContest = () => {
   }, []);
 
   const renderItem = ({item}) => {
+    console.log('Rendering item:', item);
     return (
-      <Contest
-        details={item}
+      <ContestCard
+        details={{
+          ...item,
+          Contestsize: item.contest_size || 0,
+          EnteryFee: item.entry_fee || 0,
+          EnteryType: item.entry_type || 'Paid',
+          JoinWithMULT: item.join_multiple || false,
+          Rankdata: item.rank_data || [{Price: 0}],
+          Winning_percent: item.winning_percentage || 0,
+          joined: item.joined_users || 0,
+          teams: item.max_teams || 1,
+          winning_amount: item.winning_amount || 0
+        }}
         totalTeamCount={myTeam?.length}
-        matchId={isHome ? match_id : _id}
       />
     );
   };
@@ -304,13 +315,13 @@ const MyContest = () => {
     return () => clearInterval(intervalId);
   }, []);
   const FirstRoute = () => {
+    const contestData = contestList?.data?.[0]?.data || [];
+    console.log('Contest Data in FirstRoute:', contestData);
+    
     return (
       <>
         {route?.params?.isFromMyMatch == true ? (
-          <View
-            style={{
-              flex: 1,
-            }}>
+          <View style={{flex: 1}}>
             <FlatList
               data={myContest}
               showsVerticalScrollIndicator={false}
@@ -320,7 +331,7 @@ const MyContest = () => {
               keyExtractor={(item, index) => index.toString()}
               refreshControl={
                 <RefreshControl
-                  refreshing={false}
+                  refreshing={isLoading}
                   onRefresh={() => onRefresh('my contest')}
                 />
               }
@@ -335,16 +346,11 @@ const MyContest = () => {
             />
           </View>
         ) : (
-          <View
-            style={{
-              width: Screen.Width - 10,
-              alignSelf: 'center',
-              marginTop: 5,
-            }}>
+          <View style={{width: Screen.Width - 10, alignSelf: 'center', marginTop: 5}}>
             {SortbyFilterData?.length > 0 ? (
               <FlatList
                 data={SortbyFilterData}
-                renderItem={renderContest}
+                renderItem={renderItem}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{marginTop: 10}}
                 keyExtractor={(item, index) => index.toString()}
@@ -354,25 +360,27 @@ const MyContest = () => {
               />
             ) : (
               <>
-                {!route?.params?.isFromMyMatch ? (
+                {!route?.params?.isFromMyMatch && (
                   <FlatList
-                    data={transformedData && transformedData}
+                    data={contestData}
                     showsVerticalScrollIndicator={false}
                     renderItem={renderItem}
                     keyExtractor={(item, index) => index.toString()}
                     refreshControl={
                       <RefreshControl
-                        refreshing={false}
+                        refreshing={isLoading}
                         onRefresh={() => onRefresh('contest')}
                       />
                     }
-                    style={{
-                      width: '100%',
-                      alignSelf: 'center',
-                    }}
+                    style={{width: '100%', alignSelf: 'center'}}
+                    ListEmptyComponent={() => (
+                      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50}}>
+                        <AppText weight={POPPINS_MEDIUM}>
+                          No contests available for this match
+                        </AppText>
+                      </View>
+                    )}
                   />
-                ) : (
-                  <></>
                 )}
               </>
             )}
@@ -685,7 +693,7 @@ const MyContest = () => {
               <PrimaryButton
                 buttonStyle={[
                   styles.buttonStyle,
-                  {marginTop: Platform.OS == 'ios' ? -5 : 0},
+                  {marginTop: Platform.OS == 'ios' ? -5 : 0, marginBottom: 13},
                 ]}
                 onPress={() => {
                   dispatch(getTab(''));

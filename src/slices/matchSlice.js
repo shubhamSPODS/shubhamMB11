@@ -342,10 +342,14 @@ export const getContestList = (outputObject, id) => async dispatch => {
   try {
     dispatch(setLoading(true));
     const res = await appOperation.customer.getContestList(data);
+    console.log('API Response:', res);
     if (res?.code === 200) {
-      const MyContest = {...res?.data};
-      const newData = MyContest?.data?.map(dataitem => {
-        const filteredData = dataitem?.data?.map(dataItem => {
+      const contestData = res?.data || [];
+      console.log('Contest Data:', contestData);
+
+      const newData = contestData.map(contest => {
+        const contestData = contest?.data || [];
+        const transformedData = contestData.map(dataItem => {
           const arrayfilter = res?.getuserjounedcont?.filter(
             e =>
               e?.contest_category_id === dataItem?.contest_category_id &&
@@ -361,33 +365,31 @@ export const getContestList = (outputObject, id) => async dispatch => {
           };
         });
 
-        return {...dataitem, data: filteredData};
+        return {
+          ...contest,
+          data: transformedData,
+        };
       });
-      const expandedData = expandData(newData);
-      const expandDataNew = {
-        data: expandedData,
-      };
-      dispatch(setContestList(expandDataNew));
-      dispatch(setContestListTeam(res?.getuserjounedcont));
-      const newArrya = [];
-      const desiredInnerDataIds = res.data.reduce((acc, category) => {
-        for (const entry of category.data) {
-          acc.push(entry.inner_data_id);
-        }
-        return acc;
-      }, []);
-      const finalArray = {data: []};
-      for (const category of res?.data) {
-        for (const entry of category?.data) {
-          if (desiredInnerDataIds.includes(entry.inner_data_id)) {
-            finalArray.data.push(entry);
+
+      console.log('Transformed Data:', newData);
+      
+      dispatch(setContestList({ data: newData }));
+      dispatch(setContestListTeam(res?.getuserjounedcont || []));
+
+      const finalArray = {
+        data: newData.reduce((acc, category) => {
+          if (category?.data) {
+            acc.push(...category.data);
           }
-        }
-      }
+          return acc;
+        }, [])
+      };
+
+      console.log('Filter Sort Data:', finalArray);
       dispatch(getFilterSortby(finalArray));
     }
-    dispatch(setLoading(false));
   } catch (e) {
+    console.error('Error in getContestList:', e);
   } finally {
     dispatch(setLoading(false));
   }

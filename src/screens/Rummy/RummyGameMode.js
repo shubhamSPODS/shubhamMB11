@@ -94,7 +94,7 @@ const RummyGameModes = () => {
             <Header
                 commonHeader
                 title="Rummy Table"
-                style={{ padding: universalPaddingHorizontal, }}
+                style={{ padding: universalPaddingHorizontal, paddingTop: 40 }}
             />
             <ScrollView>
                 <FlatList

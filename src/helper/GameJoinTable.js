@@ -250,7 +250,7 @@ const GameJoinTable = ({ route, navigation }) => {
             <Header
                 commonHeader
                 title="Join Table"
-                style={{ padding: universalPaddingHorizontal, }}
+                style={{ padding: universalPaddingHorizontal, paddingTop: 40 }}
             />
             <View style={styles.card}>
                 <View style={styles.tableHeader}>

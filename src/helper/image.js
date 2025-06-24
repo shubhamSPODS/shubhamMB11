@@ -317,6 +317,10 @@ export const paytmIcon = require('../../assets/images/paytmIcon.png');
 export const myBattleTextImg = require('../../assets/images/myBattleTextImg.png')
 
 export const back = require('../../assets/images/BackIcon.png');
+export const prize = require('../../assets/images/18.png');
+export const fee = require('../../assets/images/18.png');
+export const pending = require('../../assets/images/18.png');
+export const failed = require('../../assets/images/18.png');
 
 
 

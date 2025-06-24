@@ -1,6 +1,7 @@
 import React, {createContext, useEffect} from 'react';
 import {NavigationContainer, useIsFocused} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 
 import {
   AUTHSTACK,
@@ -80,7 +81,6 @@ import MyContest from '../screens/MyContest';
 import Profile from '../screens/Profile';
 import More from '../screens/More';
 import MyContestList from '../components/matchCard/myContest/MyContestList';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {
   BottomRefer,
   BottomReferLinear,
@@ -95,6 +95,9 @@ import {
   profile_icon,
   refer_earn,
   wallet_icon,
+  DICE,
+  transactionIcon,
+  profileCard,
 } from '../helper/image';
 import FastImage from "@d11/react-native-fast-image";
 import ReferAndEarn from '../screens';
@@ -169,6 +172,7 @@ import MyContestSwipe from '../screens/MyContest/MyContestSwpie';
 import PaymentScreen from '../screens/PaymentScreen';
 import HomeScreen from '../screens/HomeScreen';
 import MyBalance from '../screens/MyBalance';
+import TransactionsScreen from '../screens/Transactions';
 import LudoGameMode from '../screens/Ludo/LudoGameMode';
 import GameTable from '../screens/GameTable';
 import GameJoinTable from '../helper/GameJoinTable';
@@ -176,6 +180,208 @@ import RummyGameModes from '../screens/Rummy/RummyGameMode';
 // import LeaderBoard from '../screens/leaderBoard/LeaderBoard';
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
+const Tab = createBottomTabNavigator();
+
+const LudoTab = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarStyle: {
+          backgroundColor: NewColor.linerWhite,
+        },
+      }}>
+      <Tab.Screen
+        name={'Ludo'}
+        component={LudoGameMode}
+        options={{
+          tabBarIcon: ({color, focused}) => {
+            return (
+              <>
+                <FastImage
+                  source={DICE}
+                  style={{
+                    height: 20,
+                    width: 20,
+                    tintColor: focused ? colors.brownYellow : colors.gray,
+                  }}
+                  resizeMode="contain"
+                />
+                <AppText
+                  style={{marginTop: 5, fontSize: 10}}
+                  color={focused ? BROWNYELLOW : colors.gray}>
+                  Ludo
+                </AppText>
+              </>
+            );
+          },
+        }}
+      />
+      <Tab.Screen
+        name={'Home'}
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({color, focused}) => {
+            return (
+              <>
+                <FastImage
+                  source={home_icon}
+                  style={{
+                    height: 20,
+                    width: 20,
+                    tintColor: focused ? colors.brownYellow : colors.gray,
+                  }}
+                  resizeMode="contain"
+                />
+                <AppText
+                  style={{marginTop: 5, fontSize: 10}}
+                  color={focused ? BROWNYELLOW : colors.gray}>
+                  Home
+                </AppText>
+              </>
+            );
+          },
+        }}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate(BOTTOM_NAVIGATION_STACK, {
+              screen: BOTTOM_TAB_HOMESCREEN,
+            });
+          },
+        })}
+      />
+      <Tab.Screen
+        name={'Transactions'}
+        component={TransactionsScreen}
+        options={{
+          tabBarIcon: ({color, focused}) => {
+            return (
+              <>
+                <FastImage
+                  source={transactionIcon}
+                  style={{
+                    height: 20,
+                    width: 20,
+                    tintColor: focused ? colors.brownYellow : colors.gray,
+                  }}
+                  resizeMode="contain"
+                />
+                <AppText
+                  style={{marginTop: 5, fontSize: 10}}
+                  color={focused ? BROWNYELLOW : colors.gray}>
+                  Transactions
+                </AppText>
+              </>
+            );
+          },
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
+
+const RummyTab = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarStyle: {
+          backgroundColor: NewColor.linerWhite,
+        },
+      }}>
+      <Tab.Screen
+        name={'Rummy'}
+        component={RummyGameModes}
+        options={{
+          tabBarIcon: ({color, focused}) => {
+            return (
+              <>
+                <FastImage
+                  source={profileCard}
+                  style={{
+                    height: 20,
+                    width: 20,
+                    tintColor: focused ? colors.brownYellow : colors.gray,
+                  }}
+                  resizeMode="contain"
+                />
+                <AppText
+                  style={{marginTop: 5, fontSize: 10}}
+                  color={focused ? BROWNYELLOW : colors.gray}>
+                  Rummy
+                </AppText>
+              </>
+            );
+          },
+        }}
+      />
+      <Tab.Screen
+        name={'Home'}
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({color, focused}) => {
+            return (
+              <>
+                <FastImage
+                  source={home_icon}
+                  style={{
+                    height: 20,
+                    width: 20,
+                    tintColor: focused ? colors.brownYellow : colors.gray,
+                  }}
+                  resizeMode="contain"
+                />
+                <AppText
+                  style={{marginTop: 5, fontSize: 10}}
+                  color={focused ? BROWNYELLOW : colors.gray}>
+                  Home
+                </AppText>
+              </>
+            );
+          },
+        }}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate(BOTTOM_NAVIGATION_STACK, {
+              screen: BOTTOM_TAB_HOMESCREEN,
+            });
+          },
+        })}
+      />
+      <Tab.Screen
+        name={'Transactions'}
+        component={TransactionsScreen}
+        options={{
+          tabBarIcon: ({color, focused}) => {
+            return (
+              <>
+                <FastImage
+                  source={transactionIcon}
+                  style={{
+                    height: 20,
+                    width: 20,
+                    tintColor: focused ? colors.brownYellow : colors.gray,
+                  }}
+                  resizeMode="contain"
+                />
+                <AppText
+                  style={{marginTop: 5, fontSize: 10}}
+                  color={focused ? BROWNYELLOW : colors.gray}>
+                  Transactions
+                </AppText>
+              </>
+            );
+          },
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
+
 const Navigator = () => {
   return (
     <NavigationContainer
@@ -191,9 +397,11 @@ export default Navigator;
 
 const RootStackScreen = () => (
   <Stack.Navigator
+    initialRouteName={AUTH_LOADING_SCREEN}
     screenOptions={{
       headerShown: false,
     }}>
+    <Stack.Screen name="Transactions" component={TransactionsScreen} />
     <Stack.Screen
       name={AUTH_LOADING_SCREEN}
       component={AuthLoading}
@@ -260,13 +468,10 @@ const RootStackScreen = () => (
     <Stack.Screen name={UPLOAD_SELFIE} component={UploadSelfie} />
     <Stack.Screen name={MY_CONTEST_SWPIE} component={MyContestSwipe} />
     <Stack.Screen name={PAYMENT_SCREEN} component={PaymentScreen} />
-    <Stack.Screen name={LUDO_GAME_MODE} component={LudoGameMode} />
-    <Stack.Screen name={RUMMY_GAME_MODE} component={RummyGameModes} />
-
     <Stack.Screen name={GAME_TABLE} component={GameTable} />
+    <Stack.Screen name={LUDO_GAME_MODE} component={LudoTab} />
     <Stack.Screen name={GAME_JOIN_TABLE} component={GameJoinTable} />
-
-    
+    <Stack.Screen name={RUMMY_GAME_MODE} component={RummyTab} />
   </Stack.Navigator>
 );
 
