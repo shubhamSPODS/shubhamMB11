@@ -133,26 +133,17 @@ const MyTransaction = () => {
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     {key: 'first', title: 'Deposits', data: reverseData, isLoading},
-    {key: 'second', title: 'Contests', data: reverseData, isLoading},
-    {
-      key: 'third',
-      title: 'Withdrawals',
-      data: reverseData,
-      isLoading,
-    },
+    {key: 'third', title: 'Withdrawals', data: reverseData, isLoading},
   ]);
 
   useEffect(() => {
-    const transactionType =
-      index === 0 ? 'ADDCASH' : index === 1 ? 'contests' : 'withdrawl';
+    const transactionType = index === 0 ? 'ADDCASH' : 'withdrawl';
     dispatch(getTransactionsDeposit(transactionType));
   }, [index]);
 
   const renderScene = ({route}) => {
     switch (route.key) {
       case 'first':
-        return <FirstRoute data={reverseData} isLoading={isLoading} />;
-      case 'second':
         return <FirstRoute data={reverseData} isLoading={isLoading} />;
       case 'third':
         return <FirstRoute data={reverseData} isLoading={isLoading} />;

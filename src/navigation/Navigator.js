@@ -1,7 +1,12 @@
 import React, {createContext, useEffect} from 'react';
-import {NavigationContainer, useIsFocused} from '@react-navigation/native';
+import {NavigationContainer, useIsFocused, useNavigation} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {StatusBar, RefreshControl, Platform} from 'react-native';
+import {AppSafeAreaView} from '../common/AppSafeAreaView';
+import {HomeTopHeader} from '../common/HomeTopHeader';
+import {KeyBoardAware} from '../common/KeyboardAware';
+import Cricket from '../screens/Home/Cricket';
 
 import {
   AUTHSTACK,
@@ -73,6 +78,7 @@ import {
   GAME_TABLE,
   GAME_JOIN_TABLE,
   RUMMY_GAME_MODE,
+  CRICKET_TAB,
 } from './routes';
 import NavigationService from './NavigationService';
 import {useSelector, useDispatch} from 'react-redux';
@@ -84,7 +90,6 @@ import MyContestList from '../components/matchCard/myContest/MyContestList';
 import {
   BottomRefer,
   BottomReferLinear,
-  balance,
   contestLinerIcon,
   contest_icon,
   homeLinerIcon,
@@ -156,7 +161,6 @@ import SelectSubstitute from '../screens/Selectsubstitute.js/SelectSubstitute';
 import ShareTeam from '../screens/ShareTeam';
 import ContestShare from '../screens/ContestShare';
 import PrivateLeaderBoard from '../PrivateLeaderBoard';
-import {Platform} from 'react-native';
 import VerifyDL from '../screens/VerifyDL';
 import VerifyVoterID from '../screens/VerifyVoterID';
 import AddCashVerification from '../screens/AddCashVerification';
@@ -182,66 +186,280 @@ const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
 
-const LudoTab = () => {
+const CricketWrapper = () => {
+  const [refreshingTwo, setRefreshingTwo] = React.useState(false);
+  const [random, setRandom] = React.useState(0);
+  const navigation = useNavigation();
+
+  return (
+    <AppSafeAreaView
+      statusColor={true}
+      style={{ flex: 1, backgroundColor: colors.black }}
+      hidden={false}>
+      <StatusBar
+        backgroundColor={'transparent'}
+        translucent={true}
+        networkActivityIndicatorVisible={true}
+      />
+      <HomeTopHeader
+        showBack={true}
+        personClick={() => navigation.goBack()}
+        walletIcon={true}
+      />
+      <KeyBoardAware
+        refreshControl={
+          <RefreshControl refreshing={refreshingTwo} onRefresh={() => setRandom(prev => prev + 1)} />
+        }
+        style={{ flex: 1, backgroundColor: colors.darkBlue }}>
+        <Cricket random={random} setRefreshingTwo={setRefreshingTwo} />
+      </KeyBoardAware>
+    </AppSafeAreaView>
+  );
+};
+
+const CricketTab = () => {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: NewColor.linerWhite,
+          height: Platform.OS === 'ios' ? 80 : 60,
+          borderTopWidth: 0,
+          paddingVertical: 10,
         },
       }}>
       <Tab.Screen
-        name={'Ludo'}
-        component={LudoGameMode}
+        name={'Cricket'}
+        component={CricketWrapper}
         options={{
-          tabBarIcon: ({color, focused}) => {
-            return (
-              <>
-                <FastImage
-                  source={DICE}
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
                   style={{
-                    height: 20,
-                    width: 20,
-                    tintColor: focused ? colors.brownYellow : colors.gray,
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
                   }}
-                  resizeMode="contain"
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
                 />
-                <AppText
-                  style={{marginTop: 5, fontSize: 10}}
-                  color={focused ? BROWNYELLOW : colors.gray}>
-                  Ludo
-                </AppText>
-              </>
-            );
-          },
+              ) : null}
+              <FastImage
+                source={DICE}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Cricket
+              </AppText>
+            </>
+          ),
         }}
       />
       <Tab.Screen
         name={'Home'}
         component={HomeScreen}
         options={{
-          tabBarIcon: ({color, focused}) => {
-            return (
-              <>
-                <FastImage
-                  source={home_icon}
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
                   style={{
-                    height: 20,
-                    width: 20,
-                    tintColor: focused ? colors.brownYellow : colors.gray,
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
                   }}
-                  resizeMode="contain"
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
                 />
-                <AppText
-                  style={{marginTop: 5, fontSize: 10}}
-                  color={focused ? BROWNYELLOW : colors.gray}>
-                  Home
-                </AppText>
-              </>
-            );
+              ) : null}
+              <FastImage
+                source={home_icon}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Home
+              </AppText>
+            </>
+          ),
+        }}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate(BOTTOM_NAVIGATION_STACK, {
+              screen: BOTTOM_TAB_HOMESCREEN,
+            });
           },
+        })}
+      />
+      <Tab.Screen
+        name={BOTTOM_TAB_CONTEST_SCREEN}
+        component={MyContestDrawer}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
+                />
+              ) : null}
+              <FastImage
+                source={contestLinerIcon}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Contest
+              </AppText>
+            </>
+          ),
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
+
+const LudoTab = () => {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: NewColor.linerWhite,
+          height: Platform.OS === 'ios' ? 80 : 60,
+          borderTopWidth: 0,
+          paddingVertical: 10,
+        },
+      }}>
+      <Tab.Screen
+        name={'Ludo'}
+        component={LudoGameMode}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
+                />
+              ) : null}
+              <FastImage
+                source={DICE}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Ludo
+              </AppText>
+            </>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name={'Home'}
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
+                />
+              ) : null}
+              <FastImage
+                source={home_icon}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Home
+              </AppText>
+            </>
+          ),
         }}
         listeners={({navigation}) => ({
           tabPress: e => {
@@ -256,26 +474,41 @@ const LudoTab = () => {
         name={'Transactions'}
         component={TransactionsScreen}
         options={{
-          tabBarIcon: ({color, focused}) => {
-            return (
-              <>
-                <FastImage
-                  source={transactionIcon}
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
                   style={{
-                    height: 20,
-                    width: 20,
-                    tintColor: focused ? colors.brownYellow : colors.gray,
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
                   }}
-                  resizeMode="contain"
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
                 />
-                <AppText
-                  style={{marginTop: 5, fontSize: 10}}
-                  color={focused ? BROWNYELLOW : colors.gray}>
-                  Transactions
-                </AppText>
-              </>
-            );
-          },
+              ) : null}
+              <FastImage
+                source={transactionIcon}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Transactions
+              </AppText>
+            </>
+          ),
         }}
       />
     </Tab.Navigator>
@@ -288,60 +521,94 @@ const RummyTab = () => {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           backgroundColor: NewColor.linerWhite,
+          height: Platform.OS === 'ios' ? 80 : 60,
+          borderTopWidth: 0,
+          paddingVertical: 10,
         },
       }}>
       <Tab.Screen
         name={'Rummy'}
         component={RummyGameModes}
         options={{
-          tabBarIcon: ({color, focused}) => {
-            return (
-              <>
-                <FastImage
-                  source={profileCard}
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
                   style={{
-                    height: 20,
-                    width: 20,
-                    tintColor: focused ? colors.brownYellow : colors.gray,
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
                   }}
-                  resizeMode="contain"
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
                 />
-                <AppText
-                  style={{marginTop: 5, fontSize: 10}}
-                  color={focused ? BROWNYELLOW : colors.gray}>
-                  Rummy
-                </AppText>
-              </>
-            );
-          },
+              ) : null}
+              <FastImage
+                source={DICE}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Rummy
+              </AppText>
+            </>
+          ),
         }}
       />
       <Tab.Screen
         name={'Home'}
         component={HomeScreen}
         options={{
-          tabBarIcon: ({color, focused}) => {
-            return (
-              <>
-                <FastImage
-                  source={home_icon}
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
                   style={{
-                    height: 20,
-                    width: 20,
-                    tintColor: focused ? colors.brownYellow : colors.gray,
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
                   }}
-                  resizeMode="contain"
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
                 />
-                <AppText
-                  style={{marginTop: 5, fontSize: 10}}
-                  color={focused ? BROWNYELLOW : colors.gray}>
-                  Home
-                </AppText>
-              </>
-            );
-          },
+              ) : null}
+              <FastImage
+                source={home_icon}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Home
+              </AppText>
+            </>
+          ),
         }}
         listeners={({navigation}) => ({
           tabPress: e => {
@@ -356,26 +623,41 @@ const RummyTab = () => {
         name={'Transactions'}
         component={TransactionsScreen}
         options={{
-          tabBarIcon: ({color, focused}) => {
-            return (
-              <>
-                <FastImage
-                  source={transactionIcon}
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
                   style={{
-                    height: 20,
-                    width: 20,
-                    tintColor: focused ? colors.brownYellow : colors.gray,
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
                   }}
-                  resizeMode="contain"
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
                 />
-                <AppText
-                  style={{marginTop: 5, fontSize: 10}}
-                  color={focused ? BROWNYELLOW : colors.gray}>
-                  Transactions
-                </AppText>
-              </>
-            );
-          },
+              ) : null}
+              <FastImage
+                source={transactionIcon}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Transactions
+              </AppText>
+            </>
+          ),
         }}
       />
     </Tab.Navigator>
@@ -472,6 +754,11 @@ const RootStackScreen = () => (
     <Stack.Screen name={LUDO_GAME_MODE} component={LudoTab} />
     <Stack.Screen name={GAME_JOIN_TABLE} component={GameJoinTable} />
     <Stack.Screen name={RUMMY_GAME_MODE} component={RummyTab} />
+    <Stack.Screen
+      name={CRICKET_TAB}
+      component={CricketTab}
+      options={{headerShown: false}}
+    />
   </Stack.Navigator>
 );
 
@@ -502,19 +789,6 @@ const HomeStack = () => (
   </Stack.Navigator>
 );
 
-const ContestStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-    }}>
-    <Stack.Screen
-      name={CONTEST_SCREEN_MAIN}
-      component={MyContest}
-      options={{headerShown: false}}
-    />
-  </Stack.Navigator>
-);
-
 const ProfileStack = () => (
   <Stack.Navigator
     screenOptions={{
@@ -528,18 +802,6 @@ const ProfileStack = () => (
   </Stack.Navigator>
 );
 
-const MoreStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-    }}>
-    <Stack.Screen
-      name={MORE_SCREEN_MAIN}
-      component={More}
-      options={{headerShown: false}}
-    />
-  </Stack.Navigator>
-);
 
 const BottomMainTab = () => {
   const BottomTab = createBottomTabNavigator();
@@ -606,54 +868,6 @@ const BottomMainTab = () => {
         }}
       />
       <BottomTab.Screen
-        name={BOTTOM_TAB_CONTEST_SCREEN}
-        component={MyContestDrawer}
-        options={{
-          tabBarIcon: ({focused}) => (
-            <>
-              {focused ? (
-                <LinearGradient
-                  start={{x: 0, y: 1}}
-                  end={{x: 1, y: 0}}
-                  style={{
-                    height: 5,
-                    width: 46,
-                    borderBottomRightRadius: 50,
-                    borderBottomLeftRadius: 50,
-                    position: 'absolute',
-                    top: -11,
-                    right: 25,
-                  }}
-                  colors={[
-                    colors.playerDetailsLinerOne,
-                    colors.playerDetailsLinerTwo,
-                  ]}
-                />
-              ) : (
-                <></>
-              )}
-              <FastImage
-                source={focused ? contestLinerIcon : contest_icon}
-                tintColor={focused ? colors.brownYellow : colors.gray}
-                style={{
-                  width: 25,
-                  height: 25,
-                }}
-                resizeMode="contain"
-              />
-              <AppText
-                style={{marginTop: 4}}
-                color={focused ? BROWNYELLOW : GRY}
-                weight={POPPINS_MEDIUM}
-                type={TEN}>
-                Contest
-              </AppText>
-            </>
-          ),
-        }}
-      />
-
-      <BottomTab.Screen
         name={REFER_EARN}
         component={ReferAndEarn}
         options={{
@@ -670,7 +884,7 @@ const BottomMainTab = () => {
                     borderBottomLeftRadius: 50,
                     position: 'absolute',
                     top: -11,
-                    right: '19%',
+                    right: '28%',
                   }}
                   colors={[
                     colors.playerDetailsLinerOne,
@@ -682,7 +896,7 @@ const BottomMainTab = () => {
               )}
               <FastImage
                 tintColor={focused ? colors.brownYellow : colors.gray}
-                source={focused ? balance : balance}
+                source={wallet_icon}
                 style={{
                   width: 23,
                   height: 23,
@@ -701,7 +915,6 @@ const BottomMainTab = () => {
           ),
         }}
       />
-
       <BottomTab.Screen
         name={PROFILE}
         component={MyReferDrawer}
@@ -748,50 +961,6 @@ const BottomMainTab = () => {
           ),
         }}
       />
-
-      {/* <BottomTab.Screen
-        name={BOTTOM_TAB_MORE_SCREEN}
-        component={MoreStack}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <>
-              {focused ? (
-                <LinearGradient
-                  start={{ x: 0, y: 1 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{
-                    height: 5,
-                    width: 46,
-                    borderBottomRightRadius: 50,
-                    borderBottomLeftRadius: 50,
-                    position: 'absolute',
-                    top: -11,
-                  }}
-                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
-                />
-              ) : (
-                <></>
-              )}
-              <FastImage
-                tintColor={focused ? colors.brownYellow : colors.gray}
-                source={focused ? moreLinerIcon : more_icon}
-                style={{
-                  width: 25,
-                  height: 25,
-                }}
-                resizeMode="contain"
-              />
-              <AppText
-                style={{ marginTop: 4 }}
-                color={focused ? BROWNYELLOW : GRY}
-                weight={POPPINS_MEDIUM}
-                type={TEN}>
-                More
-              </AppText>
-            </>
-          ),
-        }}
-      /> */}
     </BottomTab.Navigator>
   );
 };
