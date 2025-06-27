@@ -1243,23 +1243,7 @@ const SelectPlayer = () => {
       toastAlert.showToastError('Please select Unannounced player to remove');
     }
   };
-  const renderPastLineupItem = ({ item, index }) => {
-// console.log(item,'----item');
-
-    
-    const totalItems = allPlayers?.length 
-    const isLastItem = index === totalItems - 1;
-    const isOdd = index % 2 !== 0;
-    const itemStyle = {
-      width: isLastItem ? '100%' : '48%',  
-      padding: 10,
-      alignSelf: isLastItem ? "center" : isOdd ? "flex-end" : "center", 
-      borderRightWidth: !isLastItem && index % 2 === 0 ? 1 : 0,
-      borderColor: !isLastItem && index % 2 === 0 ? colors.gray : '',
-      borderStyle: 'dotted',
-      borderBottomWidth: 1,
-      borderBottomColor: colors.gray,
-    };
+  const renderPastLineupItem = ({ item }) => {
     const playerIcon =
       item?.playing_role === 'wk'
         ? wicket_keeperIcon
@@ -1270,123 +1254,135 @@ const SelectPlayer = () => {
             : item?.playing_role === 'all'
               ? all_rounderIcon
               : null;
-    return (
-      selectedPlayers?.includes(item?.pid) ?
-        <LinearGradient
-          colors={['#343434', '#FF5252']}
-          start={{ x: 0, y: 0.1 }}
-          end={{ x: 1, y: 0 }}
-          style={itemStyle}>
-          <TouchableOpacity activeOpacity={0.9} onPress={() => removePlayerFromTeam(item)}
-          >
-            <View style={{ flexDirection: 'row', justifyContent: "space-between", width: '100%' }}>
-              <View style={{ flexDirection: "row", alignItems: 'center', width: '70%', }}>
-                <FastImage
-                  style={{ width: 30, height: 30, resizeMode: 'contain' }}
-                  source={
-                    item?.profile_image ? { uri: item?.profile_image } : playerIcon
-                  }
-                  resizeMode="contain"
-                />
-                <View>
-                  <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.first_name}</AppText>
-                  <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>
-                </View>
-              </View>
 
-              <View style={{ width: '30%', alignItems: 'flex-end', marginTop: 5 }}>
-                <FastImage
-                  tintColor={colors.green}
-                  style={{ width: 18, height: 18, resizeMode: 'contain', }}
-                  source={
-                    addsubstitues
-                  }
-                  resizeMode="contain"
-                />
-                <AppText type={ELEVEN} style={{ marginVertical: 5 }}>{(item?.average_point).toFixed(2)}</AppText>
-         
-             
-                
-              </View>
+    const itemStyle = {
+      width: '100%',
+      padding: 10,
+      borderColor: colors.gray,
+      borderStyle: 'dotted',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.gray,
+      marginBottom: 8,
+      backgroundColor: selectedPlayers?.includes(item?.pid) ? undefined : '#343434'
+    };
 
-            </View>
-          </TouchableOpacity>
-        </LinearGradient>
-        :
-        <TouchableOpacity activeOpacity={0.9} onPress={() => {
-          selectedPlayers?.length == 11 ? null : addPlayerInTeam(item)
-        }} style={itemStyle}>
-          <View style={{ flexDirection: 'row', justifyContent: "space-between", width: '100%' }}>
-            <View style={{ flexDirection: "row", alignItems: 'center', width: '70%', }}>
-              <FastImage
-                style={{ width: 30, height: 30, resizeMode: 'contain' }}
-                source={
-                  item?.profile_image ? { uri: item?.profile_image } : playerIcon
-                }
-                resizeMode="contain"
-              />
-              {console.log(item,'==item>>')
-              }
-              <View>
-                <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.short_name}</AppText>
-                <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>
-              </View>
-            </View>
-
-            <View style={{ width: '30%', alignItems: 'flex-end', marginTop: 5 }}>
-              <FastImage
-                tintColor={colors.green}
-                style={{ width: 18, height: 18, resizeMode: 'contain', }}
-                source={
-                  addsubstitues
-                }
-                resizeMode="contain"
-              />
-              <AppText type={ELEVEN} style={{ marginVertical: 5 }}>{(item?.average_point)?.toFixed(2)}</AppText>
-            </View>
-
+    const PlayerCard = () => (
+      <View style={{ flexDirection: 'row', justifyContent: "space-between", width: '100%' }}>
+        <View style={{ flexDirection: "row", alignItems: 'center', width: '70%' }}>
+          <FastImage
+            style={{ width: 30, height: 30, resizeMode: 'contain' }}
+            source={item?.profile_image ? { uri: item?.profile_image } : playerIcon}
+            resizeMode="contain"
+          />
+          <View>
+            <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.short_name || item?.first_name}</AppText>
+            <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>
           </View>
+        </View>
+
+        <View style={{ width: '30%', alignItems: 'flex-end', marginTop: 5 }}>
+          <FastImage
+            tintColor={colors.green}
+            style={{ width: 18, height: 18, resizeMode: 'contain' }}
+            source={addsubstitues}
+            resizeMode="contain"
+          />
+          <AppText type={ELEVEN} style={{ marginVertical: 5 }}>{(item?.average_point)?.toFixed(2)}</AppText>
+        </View>
+      </View>
+    );
+
+    return selectedPlayers?.includes(item?.pid) ? (
+      <LinearGradient
+        colors={['#343434', '#FF5252']}
+        start={{ x: 0, y: 0.1 }}
+        end={{ x: 1, y: 0 }}
+        style={itemStyle}>
+        <TouchableOpacity activeOpacity={0.9} onPress={() => removePlayerFromTeam(item)}>
+          <PlayerCard />
         </TouchableOpacity>
+      </LinearGradient>
+    ) : (
+      <TouchableOpacity 
+        activeOpacity={0.9} 
+        onPress={() => selectedPlayers?.length == 11 ? null : addPlayerInTeam(item)} 
+        style={itemStyle}>
+        <PlayerCard />
+      </TouchableOpacity>
     );
   };
 
-
-
-  
-  
   const PlayersList = ({ route }) => {
     const allPlayers = useSelector(state => state?.match?.allPlayers);
+    
     const getFilteredPlayers = () => {
       if (route?.key === 'pl') {
-        return allPlayers;
+        // Split players by team
+        const teamAPlayers = allPlayers.filter(player => player.title === removedSpacesTeamsTitle[0])
+          .sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid));
+        const teamBPlayers = allPlayers.filter(player => player.title === removedSpacesTeamsTitle[1])
+          .sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid));
+        return { teamAPlayers, teamBPlayers };
       }
       return getPlayersData(route?.key);
     };
 
+    if (route?.key === 'pl') {
+      const { teamAPlayers, teamBPlayers } = getFilteredPlayers();
+      
+      return (
+        <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center', flex: 1 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', flex: 1 }}>
+            {/* Team A Column */}
+            <View style={{ width: '48%' }}>
+              <AppText style={{ textAlign: 'center', marginBottom: 10, color: colors.white }}>
+                {removedSpacesTeamsTitle[0]}
+              </AppText>
+              <FlatList
+                data={teamAPlayers}
+                renderItem={renderPastLineupItem}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingBottom: 20, // Add extra padding for buttons
+                }}
+              />
+            </View>
+
+            {/* Vertical Divider */}
+            <View style={{ width: 1, backgroundColor: colors.gray }} />
+
+            {/* Team B Column */}
+            <View style={{ width: '48%' }}>
+              <AppText style={{ textAlign: 'center', marginBottom: 10, color: colors.white }}>
+                {removedSpacesTeamsTitle[1]}
+              </AppText>
+              <FlatList
+                data={teamBPlayers}
+                renderItem={renderPastLineupItem}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{
+                  paddingBottom: 20, // Add extra padding for buttons
+                }}
+              />
+            </View>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center' }}>
-        {route?.key === 'pl' ? <FlatList
+        <FlatList
           data={getFilteredPlayers()?.sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid)) || []}
-          renderItem={renderPastLineupItem}
+          renderItem={renderItem}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
-            flexGrow: 1,
-            paddingBottom: 20,
-            alignItems: "center",
-            justifyContent: "flex-start",
+            paddingBottom: 20, // Add extra padding for buttons
           }}
-          numColumns={2}
         />
-          :
-          <FlatList
-            data={getFilteredPlayers()?.sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid)) || []}
-            renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-          />}
       </View>
     );
   };
-
 
   const renderScene = SceneMap({
     pl: props => <PlayersList route={props.route} />,
@@ -1655,7 +1651,6 @@ const SelectPlayer = () => {
 
 export default SelectPlayer;
 
-
 export const RenderTabBar = props => {
   const {
     onTabChange,
@@ -1667,7 +1662,6 @@ export const RenderTabBar = props => {
   } = props;
 
   return (
-
     <>
       <TabBar
         {...props}
@@ -1725,7 +1719,7 @@ export const RenderTabBar = props => {
         pressColor={'transparent'}
         style={[{ width: '100%', backgroundColor: 'transparent', elevation: 0 }]}
       />
-      <View style={styles.playerListingHead}>
+      {/* <View style={styles.playerListingHead}>
         <AppText
           style={{ flex: 1 }}
           type={ELEVEN}
@@ -1809,7 +1803,7 @@ export const RenderTabBar = props => {
             />
           )}
         </TouchableOpacity>
-      </View>
+      </View> */}
     </>
   );
 };

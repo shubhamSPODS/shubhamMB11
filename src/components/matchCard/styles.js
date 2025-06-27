@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   teamImage: {
     height: 40,
     width: 40,
-    borderRadius:20,
+    borderRadius: 20,
     resizeMode: 'contain',
   },
   textStyle: {
@@ -111,8 +111,6 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
   contestName: {
-    // width: 'auto',
-    // minWidth: 38,
     borderWidth: 1,
     borderColor: '#3EAA35',
     borderRadius: 28,
@@ -120,7 +118,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 6,
     flexDirection: 'row',
-    // marginBottom: 5,
     width: 129,
     height: 21,
   },
