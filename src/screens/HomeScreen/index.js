@@ -31,9 +31,9 @@ const HomeScreen = ({ navigation }) => {
                         source={LUDO_BANNER}
                     />
                 </TouchableOpacity>
-                <TouchableOpacity  onPress={()=>{
-                     navigation.navigate('RummyGameMode')
-                }} activeOpacity={0.9}>
+                <TouchableOpacity  
+                // onPress={()=>{navigation.navigate('RummyGameMode')}} 
+                activeOpacity={0.9}>
                     <Image style={styles.banner3}
                         source={RUMMY_BANNER}
                     />

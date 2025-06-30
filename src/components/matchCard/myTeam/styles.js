@@ -69,6 +69,14 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     paddingHorizontal: 10,
   },
+  totalTeamsContainer: {
+    backgroundColor: colors.white,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.lightgry,
+    marginBottom: 8,
+  },
 });
 
 export default styles;

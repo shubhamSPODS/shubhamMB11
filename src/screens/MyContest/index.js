@@ -404,17 +404,18 @@ const MyContest = () => {
               data={myTeam}
               renderItem={renderMyTeam}
               showsVerticalScrollIndicator={false}
-              keyExtractor={(item, index) => index.toString()}
+              keyExtractor={keyExtractor}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={true}
               ListEmptyComponent={<EmptyComponentTwo />}
+              contentContainerStyle={{ paddingBottom: 10 }}
               refreshControl={
                 <RefreshControl
                   refreshing={false}
                   onRefresh={() => handleRefresh('my team')}
                 />
               }
-              contentContainerStyle={{
-                flexGrow: flexOne,
-              }}
               style={{
                 width: '100%',
                 flex: flexOne,
@@ -486,6 +487,7 @@ const MyContest = () => {
                   <EmptyComponentTwo />
                 </View>
               )}
+              contentContainerStyle={{ paddingBottom: 100 }}
               refreshControl={
                 <RefreshControl
                   refreshing={false}

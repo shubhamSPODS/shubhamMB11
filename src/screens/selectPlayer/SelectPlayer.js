@@ -1,5 +1,5 @@
 import { useIsFocused, useRoute } from '@react-navigation/native';
-import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback, memo } from 'react';
 import {
   FlatList,
   ImageBackground,
@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
+  Dimensions,
+  VirtualizedList,
 } from 'react-native';
 import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
@@ -75,61 +77,247 @@ import { MatchLiveModal } from '../../common/MatchLiveModal';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import { Screen, universalPaddingHorizontal } from '../../theme/dimens';
 import UnannouncedPlayer from '../UnannouncedPlayer';
-import { black } from 'react-native-paper/lib/typescript/styles/themes/v2/colors';
 import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
-import { Image, Text } from 'react-native-svg';
+import { RecyclerListView, DataProvider, LayoutProvider } from 'recyclerlistview';
+
 export const data = [
-  {
-    imageSource: GLOVE,
-  },
-  {
-    imageSource: BAT,
-  },
-  {
-    imageSource: BAT,
-  },
-  {
-    imageSource: BAT,
-  },
-  {
-    imageSource: BOWL,
-  },
-  {
-    imageSource: BOWL,
-  },
-  {
-    imageSource: BOWL,
-  },
-  {
-    imageSource: BOWL,
-  },
-  {
-    imageSource: BOWL,
-  },
-  {
-    imageSource: BOWL,
-  },
-  {
-    imageSource: BOWL,
-  },
+  { imageSource: GLOVE },
+  { imageSource: BAT },
+  { imageSource: BAT },
+  { imageSource: BAT },
+  { imageSource: BOWL },
+  { imageSource: BOWL },
+  { imageSource: BOWL },
+  { imageSource: BOWL },
+  { imageSource: BOWL },
+  { imageSource: BOWL },
+  { imageSource: BOWL },
 ];
+
+// Add the memoized Item component at the top level
+const Item = memo(({ item, onSelect, isSelected, onDetail }) => {
+  return (
+    <TouchableOpacity
+      onPress={() => onSelect(item)}
+      style={[
+        styles.playerItemContainer,
+        { backgroundColor: isSelected ? colors.primary : colors.white },
+      ]}>
+      <View style={styles.playerInfo}>
+        <FastImage
+          source={{ uri: item.image }}
+          style={styles.playerImage}
+          resizeMode="cover"
+        />
+        <View style={styles.playerDetails}>
+          <AppText style={styles.playerName}>{item.name}</AppText>
+          <PlayerRoleBadge role={item.playing_role} />
+        </View>
+      </View>
+      <TouchableOpacity onPress={() => onDetail(item.pid, item)}>
+        <FastImage source={rightArrow} style={styles.arrowIcon} />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+});
+
+// Memoized PlayerItem component
+const PlayerItem = memo(({ item, onSelect, onDetail, isSelected, TeamsShortNames, removedSpacesTeamsTitle }) => {
+  if (!item) return null;
+
+  const playerIcon =
+    item?.playing_role === 'wk'
+      ? wicket_keeperIcon
+      : item?.playing_role === 'bowl'
+        ? bowlerIcon
+        : item?.playing_role === 'bat'
+          ? batsmanIcon
+          : item?.playing_role === 'all'
+            ? all_rounderIcon
+            : null;
+
+  const getTeamShortName = () => {
+    return item?.title === removedSpacesTeamsTitle[0] ? TeamsShortNames[0] : TeamsShortNames[1];
+  };
+
+  const PlayerContent = () => (
+    <>
+      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+        <TouchableOpacityView
+          onPress={() => onDetail(item?.pid, item)}
+          style={{ alignItems: 'flex-start' }}
+        >
+          <FastImage
+            source={
+              item?.profile_image ? { uri: item?.profile_image } : playerIcon
+            }
+            style={styles.playerImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacityView>
+        
+        <View style={styles.playerInfo}>
+          <AppText
+            weight={POPPINS_MEDIUM}
+            numberOfLines={1}
+            style={[styles.playerName, isSelected && { color: WHITE }]}
+          >
+            {modifyNameTwo(item?.first_name)}
+          </AppText>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <AppText 
+              style={[styles.roleText, isSelected && { color: WHITE }]} 
+              weight={POPPINS_MEDIUM}
+            >
+              {item?.playing_role?.toUpperCase()}
+            </AppText>
+            <AppText 
+              style={[styles.teamText, isSelected && { color: WHITE, opacity: 0.7 }]} 
+              weight={POPPINS_MEDIUM}
+            >
+              {` • ${getTeamShortName()}`}
+            </AppText>
+          </View>
+
+          {item?.playing11 == undefined ? (
+            item?.last_play && (
+              <View style={styles.statusContainer}>
+                <View
+                  style={[
+                    styles.statusIndicator,
+                    { backgroundColor: colors.brownYellow }
+                  ]}
+                />
+                <AppText
+                  style={[
+                    styles.statusText,
+                    { color: colors.brownYellow }
+                  ]}
+                  weight={POPPINS_MEDIUM}
+                >
+                  Last match
+                </AppText>
+              </View>
+            )
+          ) : (
+            <View style={styles.statusContainer}>
+              <View
+                style={[
+                  styles.statusIndicator,
+                  { backgroundColor: item?.playing11 == 'true' ? '#00B81C' : '#FF0000' }
+                ]}
+              />
+              <AppText
+                style={[
+                  styles.statusText,
+                  { color: item?.playing11 == 'true' ? '#00B81C' : '#FF0000' }
+                ]}
+                weight={SEMI_BOLD}
+              >
+                {item?.playing11 == 'true' ? 'Playing' : 'Not Playing'}
+              </AppText>
+            </View>
+          )}
+        </View>
+      </View>
+
+      <View style={styles.creditBtnView}>
+        <AppText 
+          style={[styles.points, isSelected && { color: WHITE }]} 
+          weight={POPPINS_MEDIUM}
+        >
+          {item?.fantasy_player_rating}
+        </AppText>
+        <FastImage
+          resizeMode="contain"
+          source={isSelected ? RED_MINUS : GREEN_PLUS_ICON}
+          style={styles.plusIcon}
+        />
+      </View>
+    </>
+  );
+
+  return isSelected ? (
+    <LinearGradient
+      colors={['#343434', '#FF5252']}
+      start={{ x: 0, y: 0.1 }}
+      end={{ x: 1, y: 0 }}
+      style={[styles.selectPlayerContainer, styles.splitViewCard]}
+    >
+      <Pressable
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          width: '100%',
+        }}
+        onPress={() => onSelect(item)}
+      >
+        <PlayerContent />
+      </Pressable>
+    </LinearGradient>
+  ) : (
+    <Pressable
+      style={[
+        styles.selectPlayerContainer,
+        styles.splitViewCard,
+        {
+          backgroundColor: '#343434',
+        },
+      ]}
+      onPress={() => onSelect(item)}
+    >
+      <PlayerContent />
+    </Pressable>
+  );
+});
+
+const TeamHeader = memo(({ teamName, playerCount }) => (
+  <View style={styles.teamHeader}>
+    <AppText style={styles.teamHeaderText}>{teamName}</AppText>
+    <View style={styles.playerCountBadge}>
+      <AppText style={styles.playerCountText}>{playerCount}</AppText>
+    </View>
+  </View>
+));
 
 const SelectPlayer = () => {
   const dispatch = useDispatch();
   const contestData = useSelector(state => state?.match?.contestData);
   const isLoading = useSelector(state => state?.match?.isLoading);
-  const { _id, TeamA, TeamB, TeamAlogo, TeamsShortNames, TeamBlogo, SeriesId } =
-    contestData ?? '';
+  const { _id, TeamA, TeamB, TeamAlogo, TeamsShortNames, TeamBlogo, SeriesId } = contestData ?? '';
   const allPlayers = useSelector(state => state?.match?.allPlayers);
-  // console.log(allPlayers?.length,'==allplayer');
-
   const getPlayerTab = useSelector(state => state?.match?.getPlayerTab);
   const route = useRoute();
+  const layout = useWindowDimensions();
+  
+  // Tab state management
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
+    { key: 'pl', title: 'Squads' },
+    { key: 'wk', title: 'WK' },
+    { key: 'bat', title: 'BAT' },
+    { key: 'ar', title: 'AR' },
+    { key: 'bowl', title: 'BOWL' },
+  ]);
+
+  // Other state declarations
+  const [saveTitle, setSaveTitle] = useState('');
+  const [newAllPlayer, setNewAllPlayer] = useState('high');
   const AleartLive = useRef();
   const refsheetUnannounced = useRef();
-  const [activeTab, setActiveTab] = useState('');
+  const listRef = useRef(null);
+  const scrollOffsetRef = useRef(0);
   const [selectedPlayers, setSelectedPlayers] = useState([]);
   const [availableCredits, setAvailableCredits] = useState(100);
+  const [player, setPlayer] = useState(
+    route?.params?.player ? [...route?.params?.player] : []
+  );
+  const [playerTwo, setPlayerTwo] = useState(
+    route?.params?.playerTwo ? [...route?.params?.playerTwo] : []
+  );
+  const [activeTab, setActiveTab] = useState('');
   const [removeTabs, setRemoveTabs] = useState(false);
   const [Tabs, setTabs] = useState(['WK', 'BAT', 'AR ', 'BOWL']);
   const [random, setRandom] = useState(10);
@@ -137,17 +325,9 @@ const SelectPlayer = () => {
   const [selectedPlayerDetails, setSelectedPlayersDetails] = useState([]);
   const [captainId, setCaptainId] = useState(null);
   const [viceCaptainId, setViceCaptainId] = useState(null);
-  const [newAllPlayer, setNewAllplayer] = useState('');
-  const [saveTitle, setSaveTitle] = useState('');
   const [playerimg, setplayerimg] = useState(null);
   const [logo, setlogo] = useState(null);
   const [onClose, setOnClose] = useState(false);
-  const [playerTwo, setPlayerTwo] = useState(
-    route?.params?.playerTwo ? [...route?.params?.playerTwo] : [],
-  );
-  const [player, setPlayer] = useState(
-    route?.params?.player ? [...route?.params?.player] : [],
-  );
   const currentDate = new Date();
   const inputDate = new Date(contestData?.StartDateTime);
   const timeDifference = Math.floor(
@@ -159,6 +339,20 @@ const SelectPlayer = () => {
     return TeamsTitle2;
   };
   const removedSpacesTeamsTitle = convertToTeamsTitle2(contestData?.TeamsTitle);
+
+  // Define sorting functions
+  const customSort = useCallback((a, b) => {
+    if (a.playing11 === b.playing11) return 0;
+    if (a.playing11 === 'true') return -1;
+    return 1;
+  }, []);
+
+  const customSortRating = useCallback((a, b) => {
+    if (a.fantasy_player_rating === b.fantasy_player_rating) return 0;
+    if (a.fantasy_player_rating < b.fantasy_player_rating) return 1;
+    return -1;
+  }, []);
+
   useEffect(() => {
     if (
       route?.params?.isEditMode ||
@@ -207,19 +401,19 @@ const SelectPlayer = () => {
       );
       setPlayer(player1);
       setPlayerTwo(player2);
-      setAvailableCredits(filteredData);
       setAvailableCredits(Number(100) - Number(usedCredit));
       setSelectedPlayers(pids);
       setSelectedPlayersDetails(datanew);
-      // setfilterPlayer(filteredDataTwo);
     }
   }, []);
+
   const isFocus = useIsFocused();
   useEffect(() => {
     if (isFocus) {
       setActiveTab('WK');
     }
   }, [isFocus]);
+
   useEffect(() => {
     if (removeTabs) {
       if (route?.params?.isFromMyMatch == true) {
@@ -228,6 +422,7 @@ const SelectPlayer = () => {
       }
     }
   }, [removeTabs]);
+
   const filterSelectedPlayer = useMemo(() => {
     return allPlayers?.reduce(
       (preVal, item) => {
@@ -264,7 +459,8 @@ const SelectPlayer = () => {
         bowl: [],
       },
     );
-  }, [selectedPlayers, allPlayers, filterSelectedPlayer]);
+  }, [selectedPlayers, allPlayers]);
+
   const filterPlayerUnannounced = allPlayers?.filter(e => {
     return selectedPlayers.includes(e?.pid);
   });
@@ -274,16 +470,6 @@ const SelectPlayer = () => {
   const UnannouncedTWO = filterPlayerUnannounced?.filter(e => {
     return e?.playing11 == 'false';
   });
-  const flatListRef = useRef(null);
-  const prevOffset = useRef(0);
-  useEffect(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({
-        offset: prevOffset.current,
-        animated: false,
-      });
-    }
-  }, []);
 
   useEffect(() => {
     if (
@@ -298,588 +484,58 @@ const SelectPlayer = () => {
       }
     }
   }, [Unannounced]);
-  const getPlayersData = () => {
-    if (route?.params?.isEditMode || route?.params?.isCloneMode) {
-      const customSort = (a, b) => {
-        if (a.playing11 === b.playing11) {
-          return 0;
-        }
-        if (a.playing11 == 'true') {
-          return -1;
-        }
-        return 1;
-      };
-      const customSortRating = (a, b) => {
-        if (a.fantasy_player_rating === b.fantasy_player_rating) {
-          return 0;
-        }
-        if (a.fantasy_player_rating < b.fantasy_player_rating) {
-          return 1; // Sort in descending order (highest rating first)
-        }
-        return -1;
-      };
-      if (index === 2 || activeTab === 'BAT') {
-        const updatedDatanew = allPlayers?.map(player => {
-          const pid = player.pid;
-          const matchingData = route?.params?.selectedPlayers?.find(
-            item => item.pid === pid,
-          );
 
-          if (matchingData) {
-            return { ...player, substitute: matchingData.substitute };
-          }
-
-          return player;
-        });
-        return updatedDatanew
-          .filter(player => player.playing_role == 'bat')
-          .sort(customSortRating)
-          .sort(customSort);
-      } else if (index === 4 || activeTab === 'BOWL') {
-        const updatedDatanew = allPlayers?.map(player => {
-          const pid = player.pid;
-          const matchingData = route?.params?.selectedPlayers?.find(
-            item => item.pid === pid,
-          );
-
-          if (matchingData) {
-            return { ...player, substitute: matchingData.substitute };
-          }
-
-          return player;
-        });
-        return updatedDatanew
-          .filter(player => player.playing_role == 'bowl')
-          .sort(customSortRating)
-          .sort(customSort);
-      } else if (index === 1 || activeTab === 'WK') {
-        const updatedDatanew = allPlayers?.map(player => {
-          const pid = player.pid;
-          const matchingData = route?.params?.selectedPlayers?.find(
-            item => item.pid === pid,
-          );
-
-          if (matchingData) {
-            return { ...player, substitute: matchingData.substitute };
-          }
-
-          return player;
-        });
-        return updatedDatanew
-          .filter(player => player.playing_role == 'wk')
-          .sort(customSortRating)
-          .sort(customSort);
-      } else if (index === 3 || activeTab === 'AR') {
-        const updatedDatanew = allPlayers?.map(player => {
-          const pid = player.pid;
-          const matchingData = route?.params?.selectedPlayers?.find(
-            item => item.pid === pid,
-          );
-
-          if (matchingData) {
-            return { ...player, substitute: matchingData.substitute };
-          }
-
-          return player;
-        });
-        return updatedDatanew
-          .filter(player => player.playing_role == 'all')
-          .sort(customSortRating)
-          .sort(customSort);
+  const handlePlayerSelection = useCallback((player) => {
+    if (selectedPlayers.includes(player.pid)) {
+      // Remove player
+      setSelectedPlayers(prev => prev.filter(id => id !== player.pid));
+      setSelectedPlayersDetails(prev => prev.filter(p => p.pid !== player.pid));
+      setAvailableCredits(prev => prev + player.fantasy_player_rating);
+      
+      if (player.title === removedSpacesTeamsTitle[0]) {
+        setPlayer(prev => prev.filter(p => p.pid !== player.pid));
+      } else {
+        setPlayerTwo(prev => prev.filter(p => p.pid !== player.pid));
       }
     } else {
-      const customSort = (a, b) => {
-        if (a.playing11 === b.playing11) {
-          return 0;
-        }
-        if (a.playing11 == 'true') {
-          return -1;
-        }
-        return 1;
-      };
-      const customSortRating = (a, b) => {
-        if (a.fantasy_player_rating === b.fantasy_player_rating) {
-          return 0;
-        }
-        if (a.fantasy_player_rating < b.fantasy_player_rating) {
-          return 1; // Sort in descending order (highest rating first)
-        }
-        return -1;
-      };
-      if (index === 2 || activeTab === 'BAT') {
-        if (
-          allPlayers.some(
-            player =>
-              player.playing_role === 'bat' && player.playing11 !== undefined,
-          )
-        ) {
-          if (saveTitle == 'PLAYERS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort((a, b) => b.first_name.localeCompare(a.first_name));
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name));
-            }
-          } else if (saveTitle == 'CREDITS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort(
-                  (a, b) => b.fantasy_player_rating - a.fantasy_player_rating,
-                );
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort(
-                  (a, b) => a.fantasy_player_rating - b.fantasy_player_rating,
-                );
-            }
-          } else if (saveTitle == 'AVG POINTS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort((a, b) => b.average_point - a.average_point);
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort((a, b) => a.average_point - b.average_point);
-            }
-          } else {
-            return allPlayers
-              .filter(player => player.playing_role === 'bat')
-              .sort(customSortRating)
-              .sort(customSort);
-          }
-        } else {
-          if (saveTitle == 'PLAYERS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort((a, b) => b.first_name.localeCompare(a.first_name));
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name));
-            }
-          } else if (saveTitle == 'CREDITS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort(
-                  (a, b) => b.fantasy_player_rating - a.fantasy_player_rating,
-                );
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort(
-                  (a, b) => a.fantasy_player_rating - b.fantasy_player_rating,
-                );
-            }
-          } else if (saveTitle == 'AVG POINTS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort((a, b) => b.average_point - a.average_point);
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bat')
-                .sort((a, b) => a.average_point - b.average_point);
-            }
-          } else {
-            return allPlayers
-              .filter(player => player.playing_role === 'bat')
-              .sort(customSortRating)
-              .sort(customSort);
-          }
-        }
-      } else if (index === 4 || activeTab === 'BOWL') {
-        if (
-          allPlayers.some(
-            player =>
-              player.playing_role === 'bowl' && player.playing11 !== undefined,
-          )
-        ) {
-          if (saveTitle == 'PLAYERS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort((a, b) => b.first_name.localeCompare(a.first_name));
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name));
-            }
-          } else if (saveTitle == 'CREDITS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort(
-                  (a, b) => b.fantasy_player_rating - a.fantasy_player_rating,
-                );
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort(
-                  (a, b) => a.fantasy_player_rating - b.fantasy_player_rating,
-                );
-            }
-          } else if (saveTitle == 'AVG POINTS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort((a, b) => b.average_point - a.average_point);
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort((a, b) => a.average_point - b.average_point);
-            }
-          } else {
-            return allPlayers
-              .filter(player => player.playing_role === 'bowl')
-              .sort(customSortRating)
-              .sort(customSort);
-            8;
-          }
-        } else {
-          if (saveTitle == 'PLAYERS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort((a, b) => b.first_name.localeCompare(a.first_name));
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name));
-            }
-          } else if (saveTitle == 'CREDITS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort(
-                  (a, b) => b.fantasy_player_rating - a.fantasy_player_rating,
-                );
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort(
-                  (a, b) => a.fantasy_player_rating - b.fantasy_player_rating,
-                );
-            }
-          } else if (saveTitle == 'AVG POINTS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort((a, b) => b.average_point - a.average_point);
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'bowl')
-                .sort((a, b) => a.average_point - b.average_point);
-            }
-          } else {
-            return allPlayers
-              .filter(player => player.playing_role === 'bowl')
-              .sort(customSortRating)
-              .sort(customSort);
-          }
-        }
-      } else if (index == 1 || activeTab == 'wk') {
-        if (
-          allPlayers.some(
-            player =>
-              player.playing_role === 'wk' && player.playing11 !== undefined,
-          )
-        ) {
-          if (saveTitle == 'PLAYERS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort((a, b) => b.first_name.localeCompare(a.first_name));
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name));
-            }
-          } else if (saveTitle == 'CREDITS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort(
-                  (a, b) => b.fantasy_player_rating - a.fantasy_player_rating,
-                );
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort(
-                  (a, b) => a.fantasy_player_rating - b.fantasy_player_rating,
-                );
-            }
-          } else if (saveTitle == 'AVG POINTS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort((a, b) => b.average_point - a.average_point);
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort((a, b) => a.average_point - b.average_point);
-            }
-          } else {
-            return allPlayers
-              .filter(player => player.playing_role === 'wk')
-              .sort(customSortRating)
-              .sort(customSort);
-          }
-        } else {
-          if (saveTitle == 'PLAYERS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort((a, b) => b.first_name.localeCompare(a.first_name));
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name));
-            }
-          } else if (saveTitle == 'CREDITS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort(
-                  (a, b) => b.fantasy_player_rating - a.fantasy_player_rating,
-                );
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort(
-                  (a, b) => a.fantasy_player_rating - b.fantasy_player_rating,
-                );
-            }
-          } else if (saveTitle == 'AVG POINTS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort((a, b) => b.average_point - a.average_point);
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'wk')
-                .sort((a, b) => a.average_point - b.average_point);
-            }
-          } else {
-            return allPlayers
-              .filter(player => player.playing_role === 'wk')
-              .sort(customSortRating)
-              .sort(customSort);
-          }
-        }
-      } else if (index == 3 || activeTab === 'AR') {
-        if (
-          allPlayers.some(
-            player =>
-              player.playing_role === 'all' && player.playing11 !== undefined,
-          )
-        ) {
-          if (saveTitle == 'PLAYERS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort((a, b) => b.first_name.localeCompare(a.first_name));
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name));
-            }
-          } else if (saveTitle == 'CREDITS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort(
-                  (a, b) => b.fantasy_player_rating - a.fantasy_player_rating,
-                );
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort(
-                  (a, b) => a.fantasy_player_rating - b.fantasy_player_rating,
-                );
-            }
-          } else if (saveTitle == 'AVG POINTS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort((a, b) => b.average_point - a.average_point);
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort((a, b) => a.average_point - b.average_point);
-            }
-          } else {
-            return allPlayers
-              .filter(player => player.playing_role === 'all')
-              .sort(customSortRating)
-              .sort(customSort);
-          }
-        } else {
-          if (saveTitle == 'PLAYERS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort((a, b) => b.first_name.localeCompare(a.first_name));
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort((a, b) => a.first_name.localeCompare(b.first_name));
-            }
-          } else if (saveTitle == 'CREDITS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort(
-                  (a, b) => b.fantasy_player_rating - a.fantasy_player_rating,
-                );
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort(
-                  (a, b) => a.fantasy_player_rating - b.fantasy_player_rating,
-                );
-            }
-          } else if (saveTitle == 'AVG POINTS') {
-            if (newAllPlayer == 'high') {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort((a, b) => b.average_point - a.average_point);
-            } else {
-              return allPlayers
-                .filter(player => player.playing_role === 'all')
-                .sort((a, b) => a.average_point - b.average_point);
-            }
-          } else {
-            return allPlayers
-              .filter(player => player.playing_role === 'all')
-              .sort(customSortRating)
-              .sort(customSort);
-          }
-        }
-      }
-    }
-  };
-
-  const errorMsg = type => {
-    if (type === 'wk') {
-      return 'Please Select at least one Wicket Keeper';
-    }
-    if (type === 'bat') {
-      return 'Please Select at least one Batsman';
-    }
-    if (type === 'all') {
-      return 'Please Select at least one All rounder';
-    }
-    if (type === 'bowl') {
-      return 'Please Select at least one Bowler';
-    }
-  };
-  const scrollViewRef = useRef(null);
-  const scrollPosition = scrollViewRef.current?.getScrollPosition();
-
-  const addPlayerInTeam = items => {
-    prevOffset.current = flatListRef.current
-      ? flatListRef.current.contentOffset
-      : 0;
-    const selectLength = selectedPlayers.length;
-    const wikLength = filterSelectedPlayer.wk.length;
-    const bolLength = filterSelectedPlayer.bowl.length;
-    const batLength = filterSelectedPlayer.bat.length;
-    const allLength = filterSelectedPlayer.all.length;
-    const role = items.playing_role;
-
-    if (items?.fantasy_player_rating > availableCredits) {
-      return toastAlert.showToastError('Available Credit is Low');
-    }
-    if (player?.length == 7 && items?.title == removedSpacesTeamsTitle[0]) {
-      return toastAlert.showToastError(
-        `Please select player from ${removedSpacesTeamsTitle[1]} team`,
-      );
-    }
-    if (playerTwo?.length == 7 && items?.title == removedSpacesTeamsTitle[1]) {
-      return toastAlert.showToastError(
-        `Please select player from ${removedSpacesTeamsTitle[0]} team`,
-      );
-    }
-    // Save current scroll position
-
-    if (selectLength >= 8) {
-      const blankData = Object.keys(filterSelectedPlayer).filter(key => {
-        return !filterSelectedPlayer[key].length;
-      });
-      let mess = '';
-      switch (true) {
-        case wikLength === 8 && role === 'wk':
-          mess = 'Maximum of 8 Wicket Keeper per team';
-          break;
-        case bolLength === 8 && role === 'bowl':
-          mess = 'Maximum of 8 Bowlers per team';
-          break;
-        case batLength === 8 && role === 'bat':
-          mess = 'Maximum of 8 BatsMan per team';
-          break;
-        case allLength === 8 && role === 'all':
-          mess = 'Maximum of 8 All Rounder per team';
-          break;
-        case selectLength >= 9 &&
-          selectLength < 11 &&
-          !blankData.includes(role):
-          if (blankData.length === 1) {
-            if (selectLength > 9) {
-              mess = errorMsg(blankData[0]);
-            }
-          } else {
-            mess = errorMsg(blankData[0]);
-          }
-          break;
-        case selectLength >= 11:
-          mess = 'Maximum Player Selected';
-          break;
-      }
-      if (mess) {
-        toastAlert.showToastError(mess);
+      // Check if we can add more players
+      if (selectedPlayers.length >= 11) {
+        toastAlert('You cannot select more than 11 players');
         return;
       }
-    }
 
-    if (items?.title == removedSpacesTeamsTitle[0]) {
-      let array = [...player];
-      array?.push(items);
-      setPlayer(array);
-    } else {
-      let array2 = [...playerTwo];
-      array2?.push(items);
-      setPlayerTwo(array2);
-    }
-    setSelectedPlayersDetails([...selectedPlayerDetails, items]);
-    setAvailableCredits(availableCredits - items?.fantasy_player_rating);
-    setSelectedPlayers([...selectedPlayers, items.pid]);
-  };
+      // Check team balance
+      const teamACount = player.title === removedSpacesTeamsTitle[0] 
+        ? player.length + 1 
+        : player.length;
+      const teamBCount = player.title === removedSpacesTeamsTitle[1] 
+        ? playerTwo.length + 1 
+        : playerTwo.length;
 
-  const removePlayerFromTeam = item => {
-    const filterTeam = selectedPlayers?.filter(data => data !== item?.pid);
-    const filterTeamDetails = selectedPlayerDetails?.filter(
-      player => player?.pid !== item?.pid,
-    );
-    const filterTeamDetails1 = player?.filter(
-      player => player?.pid !== item?.pid,
-    );
-    const filterTeamDetails2 = playerTwo?.filter(
-      player => player?.pid !== item?.pid,
-    );
-    setAvailableCredits(availableCredits + item?.fantasy_player_rating);
-    setSelectedPlayers(filterTeam);
-    setSelectedPlayersDetails(filterTeamDetails);
-    setPlayer(filterTeamDetails1);
-    setPlayerTwo(filterTeamDetails2);
-  };
+      if (teamACount > 7 || teamBCount > 7) {
+        toastAlert('You cannot select more than 7 players from one team');
+        return;
+      }
+
+      // Check credits
+      if (availableCredits < player.fantasy_player_rating) {
+        toastAlert('Not enough credits available');
+        return;
+      }
+
+      // Add player
+      setSelectedPlayers(prev => [...prev, player.pid]);
+      setSelectedPlayersDetails(prev => [...prev, player]);
+      setAvailableCredits(prev => prev - player.fantasy_player_rating);
+      
+      if (player.title === removedSpacesTeamsTitle[0]) {
+        setPlayer(prev => [...prev, player]);
+      } else {
+        setPlayerTwo(prev => [...prev, player]);
+      }
+    }
+  }, [selectedPlayers, player, playerTwo, availableCredits, removedSpacesTeamsTitle]);
+
   const onContinueClick = () => {
     if (selectedPlayers?.length < 11) {
       return toastAlert.showToastError('Please Select 11 Players');
@@ -901,6 +557,7 @@ const SelectPlayer = () => {
       shareTeam: route?.params?.shareTeam,
     });
   };
+
   const onPreview = () => {
     NavigationService.navigate(PLAYER_PREVIEW, {
       oldData: contestData,
@@ -914,6 +571,7 @@ const SelectPlayer = () => {
       vice_caption: viceCaptainId,
     });
   };
+
   const onDetail = (id, item) => {
     dispatch(getPlayerDetail(id));
     setSaveTeam(item);
@@ -921,288 +579,166 @@ const SelectPlayer = () => {
     setlogo(item?.logo_url);
     setIsVisible(true);
   };
-  const renderItem = ({ item }) => {
-    const playerIcon =
-      item?.playing_role === 'wk'
-        ? wicket_keeperIcon
-        : item?.playing_role === 'bowl'
-          ? bowlerIcon
-          : item?.playing_role === 'bat'
-            ? batsmanIcon
-            : item?.playing_role === 'all'
-              ? all_rounderIcon
-              : null;
-    return selectedPlayers?.includes(item?.pid) ? (
-      <LinearGradient
-        colors={['#343434', '#FF5252']}
-        start={{ x: 0, y: 0.1 }}
-        end={{ x: 1, y: 0 }}
-        style={[styles.selectPlayerContainer]}>
-        <Pressable
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            width: '100%',
-          }}
-          onPress={() => removePlayerFromTeam(item)}>
-          <TouchableOpacityView
-            onPress={() => onDetail(item?.pid, item)}
-            style={{ flex: 1, alignItems: 'flex-start' }}>
-            <FastImage
-              source={
-                item?.profile_image ? { uri: item?.profile_image } : playerIcon
-              }
-              style={styles.playerImage}
-              resizeMode="contain"
-            />
-          </TouchableOpacityView>
-          <View style={{ flex: 1.5, alignItems: 'flex-start', marginLeft: 15 }}>
-            <AppText color={WHITE} numberOfLines={1} style={styles.playerName}>
-              {modifyNameTwo(item?.first_name)}
-            </AppText>
-            <AppText type={TEN} numberOfLines={1} weight={POPPINS_MEDIUM}>
-              {item?.teamName}
-            </AppText>
-            {item?.playing11 == undefined ? (
-              <>
-                {item?.last_play ? (
-                  <View style={{ flexDirection: 'row' }}>
-                    <View
-                      style={{
-                        height: 5,
-                        width: 5,
-                        borderRadius: 100,
-                        backgroundColor: colors.brownYellow,
-                        marginTop: 5,
-                      }}
-                    />
-                    <AppText
-                      style={{
-                        color: colors.brownYellow,
-                        marginLeft: 5,
-                        fontWeight: 700,
-                        fontSize: 10,
-                      }}
-                      weight={POPPINS_MEDIUM}>
-                      Played last match
-                    </AppText>
-                  </View>
-                ) : (
-                  <></>
-                )}
-              </>
-            ) : (
-              <>
-                {item?.playing11 == 'true' ? (
-                  <View style={{ flexDirection: 'row' }}>
-                    <View
-                      style={{
-                        height: 6,
-                        width: 6,
-                        borderRadius: 100,
-                        backgroundColor: '#00B81C',
-                        marginTop: 5,
-                      }}
-                    />
-                    <AppText
-                      style={{
-                        color: '#00B81C',
-                        marginLeft: 5,
-                        fontWeight: 500,
-                      }}
-                      weight={SEMI_BOLD}>
-                      Announced
-                    </AppText>
-                  </View>
-                ) : (
-                  <View style={{ flexDirection: 'row' }}>
-                    <View
-                      style={{
-                        height: 6,
-                        width: 6,
-                        borderRadius: 100,
-                        backgroundColor: '#FF0000',
-                        marginTop: 5,
-                      }}
-                    />
-                    <AppText
-                      style={{
-                        color: '#FF0000',
-                        marginLeft: 5,
-                        fontWeight: 500,
-                      }}
-                      weight={SEMI_BOLD}>
-                      Unannounced
-                    </AppText>
-                  </View>
-                )}
-              </>
-            )}
-          </View>
-          <View style={{ flex: 1, alignItems: 'center', marginEnd: 0 }}>
-            <AppText weight={POPPINS_MEDIUM} style={styles.points}>
-              {item?.average_point ? item?.average_point?.toFixed(2) : 0}
-            </AppText>
-          </View>
-          <View style={styles.creditBtnView}>
-            <AppText style={{ marginLeft: 15 }} weight={POPPINS_MEDIUM}>
-              {item?.fantasy_player_rating}
-            </AppText>
 
-            <FastImage
-              resizeMode="contain"
-              source={RED_MINUS}
-              style={styles.plusIcon}
-            />
-          </View>
-        </Pressable>
-      </LinearGradient>
-    ) : (
-      <Pressable
-        style={[
-          styles.selectPlayerContainer,
-          {
-            backgroundColor: '#343434',
-            borderBottomWidth: selectedPlayers?.length == 11 ? 0 : 0.2,
-          },
-        ]}
-        onPress={() =>
-          selectedPlayers?.length == 11 ? null : addPlayerInTeam(item)
-        }>
-        <TouchableOpacityView
-          onPress={() => onDetail(item?.pid, item)}
-          style={{ flex: 1, alignItems: 'flex-start' }}>
-          <FastImage
-            source={
-              item?.profile_image ? { uri: item?.profile_image } : playerIcon
-            }
-            style={styles.playerImage}
-            resizeMode="contain"
-          />
-        </TouchableOpacityView>
-        <View style={{ flex: 1.5, alignItems: 'flex-start', marginLeft: 15 }}>
-          <AppText
-            weight={POPPINS_MEDIUM}
-            numberOfLines={1}
-            style={styles.playerName}>
-            {modifyNameTwo(item?.first_name)}
-          </AppText>
-          <AppText numberOfLines={1} weight={POPPINS_MEDIUM} type={TEN}>
-            {item?.teamName}
-          </AppText>
-          {item?.playing11 == undefined ? (
-            <>
-              {item?.last_play ? (
-                <View style={{ flexDirection: 'row' }}>
-                  <View
-                    style={{
-                      height: 5,
-                      width: 5,
-                      borderRadius: 100,
-                      backgroundColor: colors.brownYellow,
-                      marginTop: 5,
-                    }}
-                  />
-                  <AppText
-                    style={{
-                      color: colors.brownYellow,
-                      marginLeft: 5,
-                      fontWeight: 700,
-                      fontSize: 10,
-                    }}
-                    weight={POPPINS_MEDIUM}>
-                    Played last match
-                  </AppText>
-                </View>
-              ) : (
-                <></>
-              )}
-            </>
-          ) : (
-            <>
-              {item?.playing11 == 'true' ? (
-                <View style={{ flexDirection: 'row' }}>
-                  <View
-                    style={{
-                      height: 6,
-                      width: 6,
-                      borderRadius: 100,
-                      backgroundColor: '#00B81C',
-                      marginTop: 5,
-                    }}
-                  />
-                  <AppText
-                    style={{
-                      color: '#00B81C',
-                      marginLeft: 5,
-                      fontWeight: 500,
-                    }}
-                    weight={SEMI_BOLD}>
-                    Announced
-                  </AppText>
-                </View>
-              ) : (
-                <View style={{ flexDirection: 'row' }}>
-                  <View
-                    style={{
-                      height: 6,
-                      width: 6,
-                      borderRadius: 100,
-                      backgroundColor: '#FF0000',
-                      marginTop: 5,
-                    }}
-                  />
-                  <AppText
-                    style={{
-                      color: '#FF0000',
-                      marginLeft: 5,
-                      fontWeight: 500,
-                    }}
-                    weight={SEMI_BOLD}>
-                    Unannounced
-                  </AppText>
-                </View>
-              )}
-            </>
-          )}
-        </View>
-        <View style={{ flex: 1, alignItems: 'center', marginEnd: 0 }}>
-          <AppText style={[styles.points, { marginLeft: -5 }]}>
-            {item?.average_point ? item?.average_point?.toFixed(2) : 0}
-          </AppText>
-        </View>
-        <View style={styles.creditBtnView}>
-          <AppText style={{ marginLeft: 15 }} weight={POPPINS_MEDIUM}>
-            {item?.fantasy_player_rating}
-          </AppText>
+  const getItem = useCallback((data, index) => data[index], []);
+  const getItemCount = useCallback(data => data?.length || 0, []);
+  const keyExtractor = useCallback(item => item?.pid?.toString() || Math.random().toString(), []);
+  
+  const getItemLayout = useCallback((data, index) => ({
+    length: 80,
+    offset: 80 * index,
+    index,
+  }), []);
 
-          <FastImage
-            resizeMode="contain"
-            source={GREEN_PLUS_ICON}
-            style={styles.plusIcon}
-          />
-        </View>
-      </Pressable>
+  const handleScroll = useCallback((event) => {
+    scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+  }, []);
+
+  const renderItem = useCallback(({ item }) => {
+    const isSelected = selectedPlayers.includes(item.pid);
+    return (
+      <PlayerItem
+        item={item}
+        onSelect={handlePlayerSelection}
+        onDetail={onDetail}
+        isSelected={isSelected}
+        TeamsShortNames={TeamsShortNames}
+        removedSpacesTeamsTitle={removedSpacesTeamsTitle}
+      />
     );
-  };
+  }, [selectedPlayers, handlePlayerSelection, onDetail, TeamsShortNames, removedSpacesTeamsTitle]);
 
-  const filterDataOfSorting = title => {
-    setNewAllplayer(
-      newAllPlayer == 'high' ? 'low' : newAllPlayer == 'low' ? 'high' : 'low',
-    );
-    if (title == 'PLAYERS') {
-      setSaveTitle('PLAYERS');
-      getPlayersData();
-    } else if (title == 'CREDITS') {
-      setSaveTitle('CREDITS');
-      getPlayersData();
-    } else if (title == 'AVG POINTS') {
-      setSaveTitle('AVG POINTS');
-      getPlayersData();
+  const getPlayersData = useCallback((routeKey = '') => {
+    if (!allPlayers?.length) return [];
+
+    const roleMap = {
+      pl: null,
+      wk: 'wk',
+      bat: 'bat',
+      ar: 'all',
+      bowl: 'bowl'
+    };
+
+    let filteredPlayers = allPlayers;
+    const role = roleMap[routeKey];
+    
+    if (role) {
+      filteredPlayers = allPlayers.filter(player => player.playing_role === role);
     }
+
+    // Group players by team
+    const teamAPlayers = filteredPlayers.filter(p => p.title === removedSpacesTeamsTitle[0]);
+    const teamBPlayers = filteredPlayers.filter(p => p.title === removedSpacesTeamsTitle[1]);
+
+    // Apply sorting based on saveTitle and newAllPlayer
+    const sortPlayers = (players) => {
+      if (saveTitle === 'PLAYERS') {
+        return newAllPlayer === 'high'
+          ? [...players].sort((a, b) => b.first_name.localeCompare(a.first_name))
+          : [...players].sort((a, b) => a.first_name.localeCompare(b.first_name));
+      } else if (saveTitle === 'CREDITS') {
+        return newAllPlayer === 'high'
+          ? [...players].sort((a, b) => b.fantasy_player_rating - a.fantasy_player_rating)
+          : [...players].sort((a, b) => a.fantasy_player_rating - b.fantasy_player_rating);
+      } else if (saveTitle === 'AVG POINTS') {
+        return newAllPlayer === 'high'
+          ? [...players].sort((a, b) => b.average_point - a.average_point)
+          : [...players].sort((a, b) => a.average_point - b.average_point);
+      }
+      return [...players].sort(customSortRating).sort(customSort);
+    };
+
+    return {
+      teamA: sortPlayers(teamAPlayers),
+      teamB: sortPlayers(teamBPlayers)
+    };
+  }, [allPlayers, saveTitle, newAllPlayer, customSort, customSortRating, removedSpacesTeamsTitle]);
+
+  const errorMsg = type => {
+    if (type === 'wk') return 'Please Select at least one Wicket Keeper';
+    if (type === 'bat') return 'Please Select at least one Batsman';
+    if (type === 'all') return 'Please Select at least one All rounder';
+    if (type === 'bowl') return 'Please Select at least one Bowler';
   };
-  const onSubmit = unannouncesSelect => {
+
+  const addPlayerInTeam = useCallback(
+    (items) => {
+      const selectLength = selectedPlayers.length;
+      const wikLength = filterSelectedPlayer.wk.length;
+      const bolLength = filterSelectedPlayer.bowl.length;
+      const batLength = filterSelectedPlayer.bat.length;
+      const allLength = filterSelectedPlayer.all.length;
+      const role = items.playing_role;
+
+      if (items?.fantasy_player_rating > availableCredits) {
+        return toastAlert.showToastError('Available Credit is Low');
+      }
+      if (player?.length === 7 && items?.title === removedSpacesTeamsTitle[0]) {
+        return toastAlert.showToastError(`Please select player from ${removedSpacesTeamsTitle[1]} team`);
+      }
+      if (playerTwo?.length === 7 && items?.title === removedSpacesTeamsTitle[1]) {
+        return toastAlert.showToastError(`Please select player from ${removedSpacesTeamsTitle[0]} team`);
+      }
+
+      if (selectLength >= 8) {
+        const blankData = Object.keys(filterSelectedPlayer).filter(key => !filterSelectedPlayer[key].length);
+        let mess = '';
+        switch (true) {
+          case wikLength === 8 && role === 'wk':
+            mess = 'Maximum of 8 Wicket Keeper per team';
+            break;
+          case bolLength === 8 && role === 'bowl':
+            mess = 'Maximum of 8 Bowlers per team';
+            break;
+          case batLength === 8 && role === 'bat':
+            mess = 'Maximum of 8 BatsMan per team';
+            break;
+          case allLength === 8 && role === 'all':
+            mess = 'Maximum of 8 All Rounder per team';
+            break;
+          case selectLength >= 9 && selectLength < 11 && !blankData.includes(role):
+            if (blankData.length === 1) {
+              if (selectLength > 9) {
+                mess = errorMsg(blankData[0]);
+              }
+            } else {
+              mess = errorMsg(blankData[0]);
+            }
+            break;
+          case selectLength >= 11:
+            mess = 'Maximum Player Selected';
+            break;
+        }
+        if (mess) {
+          toastAlert.showToastError(mess);
+          return;
+        }
+      }
+
+      setSelectedPlayers(prev => [...prev, items.pid]);
+      setSelectedPlayersDetails(prev => [...prev, items]);
+      setAvailableCredits(prev => prev - items?.fantasy_player_rating);
+      if (items?.title === removedSpacesTeamsTitle[0]) {
+        setPlayer(prev => [...prev, items]);
+      } else {
+        setPlayerTwo(prev => [...prev, items]);
+      }
+    },
+    [selectedPlayers, availableCredits, player, playerTwo, filterSelectedPlayer, removedSpacesTeamsTitle]
+  );
+
+  const removePlayerFromTeam = useCallback(
+    (item) => {
+      setSelectedPlayers(prev => prev.filter(data => data !== item?.pid));
+      setSelectedPlayersDetails(prev => prev.filter(player => player?.pid !== item?.pid));
+      setPlayer(prev => prev.filter(player => player?.pid !== item?.pid));
+      setPlayerTwo(prev => prev.filter(player => player?.pid !== item?.pid));
+      setAvailableCredits(prev => prev + item?.fantasy_player_rating);
+    },
+    [selectedPlayers, selectedPlayerDetails, player, playerTwo, availableCredits]
+  );
+
+  const onSubmit = (unannouncesSelect) => {
     const playerNew = unannouncesSelect.filter(i => {
       return i?.title == removedSpacesTeamsTitle[0];
     });
@@ -1243,287 +779,205 @@ const SelectPlayer = () => {
       toastAlert.showToastError('Please select Unannounced player to remove');
     }
   };
-  const renderPastLineupItem = ({ item }) => {
-    const playerIcon =
-      item?.playing_role === 'wk'
-        ? wicket_keeperIcon
-        : item?.playing_role === 'bowl'
-          ? bowlerIcon
-          : item?.playing_role === 'bat'
-            ? batsmanIcon
-            : item?.playing_role === 'all'
-              ? all_rounderIcon
-              : null;
 
-    const itemStyle = {
-      width: '100%',
-      padding: 10,
-      borderColor: colors.gray,
-      borderStyle: 'dotted',
-      borderBottomWidth: 1,
-      borderBottomColor: colors.gray,
-      marginBottom: 8,
-      backgroundColor: selectedPlayers?.includes(item?.pid) ? undefined : '#343434'
-    };
+  const { width } = useWindowDimensions();
+  
+  // Create data provider
+  const dataProvider = useMemo(() => {
+    return new DataProvider((r1, r2) => {
+      return r1.pid !== r2.pid;
+    });
+  }, []);
 
-    const PlayerCard = () => (
-      <View style={{ flexDirection: 'row', justifyContent: "space-between", width: '100%' }}>
-        <View style={{ flexDirection: "row", alignItems: 'center', width: '70%' }}>
-          <FastImage
-            style={{ width: 30, height: 30, resizeMode: 'contain' }}
-            source={item?.profile_image ? { uri: item?.profile_image } : playerIcon}
-            resizeMode="contain"
-          />
-          <View>
-            <AppText type={TEN} style={{ marginLeft: 5 }}>{item?.short_name || item?.first_name}</AppText>
-            <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{item?.teamName}</AppText>
-          </View>
-        </View>
+  // Memoize the data provider with current data
+  const memoizedDataProvider = useMemo(() => {
+    return dataProvider.cloneWithRows(getPlayersData() || []);
+  }, [dataProvider, getPlayersData]);
 
-        <View style={{ width: '30%', alignItems: 'flex-end', marginTop: 5 }}>
-          <FastImage
-            tintColor={colors.green}
-            style={{ width: 18, height: 18, resizeMode: 'contain' }}
-            source={addsubstitues}
-            resizeMode="contain"
-          />
-          <AppText type={ELEVEN} style={{ marginVertical: 5 }}>{(item?.average_point)?.toFixed(2)}</AppText>
-        </View>
-      </View>
-    );
-
-    return selectedPlayers?.includes(item?.pid) ? (
-      <LinearGradient
-        colors={['#343434', '#FF5252']}
-        start={{ x: 0, y: 0.1 }}
-        end={{ x: 1, y: 0 }}
-        style={itemStyle}>
-        <TouchableOpacity activeOpacity={0.9} onPress={() => removePlayerFromTeam(item)}>
-          <PlayerCard />
-        </TouchableOpacity>
-      </LinearGradient>
-    ) : (
-      <TouchableOpacity 
-        activeOpacity={0.9} 
-        onPress={() => selectedPlayers?.length == 11 ? null : addPlayerInTeam(item)} 
-        style={itemStyle}>
-        <PlayerCard />
-      </TouchableOpacity>
-    );
-  };
-
-  const PlayersList = ({ route }) => {
-    const allPlayers = useSelector(state => state?.match?.allPlayers);
-    const flatListRef = useRef(null);
-    
-    const CellRenderer = useCallback(({ index, item, children }) => {
-      return (
-        <View style={{ 
-          transform: [{ translateY: 0 }], // Force GPU rendering
-          height: route?.key === 'pl' ? 90 : 80 
-        }}>
-          {children}
-        </View>
-      );
-    }, [route?.key]);
-
-    const getFilteredPlayers = useCallback(() => {
-      if (route?.key === 'pl') {
-        const teamAPlayers = allPlayers.filter(player => player.title === removedSpacesTeamsTitle[0]);
-        const teamBPlayers = allPlayers.filter(player => player.title === removedSpacesTeamsTitle[1]);
-          
-        const maxLength = Math.max(teamAPlayers.length, teamBPlayers.length);
-        const pairedRows = Array.from({ length: maxLength }, (_, index) => ({
-          teamAPlayer: teamAPlayers[index] || null,
-          teamBPlayer: teamBPlayers[index] || null,
-          stableKey: `row-${index}-${teamAPlayers[index]?.pid || 'empty'}-${teamBPlayers[index]?.pid || 'empty'}`
-        }));
-        
-        return pairedRows;
+  // Create layout provider
+  const layoutProvider = useMemo(() => {
+    return new LayoutProvider(
+      () => 0, // Only one view type
+      (type, dim) => {
+        dim.width = width;
+        dim.height = 80; // Adjust this based on your item height
       }
-      const players = getPlayersData(route?.key) || [];
-      return players.map(player => ({
-        ...player,
-        stableKey: `player-${player.pid}-${selectedPlayers.includes(player.pid)}`
-      }));
-    }, [allPlayers, route?.key, selectedPlayers]);
+    );
+  }, [width]);
 
-    const renderPlayerCard = useCallback((player) => {
-      if (!player) return null;
+  const filterDataOfSorting = useCallback((title) => {
+    setNewAllPlayer(prev => {
+      if (prev === 'high') return 'low';
+      if (prev === 'low') return 'high';
+      return 'low';
+    });
+    setSaveTitle(title);
+  }, []);
 
-      const playerIcon =
-        player?.playing_role === 'wk'
-          ? wicket_keeperIcon
-          : player?.playing_role === 'bowl'
-            ? bowlerIcon
-            : player?.playing_role === 'bat'
-              ? batsmanIcon
-              : player?.playing_role === 'all'
-                ? all_rounderIcon
-                : null;
-
-      const isSelected = selectedPlayers?.includes(player.pid);
-      const cardContent = (
-        <View style={{ flexDirection: 'row', justifyContent: "space-between", width: '100%' }}>
-          <View style={{ flexDirection: "row", alignItems: 'center', width: '70%' }}>
-            <FastImage
-              style={{ width: 30, height: 30, resizeMode: 'contain' }}
-              source={player?.profile_image ? { uri: player?.profile_image } : playerIcon}
-              resizeMode="contain"
-            />
-            <View>
-              <AppText type={TEN} style={{ marginLeft: 5 }}>{player?.short_name || player?.first_name}</AppText>
-              <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{player?.teamName}</AppText>
-            </View>
-          </View>
-
-          <View style={{ width: '30%', alignItems: 'flex-end', marginTop: 5 }}>
-            <FastImage
-              tintColor={colors.green}
-              style={{ width: 18, height: 18, resizeMode: 'contain' }}
-              source={addsubstitues}
-              resizeMode="contain"
-            />
-            <AppText type={ELEVEN} style={{ marginVertical: 5 }}>{(player?.average_point)?.toFixed(2)}</AppText>
-          </View>
-        </View>
-      );
-
-      return (
-        <TouchableOpacity 
-          activeOpacity={0.9} 
-          onPress={() => {
-            if (isSelected) {
-              removePlayerFromTeam(player);
-            } else if (selectedPlayers?.length < 11) {
-              addPlayerInTeam(player);
-            }
+  const RenderTabBar = useCallback(props => {
+    return (
+      <>
+        <TabBar
+          {...props}
+          onTabPress={e => {
+            setIndex(props.navigationState.routes.findIndex(route => route.key === e.route.key));
           }}
-          style={{
-            width: '100%',
-            padding: 10,
-            borderColor: colors.gray,
-            borderStyle: 'dotted',
-            borderBottomWidth: 1,
-            borderBottomColor: colors.gray,
-            marginBottom: 8,
-            backgroundColor: isSelected ? undefined : '#343434'
-          }}
-        >
-          {isSelected ? (
-            <LinearGradient
-              colors={['#343434', '#FF5252']}
-              start={{ x: 0, y: 0.1 }}
-              end={{ x: 1, y: 0 }}
-              style={{ padding: 10, margin: -10 }}
+          scrollEnabled={false}
+          tabStyle={{ flex: 1 }}
+          renderLabel={({ route, focused }) => (
+            <View
+              style={{
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: 40,
+              }}
             >
-              {cardContent}
-            </LinearGradient>
-          ) : cardContent}
-        </TouchableOpacity>
-      );
-    }, [selectedPlayers]);
+              <View style={{ alignItems: 'center' }}>
+                <AppText
+                  type={ELEVEN}
+                  color={focused ? BROWNYELLOW : WHITE}
+                  weight={POPPINS_MEDIUM}
+                  style={{ fontSize: 10, textAlign: 'center' }}
+                >
+                  {`${route.title} (${
+                    route.key === 'wk'
+                      ? filterSelectedPlayer?.wk?.length
+                      : route.key === 'bat'
+                        ? filterSelectedPlayer?.bat?.length
+                        : route.key === 'ar'
+                          ? filterSelectedPlayer?.all?.length
+                          : route.key === 'bowl'
+                            ? filterSelectedPlayer?.bowl?.length
+                            : 0
+                  })`}
+                </AppText>
+              </View>
+              {focused ? (
+                <LinearGradient
+                  style={{ height: 2, width: 65 }}
+                  start={{ x: 0, y: 1 }}
+                  end={{ x: 1, y: 0 }}
+                  colors={[
+                    colors.playerDetailsLinerOne,
+                    colors.playerDetailsLinerTwo,
+                  ]}
+                />
+              ) : (
+                <View style={{ height: 2, width: 65 }} />
+              )}
+            </View>
+          )}
+          indicatorStyle={{ backgroundColor: 'transparent' }}
+          pressColor={'transparent'}
+          style={{ width: '100%', backgroundColor: 'transparent', elevation: 0 }}
+        />
+      </>
+    );
+  }, [filterSelectedPlayer]);
 
-    const renderPairedRow = useCallback(({ item }) => {
-      return (
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <View style={{ width: '48%' }}>
-            {item.teamAPlayer && renderPlayerCard(item.teamAPlayer)}
-          </View>
-          <View style={{ width: 1, backgroundColor: colors.gray }} />
-          <View style={{ width: '48%' }}>
-            {item.teamBPlayer && renderPlayerCard(item.teamBPlayer)}
-          </View>
-        </View>
-      );
-    }, [renderPlayerCard]);
-
-    if (route?.key === 'pl') {
-      const pairedRows = getFilteredPlayers();
+  const renderScene = useCallback(({ route }) => {
+    if (!allPlayers?.length) return null;
+    
+    const { teamA, teamB } = getPlayersData(route.key.toLowerCase());
+    
+    // Special handling for Squads tab
+    if (route.key === 'pl') {
+      // Calculate the maximum length needed for the lists
+      const maxLength = Math.max(teamA.length, teamB.length);
+      // Create arrays of equal length by padding with null
+      const paddedTeamA = [...teamA, ...Array(maxLength - teamA.length).fill(null)];
+      const paddedTeamB = [...teamB, ...Array(maxLength - teamB.length).fill(null)];
       
-      return (
-        <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center', flex: 1 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-            <View style={{ width: '48%' }}>
-              <AppText style={{ textAlign: 'center', color: colors.white }}>
-                {removedSpacesTeamsTitle[0]}
-              </AppText>
-            </View>
-            <View style={{ width: 1 }} />
-            <View style={{ width: '48%' }}>
-              <AppText style={{ textAlign: 'center', color: colors.white }}>
-                {removedSpacesTeamsTitle[1]}
-              </AppText>
-            </View>
-          </View>
+      // Combine both teams into pairs
+      const combinedData = paddedTeamA.map((teamAPlayer, index) => ({
+        teamAPlayer,
+        teamBPlayer: paddedTeamB[index],
+      }));
 
+      return (
+        <View style={{ flex: 1, marginTop: 10 }}>
           <FlatList
-            ref={flatListRef}
-            data={pairedRows}
-            renderItem={renderPairedRow}
-            CellRendererComponent={CellRenderer}
+            ref={listRef}
+            data={combinedData}
+            renderItem={({ item }) => (
+              <View style={{ 
+                flexDirection: 'row', 
+                flex: 1,
+                minHeight: 85,
+              }}>
+                {/* Team A Player */}
+                <View style={{ flex: 1, borderRightWidth: 0.5, borderColor: colors.gray }}>
+                  {item.teamAPlayer && (
+                    <PlayerItem
+                      item={item.teamAPlayer}
+                      onSelect={handlePlayerSelection}
+                      onDetail={onDetail}
+                      isSelected={selectedPlayers.includes(item.teamAPlayer.pid)}
+                      TeamsShortNames={TeamsShortNames}
+                      removedSpacesTeamsTitle={removedSpacesTeamsTitle}
+                    />
+                  )}
+                </View>
+                
+                {/* Team B Player */}
+                <View style={{ flex: 1 }}>
+                  {item.teamBPlayer && (
+                    <PlayerItem
+                      item={item.teamBPlayer}
+                      onSelect={handlePlayerSelection}
+                      onDetail={onDetail}
+                      isSelected={selectedPlayers.includes(item.teamBPlayer.pid)}
+                      TeamsShortNames={TeamsShortNames}
+                      removedSpacesTeamsTitle={removedSpacesTeamsTitle}
+                    />
+                  )}
+                </View>
+              </View>
+            )}
+            keyExtractor={(item, index) => `row-${index}`}
             showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 120 }}
             removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            updateCellsBatchingPeriod={50}
+            getItemLayout={(data, index) => ({
+              length: 85,
+              offset: 85 * index,
+              index,
+            })}
             initialNumToRender={10}
-            keyExtractor={item => item.stableKey}
-            contentContainerStyle={{
-              paddingBottom: 120,
-            }}
+            maxToRenderPerBatch={10}
+            windowSize={10}
           />
         </View>
       );
     }
-
+    
+    // Regular tab view for other tabs
     return (
-      <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center' }}>
+      <View style={{ flex: 1, marginTop: 10 }}>
         <FlatList
-          ref={flatListRef}
-          data={getFilteredPlayers()}
+          ref={listRef}
+          data={[...teamA, ...teamB]}
           renderItem={renderItem}
-          CellRendererComponent={CellRenderer}
+          keyExtractor={(item, index) => item.pid?.toString() || index.toString()}
+          onScroll={e => {
+            scrollOffsetRef.current = e.nativeEvent.contentOffset.y;
+          }}
+          getItemLayout={(data, index) => ({
+            length: 85,
+            offset: 85 * index,
+            index,
+          })}
+          initialScrollIndex={0}
+          maxToRenderPerBatch={10}
+          windowSize={10}
+          contentContainerStyle={{ paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          updateCellsBatchingPeriod={50}
-          initialNumToRender={10}
-          keyExtractor={item => item.stableKey}
-          contentContainerStyle={{
-            paddingBottom: 120,
-          }}
         />
       </View>
     );
-  };
-
-  const renderScene = SceneMap({
-    pl: props => <PlayersList route={props.route} />,
-    wk: props => <PlayersList route={props.route} />,
-    bat: props => <PlayersList route={props.route} />,
-    ar: props => <PlayersList route={props.route} />,
-    bowl: props => <PlayersList route={props.route} />,
-  });
-  const layout = useWindowDimensions();
-  const [index, setIndex] = React.useState(0);
-  const [routes] = React.useState([
-    { key: 'pl', title: 'Squads' },
-    { key: 'wk', title: 'WK' },
-    { key: 'bat', title: 'BAT' },
-    { key: 'ar', title: 'AR' },
-    { key: 'bowl', title: 'BOWL' },
-  ]);
-  const handleTabChange = e => {
-    setIndex(e);
-    setActiveTab(
-      e === 0 ? 'PL'
-        : e === 1 ? 'WK'
-          : e === 2 ? 'BAT'
-            : e === 3 ? 'AR'
-              : e === 4 ? 'BOWL'
-                : ''
-    );
-  };
+  }, [getPlayersData, renderItem, handlePlayerSelection, onDetail, selectedPlayers, allPlayers]);
 
   return (
     <AppSafeAreaView hidden={false}>
@@ -1535,7 +989,8 @@ const SelectPlayer = () => {
       <CommonImageBackground common>
         <TouchableOpacityView
           onPress={() => NavigationService.goBack()}
-          style={styles.topContainer}>
+          style={styles.topContainer}
+        >
           <FastImage
             resizeMode="contain"
             source={backIconMain}
@@ -1548,7 +1003,8 @@ const SelectPlayer = () => {
         <ImageBackground
           source={headerIner}
           resizeMode="contain"
-          style={styles.header}>
+          style={styles.header}
+        >
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <FastImage
               source={{
@@ -1591,7 +1047,8 @@ const SelectPlayer = () => {
                 style={{
                   paddingRight: 5,
                   alignSelf: 'flex-end',
-                }}>
+                }}
+              >
                 {playerTwo?.length}
               </AppText>
             </View>
@@ -1621,14 +1078,16 @@ const SelectPlayer = () => {
                 marginBottom: 5,
               }}
               type={TEN}
-              weight={POPPINS_MEDIUM}>
+              weight={POPPINS_MEDIUM}
+            >
               Max 7 player from a team
             </AppText>
             <View
               style={{
                 justifyContent: 'center',
                 alignItems: 'flex-end',
-              }}>
+              }}
+            >
               <AppText type={TEN} weight={POPPINS_MEDIUM}>
                 Credit
               </AppText>
@@ -1642,7 +1101,8 @@ const SelectPlayer = () => {
               style={{
                 flexDirection: 'row',
                 marginHorizontal: 8,
-              }}>
+              }}
+            >
               {new Array(11).fill('').map((_, index) => {
                 return index + 1 > selectedPlayerDetails?.length ? (
                   <PlayerBedge />
@@ -1666,27 +1126,40 @@ const SelectPlayer = () => {
           </View>
         </View>
 
-        <View style={{ flex: 1 }}>
-          <TabView
-            navigationState={{ index, routes }}
-            renderScene={renderScene}
-            onIndexChange={handleTabChange}
-            initialLayout={{ width: layout.width }}
-            renderTabBar={props => (
-              <RenderTabBar
-                {...props}
-                onTabChange={e => {
-                  setActiveTab(e);
-                }}
-                allPlayers={allPlayers}
-                filterSelectedPlayer={filterSelectedPlayer}
-                newAllPlayer={newAllPlayer}
-                saveTitle={saveTitle}
-                filterDataOfSorting={filterDataOfSorting}
-              />
-            )}
-          />
+        <View style={styles.playerListingHead}>
+          <TouchableOpacity
+            onPress={() => filterDataOfSorting('PLAYERS')}
+            style={{ flex: 1, alignItems: 'center' }}>
+            <AppText style={styles.playerListingHeadTitle}>
+              PLAYERS {saveTitle === 'PLAYERS' && (newAllPlayer === 'high' ? '↑' : '↓')}
+            </AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => filterDataOfSorting('CREDITS')}
+            style={{ flex: 1, alignItems: 'center' }}>
+            <AppText style={styles.playerListingHeadTitle}>
+              CREDITS {saveTitle === 'CREDITS' && (newAllPlayer === 'high' ? '↑' : '↓')}
+            </AppText>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => filterDataOfSorting('AVG POINTS')}
+            style={{ flex: 1, alignItems: 'center' }}>
+            <AppText style={styles.playerListingHeadTitle}>
+              AVG POINTS {saveTitle === 'AVG POINTS' && (newAllPlayer === 'high' ? '↑' : '↓')}
+            </AppText>
+          </TouchableOpacity>
         </View>
+
+        <TabView
+          navigationState={{ index, routes }}
+          renderScene={renderScene}
+          onIndexChange={setIndex}
+          initialLayout={{ width: layout.width }}
+          renderTabBar={RenderTabBar}
+          lazy
+          swipeEnabled={true}
+          style={{ flex: 1 }}
+        />
 
         <View style={styles.buttonContainer}>
           <SecondaryButton
@@ -1712,8 +1185,8 @@ const SelectPlayer = () => {
       <PlayerDetailModal
         isVisible={isVisible}
         setIsVisible={() => setIsVisible(false)}
-        removePlayerFromTeam={item => removePlayerFromTeam(item)}
-        addPlayerInTeam={item => addPlayerInTeam(item)}
+        removePlayerFromTeam={removePlayerFromTeam}
+        addPlayerInTeam={addPlayerInTeam}
         selectedPlayers={selectedPlayers}
         playerimg={playerimg}
         logo={logo}
@@ -1744,7 +1217,8 @@ const SelectPlayer = () => {
             backgroundColor: 'transparent',
             display: 'none',
           },
-        }}>
+        }}
+      >
         <UnannouncedPlayer
           Unannounced={Unannounced}
           onSubmit={onSubmit}
@@ -1752,7 +1226,8 @@ const SelectPlayer = () => {
           setAvailableCredits={setAvailableCredits}
           availableCredits={availableCredits}
           onClose={() => {
-            refsheetUnannounced?.current?.close(), setOnClose(true);
+            refsheetUnannounced?.current?.close();
+            setOnClose(true);
           }}
         />
       </RBSheet>
@@ -1762,161 +1237,4 @@ const SelectPlayer = () => {
   );
 };
 
-export default SelectPlayer;
-
-export const RenderTabBar = props => {
-  const {
-    onTabChange,
-    saveTitle,
-    filterSelectedPlayer,
-    filterDataOfSorting,
-    newAllPlayer,
-    allPlayers
-  } = props;
-
-  return (
-    <>
-      <TabBar
-        {...props}
-        onTabPress={e => {
-          onTabChange(e?.route?.key);
-        }}
-        scrollEnabled={false}
-        tabStyle={[{ flex: 1 }, props.tabStyle]}
-        renderLabel={({ route, focused }) => (
-          <View
-            style={{
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              minHeight: 40,
-            }}>
-            <View style={{ alignItems: 'center' }}>
-              <AppText
-                type={ELEVEN}
-                color={focused ? BROWNYELLOW : WHITE}
-                weight={POPPINS_MEDIUM}
-                style={{ fontSize: 10, textAlign: 'center' }}
-              >
-                {`${route.title} (${route.key === 'wk'
-                  ? filterSelectedPlayer?.wk?.length
-                  : route.key === 'bat'
-                    ? filterSelectedPlayer?.bat?.length
-                    : route.key === 'ar'
-                      ? filterSelectedPlayer?.all?.length
-                      : route.key === 'bowl'
-                        ? filterSelectedPlayer?.bowl?.length
-                        : route.key === 'pl'
-                          ? allPlayers?.length
-                          : 0
-                  })`}
-              </AppText>
-            </View>
-
-            {focused ? (
-              <LinearGradient
-                style={{ height: 2, width: 65 }}
-                start={{ x: 0, y: 1 }}
-                end={{ x: 1, y: 0 }}
-                colors={[
-                  colors.playerDetailsLinerOne,
-                  colors.playerDetailsLinerTwo,
-                ]}
-              />
-            ) : (
-              <View style={{ height: 2, width: 65 }} />
-            )}
-          </View>
-        )}
-        indicatorStyle={{ backgroundColor: 'transparent' }}
-        pressColor={'transparent'}
-        style={[{ width: '100%', backgroundColor: 'transparent', elevation: 0 }]}
-      />
-      {/* <View style={styles.playerListingHead}>
-        <AppText
-          style={{ flex: 1 }}
-          type={ELEVEN}
-          weight={POPPINS_MEDIUM}
-          color={'#B1B1B1'}>
-          INFO
-        </AppText>
-        <TouchableOpacity
-          style={{
-            flex: 1.6,
-            padding: 2,
-            flexDirection: 'row',
-            alignItems: 'center',
-          }}
-          onPress={() => filterDataOfSorting('PLAYERS')}>
-          <AppText color={'#B1B1B1'} type={ELEVEN} weight={POPPINS_MEDIUM}>
-            PLAYERS
-          </AppText>
-          {'PLAYERS' === saveTitle && (
-            <FastImage
-              style={{
-                height: 9,
-                width: 8,
-                marginLeft: 5,
-                marginTop: -1,
-                transform: [
-                  { rotate: newAllPlayer === 'high' ? '180deg' : '0deg' },
-                ],
-              }}
-              source={dropDownRed}
-              resizeMode="contain"
-            />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={{
-            padding: 2,
-            flexDirection: 'row',
-            flex: 1.4,
-            alignItems: 'center',
-          }}
-          onPress={() => filterDataOfSorting('AVG POINTS')}>
-          <AppText color={'#B1B1B1'} type={ELEVEN} weight={POPPINS_MEDIUM}>
-            AVG POINTS
-          </AppText>
-          {'AVG POINTS' === saveTitle && (
-            <FastImage
-              style={{
-                height: 9,
-                width: 8,
-                marginLeft: 5,
-                marginTop: -1,
-                transform: [
-                  { rotate: newAllPlayer === 'high' ? '180deg' : '0deg' },
-                ],
-              }}
-              source={dropDownRed}
-              resizeMode="contain"
-            />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={{ padding: 2, flexDirection: 'row', alignItems: 'center' }}
-          onPress={() => filterDataOfSorting('CREDITS')}>
-          <AppText color={'#B1B1B1'} type={ELEVEN} weight={POPPINS_MEDIUM}>
-            CREDITS
-          </AppText>
-          {'CREDITS' === saveTitle && (
-            <FastImage
-              style={{
-                height: 9,
-                width: 8,
-                marginLeft: 5,
-                marginTop: -1,
-                transform: [
-                  { rotate: newAllPlayer === 'high' ? '180deg' : '0deg' },
-                ],
-              }}
-              source={dropDownRed}
-              resizeMode="contain"
-            />
-          )}
-        </TouchableOpacity>
-      </View> */}
-    </>
-  );
-};
+export default React.memo(SelectPlayer);

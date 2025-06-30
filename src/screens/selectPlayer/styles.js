@@ -135,29 +135,23 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   playerImage: {
-    height: 65,
-    width: 53,
+    height: 45,
+    width: 40,
+    resizeMode: 'contain',
+  },
+  playerInfo: {
+    flex: 1,
+    marginLeft: 6,
+    justifyContent: 'center',
+    height: '100%',
   },
   playerName: {
-    marginTop: 10,
+    fontSize: 12,
+    marginTop: 0,
     textTransform: 'capitalize',
-    
-  },
-  selectPlayerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    borderBottomWidth: 0.2,
-    borderBottomColor: colors.gray,
-    marginBottom: 10,
-    borderRadius: 10
-  },
-  description: {
-    color: 'white',
-    fontSize: 10,
   },
   points: {
+    fontSize: 11,
     textAlign: 'center',
   },
   credits: {
@@ -165,17 +159,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   plusIcon: {
-    height: 34,
-    width: 34,
-    position: "absolute",
-    right: -11,
-    bottom: -27
+    height: 24,
+    width: 24,
+    marginLeft: 4,
+    top: 21,
+    left: 6,
   },
   creditBtnView: {
-    flexDirection: 'row',
-    flex: 1.2,
-    justifyContent: 'center',
+    flexDirection: 'column',
     alignItems: 'center',
+    marginLeft: 4,
+    height: '100%',
+    justifyContent: 'center',
   },
   indicator: {
     backgroundColor: colors.borderBackColor,
@@ -189,7 +184,111 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
     borderBottomWidth: 0,
-  }
+  },
+  playerItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 12,
+    marginVertical: 4,
+    marginHorizontal: 8,
+    borderRadius: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+  },
+  selectPlayerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    borderBottomWidth: 0.2,
+    borderBottomColor: colors.gray,
+    marginBottom: 6,
+    borderRadius: 8,
+    marginHorizontal: 4,
+    height: 85,
+  },
+  description: {
+    color: 'white',
+    fontSize: 10,
+  },
+  splitViewCard: {
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+  },
+  roleText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    opacity: 0.7,
+  },
+  teamText: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    opacity: 0.7,
+  },
+  arrowIcon: {
+    width: 24,
+    height: 24,
+  },
+  teamDivider: {
+    height: 1,
+    backgroundColor: colors.gray,
+    marginVertical: 8,
+    marginHorizontal: 16,
+    opacity: 0.5,
+  },
+  teamHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: colors.primary,
+  },
+  teamHeaderText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  playerCountBadge: {
+    backgroundColor: colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  playerCountText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  teamSection: {
+    flex: 1,
+    backgroundColor: NewColor.linerBlackFive,
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusIndicator: {
+    height: 4,
+    width: 4,
+    borderRadius: 2,
+    marginTop: 2,
+  },
+  statusText: {
+    marginLeft: 4,
+    fontSize: 9,
+  },
 });
 
 export default styles;
