@@ -343,35 +343,64 @@ export const getContestList = (outputObject, id) => async dispatch => {
     dispatch(setLoading(true));
     const res = await appOperation.customer.getContestList(data);
     console.log('API Response:', res);
-    if (res?.code === 200) {
+    
+    if (res?.code === 200 || res?.success === true) {
       const contestData = res?.data || [];
-      console.log('Contest Data:', contestData);
+      
+      const newData = contestData.map(category => {
+        const transformedData = category.data.map(contestItem => {
+          // Find matching category details
+          const categoryDetails = category.contest_category_details.find(
+            detail => detail._id === contestItem.contest_category_id
+          );
 
-      const newData = contestData.map(contest => {
-        const contestData = contest?.data || [];
-        const transformedData = contestData.map(dataItem => {
+          console.log('Merging contest data:', {
+            contestItem,
+            categoryDetails,
+          });
+
+          // Create merged data with correct field names
+          const mergedData = {
+            ...contestItem,
+            Contestsize: categoryDetails?.Contestsize || 0,
+            EnteryFee: categoryDetails?.EnteryFee || 0,
+            EnteryType: categoryDetails?.EnteryType,
+            JoinWithMULT: categoryDetails?.JoinWithMULT || false,
+            ConfirmedWin: categoryDetails?.ConfirmedWin || false,
+            Rankdata: categoryDetails?.Rankdata || [],
+            teams: categoryDetails?.teams || 0,
+            winning_amount: contestItem.winning_amount,
+            joined: contestItem.joined || 0,
+            contest_category_id: contestItem.contest_category_id,
+            categoryName: categoryDetails?.categoryName,
+            UsableBonusPercantage: categoryDetails?.UsableBonusPercantage || "0"
+          };
+
+          console.log('Merged Data:', mergedData);
+
           const arrayfilter = res?.getuserjounedcont?.filter(
             e =>
-              e?.contest_category_id === dataItem?.contest_category_id &&
-              !dataItem?.JoinWithMULT,
+              e?.contest_category_id === contestItem?.contest_category_id &&
+              !categoryDetails?.JoinWithMULT,
           );
           const arrayfilterMulti = res?.getuserjounedcont?.filter(
-            e => e?.contest_category_id === dataItem?.contest_category_id,
+            e => e?.contest_category_id === contestItem?.contest_category_id,
           );
+
           return {
-            ...dataItem,
+            ...mergedData,
             remove: arrayfilter?.length ? true : false,
-            teamDetails: arrayfilterMulti,
+            teamDetails: arrayfilterMulti || [],
           };
         });
 
         return {
-          ...contest,
+          ...category,
           data: transformedData,
         };
       });
 
-      console.log('Transformed Data:', newData);
+      console.log('Final transformed data:', newData[0]?.data?.[0]);
       
       dispatch(setContestList({ data: newData }));
       dispatch(setContestListTeam(res?.getuserjounedcont || []));
@@ -385,7 +414,6 @@ export const getContestList = (outputObject, id) => async dispatch => {
         }, [])
       };
 
-      console.log('Filter Sort Data:', finalArray);
       dispatch(getFilterSortby(finalArray));
     }
   } catch (e) {

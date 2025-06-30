@@ -2,6 +2,7 @@ import {StyleSheet, Dimensions} from 'react-native';
 import React from 'react';
 import {Battle_Infinity, Primary, Screen} from '../../theme/dimens';
 import {SmallPrimary} from '../../theme/dimens';
+import {colors} from '../../theme/color';
 
 const styles = StyleSheet.create({
   container: {
@@ -229,6 +230,21 @@ const styles = StyleSheet.create({
   },
   prizePool: {color: 'white', fontSize: 10, fontWeight: '500'},
   multipleText: {color: '#FFFFFF', fontSize: 10, fontWeight: '400'},
+  totalTeamsContainer: {
+    backgroundColor: colors.white,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+  },
 });
 
 export default styles;

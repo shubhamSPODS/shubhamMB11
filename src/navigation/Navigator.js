@@ -203,7 +203,9 @@ const CricketWrapper = () => {
       />
       <HomeTopHeader
         showBack={true}
-        personClick={() => navigation.goBack()}
+        personClick={() => {
+          navigation.getParent()?.goBack();
+        }}
         walletIcon={true}
       />
       <KeyBoardAware
@@ -220,6 +222,7 @@ const CricketWrapper = () => {
 const CricketTab = () => {
   return (
     <Tab.Navigator
+      initialRouteName="Cricket"
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
@@ -231,6 +234,96 @@ const CricketTab = () => {
           paddingVertical: 10,
         },
       }}>
+      <Tab.Screen
+        name={'Home'}
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
+                />
+              ) : null}
+              <FastImage
+                source={home_icon}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Home
+              </AppText>
+            </>
+          ),
+        }}
+        listeners={({navigation}) => ({
+          tabPress: e => {
+            e.preventDefault();
+            navigation.navigate(BOTTOM_NAVIGATION_STACK, {
+              screen: BOTTOM_TAB_HOMESCREEN,
+            });
+          },
+        })}
+      />
+      <Tab.Screen
+        name={'Transactions'}
+        component={TransactionsScreen}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
+                />
+              ) : null}
+              <FastImage
+                source={transactionIcon}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Transactions
+              </AppText>
+            </>
+          ),
+        }}
+      />
       <Tab.Screen
         name={'Cricket'}
         component={CricketWrapper}
@@ -272,6 +365,26 @@ const CricketTab = () => {
           ),
         }}
       />
+    </Tab.Navigator>
+  );
+};
+
+const LudoTab = () => {
+  const navigation = useNavigation();
+  return (
+    <Tab.Navigator
+      initialRouteName="Ludo"
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: NewColor.linerWhite,
+          height: Platform.OS === 'ios' ? 80 : 60,
+          borderTopWidth: 0,
+          paddingVertical: 10,
+        },
+      }}>
       <Tab.Screen
         name={'Home'}
         component={HomeScreen}
@@ -322,8 +435,8 @@ const CricketTab = () => {
         })}
       />
       <Tab.Screen
-        name={BOTTOM_TAB_CONTEST_SCREEN}
-        component={MyContestDrawer}
+        name={'Transactions'}
+        component={TransactionsScreen}
         options={{
           tabBarIcon: ({focused}) => (
             <>
@@ -343,7 +456,7 @@ const CricketTab = () => {
                 />
               ) : null}
               <FastImage
-                source={contestLinerIcon}
+                source={transactionIcon}
                 style={{
                   width: 25,
                   height: 25,
@@ -356,30 +469,12 @@ const CricketTab = () => {
                 color={focused ? BROWNYELLOW : GRY}
                 weight={POPPINS_MEDIUM}
                 type={TEN}>
-                Contest
+                Transactions
               </AppText>
             </>
           ),
         }}
       />
-    </Tab.Navigator>
-  );
-};
-
-const LudoTab = () => {
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: {
-          backgroundColor: NewColor.linerWhite,
-          height: Platform.OS === 'ios' ? 80 : 60,
-          borderTopWidth: 0,
-          paddingVertical: 10,
-        },
-      }}>
       <Tab.Screen
         name={'Ludo'}
         component={LudoGameMode}
@@ -421,6 +516,26 @@ const LudoTab = () => {
           ),
         }}
       />
+    </Tab.Navigator>
+  );
+};
+
+const RummyTab = () => {
+  const navigation = useNavigation();
+  return (
+    <Tab.Navigator
+      initialRouteName="Rummy"
+      screenOptions={{
+        headerShown: false,
+        tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
+        tabBarStyle: {
+          backgroundColor: NewColor.linerWhite,
+          height: Platform.OS === 'ios' ? 80 : 60,
+          borderTopWidth: 0,
+          paddingVertical: 10,
+        },
+      }}>
       <Tab.Screen
         name={'Home'}
         component={HomeScreen}
@@ -511,24 +626,6 @@ const LudoTab = () => {
           ),
         }}
       />
-    </Tab.Navigator>
-  );
-};
-
-const RummyTab = () => {
-  return (
-    <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarHideOnKeyboard: true,
-        tabBarStyle: {
-          backgroundColor: NewColor.linerWhite,
-          height: Platform.OS === 'ios' ? 80 : 60,
-          borderTopWidth: 0,
-          paddingVertical: 10,
-        },
-      }}>
       <Tab.Screen
         name={'Rummy'}
         component={RummyGameModes}
@@ -565,96 +662,6 @@ const RummyTab = () => {
                 weight={POPPINS_MEDIUM}
                 type={TEN}>
                 Rummy
-              </AppText>
-            </>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name={'Home'}
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({focused}) => (
-            <>
-              {focused ? (
-                <LinearGradient
-                  start={{x: 0, y: 1}}
-                  end={{x: 1, y: 0}}
-                  style={{
-                    height: 5,
-                    width: 46,
-                    borderBottomRightRadius: 50,
-                    borderBottomLeftRadius: 50,
-                    position: 'absolute',
-                    top: -11,
-                  }}
-                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
-                />
-              ) : null}
-              <FastImage
-                source={home_icon}
-                style={{
-                  width: 25,
-                  height: 25,
-                  tintColor: focused ? colors.brownYellow : colors.gray,
-                }}
-                resizeMode="contain"
-              />
-              <AppText
-                style={{marginTop: 4}}
-                color={focused ? BROWNYELLOW : GRY}
-                weight={POPPINS_MEDIUM}
-                type={TEN}>
-                Home
-              </AppText>
-            </>
-          ),
-        }}
-        listeners={({navigation}) => ({
-          tabPress: e => {
-            e.preventDefault();
-            navigation.navigate(BOTTOM_NAVIGATION_STACK, {
-              screen: BOTTOM_TAB_HOMESCREEN,
-            });
-          },
-        })}
-      />
-      <Tab.Screen
-        name={'Transactions'}
-        component={TransactionsScreen}
-        options={{
-          tabBarIcon: ({focused}) => (
-            <>
-              {focused ? (
-                <LinearGradient
-                  start={{x: 0, y: 1}}
-                  end={{x: 1, y: 0}}
-                  style={{
-                    height: 5,
-                    width: 46,
-                    borderBottomRightRadius: 50,
-                    borderBottomLeftRadius: 50,
-                    position: 'absolute',
-                    top: -11,
-                  }}
-                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
-                />
-              ) : null}
-              <FastImage
-                source={transactionIcon}
-                style={{
-                  width: 25,
-                  height: 25,
-                  tintColor: focused ? colors.brownYellow : colors.gray,
-                }}
-                resizeMode="contain"
-              />
-              <AppText
-                style={{marginTop: 4}}
-                color={focused ? BROWNYELLOW : GRY}
-                weight={POPPINS_MEDIUM}
-                type={TEN}>
-                Transactions
               </AppText>
             </>
           ),

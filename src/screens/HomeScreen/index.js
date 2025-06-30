@@ -6,8 +6,12 @@ import { FULL_WIDTH } from '../../components/Typography'
 import { CRICKET_TAB, LUDO_GAME_MODE } from '../../navigation/routes'
 import { NewColor } from '../../theme/color'
 import { HomeTopHeader } from '../../common/HomeTopHeader'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { USER_TOKEN_KEY } from '../../libs/constants'
 
 const HomeScreen = ({ navigation }) => {
+    const token = AsyncStorage.getItem(USER_TOKEN_KEY);
+    console.log("token>>>>>>>", token)
     return (
         <View style={{ flex: 1, backgroundColor: NewColor.linerWhite }}>
             <HomeTopHeader personClick={() => navigation.openDrawer()} />

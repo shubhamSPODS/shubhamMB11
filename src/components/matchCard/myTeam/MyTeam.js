@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Dimensions, ImageBackground, Pressable, Share, StyleSheet, View } from 'react-native';
 import FastImage from "@d11/react-native-fast-image";
 import {
@@ -76,15 +76,28 @@ export const shareLinkTeam = async (userName, s1, s2, series, id, time, date, te
   } catch (error) {
   }
 };
-const MyTeam = ({ item, isFromSelect = false, onSelectTeam, isTeamSelected, tab }) => {
+const MyTeam = React.memo(({ item, isFromSelect = false, onSelectTeam, isTeamSelected, tab }) => {
   const dispatch = useDispatch();
 
-  const contestData = useSelector(state => state?.match?.contestData);
-  const userData = useSelector(state => {
-    return state.profile.userData;
-  });
+  const contestData = useSelector(state => state?.match?.contestData, (prev, next) => 
+    prev?._id === next?._id && prev?.SeriesId === next?.SeriesId
+  );
+  const userData = useSelector(state => state.profile.userData, (prev, next) => 
+    prev?.username === next?.username
+  );
   const shareLink = useSelector(state => state?.match?.shareLink);
+  const myTeams = useSelector(state => state?.match?.myTeams);
   const { Status, _id, SeriesId } = contestData ?? '';
+  
+  const [playerCounts, setPlayerCounts] = useState({
+    wiketKiper: 0,
+    batsman: 0,
+    allRounder: 0,
+    bowler: 0,
+    captain: null,
+    viceCaptain: null
+  });
+
   const [wiketKiper, setWiketKiper] = useState(0);
   const [batsman, setBatsman] = useState(0);
   const [allRounder, setAllRounder] = useState(0);
@@ -94,45 +107,55 @@ const MyTeam = ({ item, isFromSelect = false, onSelectTeam, isTeamSelected, tab 
   const [teamDetails, setTeamDetails] = useState(null);
   const [availableCredits, setAvailableCredits] = useState(100);
   const [selectedPlayers, setSelectedPlayers] = useState([]);
-  const convertToTeamsTitle2 = arr => {
-    const TeamsTitle2 = arr && arr?.map(title => title.trim());
-    return TeamsTitle2;
-  };
-  const removedSpacesTeamsTitle = convertToTeamsTitle2(contestData?.TeamsTitle);
-  const formattedDateTime = formatDateTime(contestData?.StartDateTime);
-  let dateArray = formattedDateTime?.split(' ');
-  let dateArrayTwo = formattedDateTime.split(' ');
-  let dateArrayThree = formattedDateTime.split(' ');
-  let onlyTime = dateArrayThree[1] + ' ' + dateArrayTwo[2]
-  let onlyDate = dateArray[0];
+
+  const convertToTeamsTitle2 = useCallback(arr => {
+    return arr && arr?.map(title => title.trim());
+  }, []);
+
+  const removedSpacesTeamsTitle = useMemo(() => 
+    convertToTeamsTitle2(contestData?.TeamsTitle), 
+    [contestData?.TeamsTitle, convertToTeamsTitle2]
+  );
+
+  const formattedDateTime = useMemo(() => 
+    formatDateTime(contestData?.StartDateTime),
+    [contestData?.StartDateTime]
+  );
+
+  const dateArray = useMemo(() => formattedDateTime?.split(' '), [formattedDateTime]);
+  const onlyTime = useMemo(() => {
+    let dateArrayThree = formattedDateTime.split(' ');
+    let dateArrayTwo = formattedDateTime.split(' ');
+    return dateArrayThree[1] + ' ' + dateArrayTwo[2];
+  }, [formattedDateTime]);
+
+  const onlyDate = useMemo(() => dateArray[0], [dateArray]);
+
   const selectContestRef = useRef(null);
   const { username } = userData ?? '';
-  const currentDate = new Date();
-  const inputDate = new Date(contestData?.StartDateTime);
+  const currentDate = useMemo(() => new Date(), []);
+  const inputDate = useMemo(() => new Date(contestData?.StartDateTime), [contestData?.StartDateTime]);
+  const isPastTime = useMemo(() => inputDate < currentDate, [inputDate, currentDate]);
 
-  const isPastTime = inputDate < currentDate;
-  let newData = [];
-  item?.players?.forEach(player => {
-    let data = { ...player };
-    data['title'] = player?.primary_team?.title;
-    newData.push(data);
-  });
+  const newData = useMemo(() => {
+    let data = [];
+    item?.players?.forEach(player => {
+      data.push({ 
+        ...player, 
+        title: player?.primary_team?.title 
+      });
+    });
+    return data;
+  }, [item?.players]);
+
   useEffect(() => {
-    const batsman = item?.players?.filter(
-      player => player.playing_role == 'bat',
-    );
-    const bowler = item?.players?.filter(
-      player => player.playing_role == 'bowl',
-    );
-    const wicketKiper = item?.players?.filter(
-      player => player.playing_role == 'wk',
-    );
-    const allRounder = item?.players?.filter(
-      player => player.playing_role == 'all',
-    );
-
+    const batsman = item?.players?.filter(player => player.playing_role === 'bat');
+    const bowler = item?.players?.filter(player => player.playing_role === 'bowl');
+    const wicketKiper = item?.players?.filter(player => player.playing_role === 'wk');
+    const allRounder = item?.players?.filter(player => player.playing_role === 'all');
     const captain = item?.players?.find(item => item.caption);
     const viceCaptain = item?.players?.find(item => item?.vice_caption);
+
     setCaptain(captain);
     setViceCaptain(viceCaptain);
     setBatsman(batsman.length);
@@ -140,76 +163,81 @@ const MyTeam = ({ item, isFromSelect = false, onSelectTeam, isTeamSelected, tab 
     setWiketKiper(wicketKiper?.length);
     setAllRounder(allRounder?.length);
   }, [item?.players]);
+
   useEffect(() => {
     const firstTeamCount = item?.players?.filter(
-      item =>
-        item?.primary_team?.title === removedSpacesTeamsTitle[0] &&
-        !item?.substitute,
+      item => item?.primary_team?.title === removedSpacesTeamsTitle[0] && !item?.substitute,
     );
     const secondTeamCount = item?.players?.filter(
-      item =>
-        item?.primary_team?.title === removedSpacesTeamsTitle[1] &&
-        !item?.substitute,
+      item => item?.primary_team?.title === removedSpacesTeamsTitle[1] && !item?.substitute,
     );
+
     setTeamDetails({
       firstTeamName: contestData?.TeamsShortNames[0],
       secondTeamName: contestData?.TeamsShortNames[1],
       firstTeamCount: firstTeamCount,
       secondTeamCount: secondTeamCount,
     });
-  }, []);
+  }, [item?.players, removedSpacesTeamsTitle, contestData?.TeamsShortNames]);
+
   useEffect(() => {
-    dispatch(getShareUrl(item?._id));
-  }, []);
-  const onCardClick = (total_points) => {
+    if (item?._id) {
+      dispatch(getShareUrl(item?._id));
+    }
+  }, [item?._id, dispatch]);
+
+  const onCardClick = useCallback((total_points) => {
     if (isFromSelect) {
       return onSelectTeam(item);
-    } else {
-      let selectedPlayers = item?.players?.map(k => {
-        return k?.pid;
-      });
-
-      const usedCredit = item?.players
-        .filter(item => !item.substitute) // Filter only objects with "substitute" as false
-        .reduce((total, item) => total + item.fantasy_player_rating, 0);
-      let availableCredits = Number(100) - Number(usedCredit);
-      let player = [];
-      let playerTwo = [];
-      item?.players?.map(i => {
-        return i?.primary_team?.abbr ==
-          contestData?.TeamsShortNames[0]?.split(' ').join('')
-          ? player?.push(i)
-          : playerTwo?.push(i);
-      });
-      NavigationService.navigate(PLAYER_PREVIEW, {
-        oldData: contestData,
-        selectedPlayers: selectedPlayers,
-        availableCredits: availableCredits,
-        selectedPlayerDetails: item?.players,
-        player: teamDetails?.firstTeamCount,
-        playerTwo: teamDetails?.secondTeamCount,
-        myTeam: true,
-        teamName: item?.name,
-        total_points: total_points,
-        replacedPlayers: item?.replacedPlayers,
-        notReplacedSubstitutes: item?.notReplacedSubstitutes
-      });
     }
-  };
-  const onEdit = () => {
+
+    const selectedPlayers = item?.players?.map(k => k?.pid);
+    const usedCredit = item?.players
+      .filter(item => !item.substitute)
+      .reduce((total, item) => total + item.fantasy_player_rating, 0);
+    const availableCredits = Number(100) - Number(usedCredit);
+
     let player = [];
     let playerTwo = [];
-    item?.players?.map(i => {
-      return i?.primary_team?.abbr ==
-        contestData?.TeamsShortNames[0]?.split(' ').join('')
-        ? player?.push(i)
-        : playerTwo?.push(i);
+    item?.players?.forEach(i => {
+      if (i?.primary_team?.abbr === contestData?.TeamsShortNames[0]?.split(' ').join('')) {
+        player.push(i);
+      } else {
+        playerTwo.push(i);
+      }
     });
+
+    NavigationService.navigate(PLAYER_PREVIEW, {
+      oldData: contestData,
+      selectedPlayers,
+      availableCredits,
+      selectedPlayerDetails: item?.players,
+      player: teamDetails?.firstTeamCount,
+      playerTwo: teamDetails?.secondTeamCount,
+      myTeam: true,
+      teamName: item?.name,
+      total_points,
+      replacedPlayers: item?.replacedPlayers,
+      notReplacedSubstitutes: item?.notReplacedSubstitutes
+    });
+  }, [isFromSelect, item, onSelectTeam, contestData, teamDetails]);
+
+  const onEdit = useCallback(() => {
+    let player = [];
+    let playerTwo = [];
+    item?.players?.forEach(i => {
+      if (i?.primary_team?.abbr === contestData?.TeamsShortNames[0]?.split(' ').join('')) {
+        player.push(i);
+      } else {
+        playerTwo.push(i);
+      }
+    });
+
     dispatch(getTab(''));
-    dispatch(setAllPlayers([]))
-    let data = { cid: SeriesId };
-    dispatch(getAllPlayerList(_id, data));
+    dispatch(setAllPlayers([]));
+    dispatch(getAllPlayerList(_id, { cid: SeriesId }));
     dispatch(setIsContestEntry(false));
+
     NavigationService.navigate(SELECT_PLAYER, {
       contestData,
       isEditMode: true,
@@ -222,21 +250,24 @@ const MyTeam = ({ item, isFromSelect = false, onSelectTeam, isTeamSelected, tab 
       player: teamDetails?.firstTeamCount,
       playerTwo: teamDetails?.secondTeamCount,
     });
-  };
-  const onCloneTeam = () => {
+  }, [item, contestData, newData, captain, viceCaptain, teamDetails, dispatch, _id, SeriesId]);
+
+  const onCloneTeam = useCallback(() => {
     let player = [];
     let playerTwo = [];
-    item?.players?.map(i => {
-      return i?.primary_team?.abbr ==
-        contestData?.TeamsShortNames[0]?.split(' ').join('')
-        ? player?.push(i)
-        : playerTwo?.push(i);
+    item?.players?.forEach(i => {
+      if (i?.primary_team?.abbr === contestData?.TeamsShortNames[0]?.split(' ').join('')) {
+        player.push(i);
+      } else {
+        playerTwo.push(i);
+      }
     });
+
     dispatch(getTab(''));
-    dispatch(setAllPlayers([]))
-    let data = { cid: SeriesId };
-    dispatch(getAllPlayerList(_id, data));
+    dispatch(setAllPlayers([]));
+    dispatch(getAllPlayerList(_id, { cid: SeriesId }));
     dispatch(setIsContestEntry(false));
+
     NavigationService.navigate(SELECT_PLAYER, {
       contestData,
       isCloneMode: true,
@@ -247,7 +278,8 @@ const MyTeam = ({ item, isFromSelect = false, onSelectTeam, isTeamSelected, tab 
       player: teamDetails?.firstTeamCount,
       playerTwo: teamDetails?.secondTeamCount,
     });
-  };
+  }, [item, contestData, newData, captain, viceCaptain, teamDetails, dispatch, _id, SeriesId]);
+
   const subsituteButton = () => {
     dispatch(setAllPlayers([]))
     let data = { cid: contestData?.SeriesId };
@@ -281,9 +313,6 @@ const MyTeam = ({ item, isFromSelect = false, onSelectTeam, isTeamSelected, tab 
       availableCredits: availableCredits
     });
   };
-
-
-
 
   const playerIconViceCaptain =
     viceCaptain?.playing_role === 'wk'
@@ -515,7 +544,15 @@ const MyTeam = ({ item, isFromSelect = false, onSelectTeam, isTeamSelected, tab 
     </>
 
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison function for React.memo
+  return (
+    prevProps.item === nextProps.item &&
+    prevProps.isFromSelect === nextProps.isFromSelect &&
+    prevProps.isTeamSelected === nextProps.isTeamSelected &&
+    prevProps.tab === nextProps.tab
+  );
+});
 
 export default MyTeam;
 const formateStyle = StyleSheet.create({
@@ -530,5 +567,11 @@ const formateStyle = StyleSheet.create({
     borderTopLeftRadius: 16,
     paddingHorizontal: universalPaddingHorizontal,
     justifyContent: "space-between"
+  },
+  totalTeamsContainer: {
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
   }
 })

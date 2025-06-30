@@ -1,19 +1,19 @@
 import { StyleSheet, View, FlatList, TouchableOpacity, Image, ScrollView } from 'react-native'
 import React from 'react'
 import { useNavigation } from '@react-navigation/native'
-import { AppText, BOLD, EIGHTEEN, SEMI_BOLD } from '../../common/AppText'
+import { AppText, BOLD, EIGHTEEN } from '../../common/AppText'
 import PrimaryButton from '../../common/primaryButton'
 import { colors } from '../../theme/color'
 import { POOL, PRIZE, SECURE } from '../../helper/image'
 import { AppSafeAreaView } from '../../common/AppSafeAreaView'
-import Header from '../../common/Header'
 import { universalPaddingHorizontal } from '../../theme/dimens'
+import { HomeTopHeader } from '../../common/HomeTopHeader'
 
 const gameData = [
     {
         id: '1',
         title: 'Points',
-        description: `Quick & rewarding \n\nHow it works: Each point has a fixed value. Win by declaring first — earn chips based on opponents’ total points.`,
+        description: `Quick & rewarding \n\nHow it works: Each point has a fixed value. Win by declaring first — earn chips based on opponents' total points.`,
         priceRange: '₹2 - ₹10,000',
         players: '2-6 Players',
         icon: PRIZE
@@ -52,16 +52,16 @@ const GameModeCard = ({ title, description, priceRange, players, icon }) => {
             <View style={styles.cardHeader}>
                 <View>
                     <AppText weight={BOLD} type={EIGHTEEN}>{title}</AppText>
-                    <AppText  color={colors.gray}  style={{ marginTop: 4 }}>
+                    <AppText color={colors.gray} style={{ marginTop: 4 }}>
                         {description}
                     </AppText>
                 </View>
-                <Image source={icon}   style={{ right: 15,width:25,height:25,resizeMode:'contain',tintColor:colors.golden }} />
+                <Image source={icon} style={{ right: 15, width: 25, height: 25, resizeMode: 'contain', tintColor: colors.golden }} />
             </View>
 
             <PrimaryButton
                 title="Play Now"
-                buttonStyle={{ marginTop: 10,}}
+                buttonStyle={{ marginTop: 10 }}
                 onPress={() => {
                     navigation.navigate('GameTable', {
                         gameType: 'Rummy',
@@ -69,14 +69,11 @@ const GameModeCard = ({ title, description, priceRange, players, icon }) => {
                     })
                 }}
             />
-
         </View>
     )
 }
 
-
-
-const RummyGameModes = () => {
+const RummyGameMode = () => {
     const navigation = useNavigation()
     const renderGameCard = ({ item }) => (
         <GameModeCard
@@ -88,13 +85,13 @@ const RummyGameModes = () => {
         />
     )
 
-
     return (
         <AppSafeAreaView>
-            <Header
-                commonHeader
-                title="Rummy Table"
-                style={{ padding: universalPaddingHorizontal, paddingTop: 40 }}
+            <HomeTopHeader
+                showBack={true}
+                personClick={() =>
+                    navigation.getParent()?.goBack()
+                }
             />
             <ScrollView>
                 <FlatList
@@ -106,12 +103,10 @@ const RummyGameModes = () => {
                 />
             </ScrollView>
         </AppSafeAreaView>
-
-
     )
 }
 
-export default RummyGameModes
+export default RummyGameMode
 
 const styles = StyleSheet.create({
     container: {
@@ -176,18 +171,5 @@ const styles = StyleSheet.create({
         backgroundColor: '#F3F4F6',
         borderRadius: 8,
         padding: 8,
-    },
-    // playButton: {
-    //     backgroundColor: ,
-    //     marginTop: 8,
-    //     width:FULL_WIDTH-50,
-    //     left:0
-    // },
-
-
-    // quickJoinButton: {
-    //     backgroundColor: DARK_PURPLE,
-    //     marginVertical: 16,
-
-    // },
+    }
 })

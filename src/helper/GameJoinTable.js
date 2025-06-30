@@ -11,7 +11,6 @@ import { PROFILE } from '../navigation/routes'
 import { DICE, POOL, PROFILE_2, SECURE, UserIcon } from './image'
 import { BASE_URL, toastAlert } from './utility'
 import io from 'socket.io-client';
-import { launchUnityWithDataCallback } from 'react-native-unity-launcher';
 import { useSelector } from 'react-redux'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PrimaryButton from '../common/primaryButton'
@@ -166,60 +165,20 @@ const GameJoinTable = ({ route, navigation }) => {
                 setPlayers(validPlayers);
                 if (!!validPlayers) {
                     setIsLoading(false);
-                    setIsWaitingForUnity(true);
-                    setTimeout(() => {
-                        launchUnityWithDataCallback(
-                            `${BASE_URL}`,
-                            `${BASE_URL}`,
-                            userToken,
-                            gameRoute == 'Rummy' ? 'rummy' : 'ludo',
-                            matchId,
-                            null,
-                            () => {
-                                console.log('Returned from Unity');
-                                navigation.goBack();
-                            }
-                        );
-                    }, 4000);
+                    navigation.goBack();
                 }
             }
         } catch (error) {
             console.log(error, '==error');
             setIsLoading(false);
-            setIsWaitingForUnity(false);
         }
     };
 
     useEffect(() => {
-
-
         if (!!matchId) {
             onMatchIdFound();
         }
     }, [matchId]);
-    useEffect(() => {
-        if (isWaitingForUnity) {
-            setIsCountdownActive(true);
-            const timer = setInterval(() => {
-                setCountdown((prev) => {
-                    if (prev <= 1) {
-                        clearInterval(timer);
-                        setIsCountdownActive(false);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-
-            return () => {
-                clearInterval(timer);
-                setIsCountdownActive(false);
-            };
-        } else {
-            setCountdown(4);
-            setIsCountdownActive(false);
-        }
-    }, [isWaitingForUnity]);
 
     useEffect(() => {
         return () => {

@@ -118,7 +118,7 @@ const LudoGameMode = () => {
          <HomeTopHeader
         showBack={true}
         personClick={() =>
-          navigation.goBack()
+          navigation.getParent()?.goBack()
         }
       />
             <ScrollView>

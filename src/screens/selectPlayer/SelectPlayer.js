@@ -1,5 +1,5 @@
 import { useIsFocused, useRoute } from '@react-navigation/native';
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import {
   FlatList,
   ImageBackground,
@@ -1314,58 +1314,164 @@ const SelectPlayer = () => {
 
   const PlayersList = ({ route }) => {
     const allPlayers = useSelector(state => state?.match?.allPlayers);
+    const flatListRef = useRef(null);
     
-    const getFilteredPlayers = () => {
+    const CellRenderer = useCallback(({ index, item, children }) => {
+      return (
+        <View style={{ 
+          transform: [{ translateY: 0 }], // Force GPU rendering
+          height: route?.key === 'pl' ? 90 : 80 
+        }}>
+          {children}
+        </View>
+      );
+    }, [route?.key]);
+
+    const getFilteredPlayers = useCallback(() => {
       if (route?.key === 'pl') {
-        // Split players by team
-        const teamAPlayers = allPlayers.filter(player => player.title === removedSpacesTeamsTitle[0])
-          .sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid));
-        const teamBPlayers = allPlayers.filter(player => player.title === removedSpacesTeamsTitle[1])
-          .sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid));
-        return { teamAPlayers, teamBPlayers };
+        const teamAPlayers = allPlayers.filter(player => player.title === removedSpacesTeamsTitle[0]);
+        const teamBPlayers = allPlayers.filter(player => player.title === removedSpacesTeamsTitle[1]);
+          
+        const maxLength = Math.max(teamAPlayers.length, teamBPlayers.length);
+        const pairedRows = Array.from({ length: maxLength }, (_, index) => ({
+          teamAPlayer: teamAPlayers[index] || null,
+          teamBPlayer: teamBPlayers[index] || null,
+          stableKey: `row-${index}-${teamAPlayers[index]?.pid || 'empty'}-${teamBPlayers[index]?.pid || 'empty'}`
+        }));
+        
+        return pairedRows;
       }
-      return getPlayersData(route?.key);
-    };
+      const players = getPlayersData(route?.key) || [];
+      return players.map(player => ({
+        ...player,
+        stableKey: `player-${player.pid}-${selectedPlayers.includes(player.pid)}`
+      }));
+    }, [allPlayers, route?.key, selectedPlayers]);
+
+    const renderPlayerCard = useCallback((player) => {
+      if (!player) return null;
+
+      const playerIcon =
+        player?.playing_role === 'wk'
+          ? wicket_keeperIcon
+          : player?.playing_role === 'bowl'
+            ? bowlerIcon
+            : player?.playing_role === 'bat'
+              ? batsmanIcon
+              : player?.playing_role === 'all'
+                ? all_rounderIcon
+                : null;
+
+      const isSelected = selectedPlayers?.includes(player.pid);
+      const cardContent = (
+        <View style={{ flexDirection: 'row', justifyContent: "space-between", width: '100%' }}>
+          <View style={{ flexDirection: "row", alignItems: 'center', width: '70%' }}>
+            <FastImage
+              style={{ width: 30, height: 30, resizeMode: 'contain' }}
+              source={player?.profile_image ? { uri: player?.profile_image } : playerIcon}
+              resizeMode="contain"
+            />
+            <View>
+              <AppText type={TEN} style={{ marginLeft: 5 }}>{player?.short_name || player?.first_name}</AppText>
+              <AppText type={ELEVEN} style={{ marginLeft: 10 }}>{player?.teamName}</AppText>
+            </View>
+          </View>
+
+          <View style={{ width: '30%', alignItems: 'flex-end', marginTop: 5 }}>
+            <FastImage
+              tintColor={colors.green}
+              style={{ width: 18, height: 18, resizeMode: 'contain' }}
+              source={addsubstitues}
+              resizeMode="contain"
+            />
+            <AppText type={ELEVEN} style={{ marginVertical: 5 }}>{(player?.average_point)?.toFixed(2)}</AppText>
+          </View>
+        </View>
+      );
+
+      return (
+        <TouchableOpacity 
+          activeOpacity={0.9} 
+          onPress={() => {
+            if (isSelected) {
+              removePlayerFromTeam(player);
+            } else if (selectedPlayers?.length < 11) {
+              addPlayerInTeam(player);
+            }
+          }}
+          style={{
+            width: '100%',
+            padding: 10,
+            borderColor: colors.gray,
+            borderStyle: 'dotted',
+            borderBottomWidth: 1,
+            borderBottomColor: colors.gray,
+            marginBottom: 8,
+            backgroundColor: isSelected ? undefined : '#343434'
+          }}
+        >
+          {isSelected ? (
+            <LinearGradient
+              colors={['#343434', '#FF5252']}
+              start={{ x: 0, y: 0.1 }}
+              end={{ x: 1, y: 0 }}
+              style={{ padding: 10, margin: -10 }}
+            >
+              {cardContent}
+            </LinearGradient>
+          ) : cardContent}
+        </TouchableOpacity>
+      );
+    }, [selectedPlayers]);
+
+    const renderPairedRow = useCallback(({ item }) => {
+      return (
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <View style={{ width: '48%' }}>
+            {item.teamAPlayer && renderPlayerCard(item.teamAPlayer)}
+          </View>
+          <View style={{ width: 1, backgroundColor: colors.gray }} />
+          <View style={{ width: '48%' }}>
+            {item.teamBPlayer && renderPlayerCard(item.teamBPlayer)}
+          </View>
+        </View>
+      );
+    }, [renderPlayerCard]);
 
     if (route?.key === 'pl') {
-      const { teamAPlayers, teamBPlayers } = getFilteredPlayers();
+      const pairedRows = getFilteredPlayers();
       
       return (
         <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center', flex: 1 }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', flex: 1 }}>
-            {/* Team A Column */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
             <View style={{ width: '48%' }}>
-              <AppText style={{ textAlign: 'center', marginBottom: 10, color: colors.white }}>
+              <AppText style={{ textAlign: 'center', color: colors.white }}>
                 {removedSpacesTeamsTitle[0]}
               </AppText>
-              <FlatList
-                data={teamAPlayers}
-                renderItem={renderPastLineupItem}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                  paddingBottom: 20, // Add extra padding for buttons
-                }}
-              />
             </View>
-
-            {/* Vertical Divider */}
-            <View style={{ width: 1, backgroundColor: colors.gray }} />
-
-            {/* Team B Column */}
+            <View style={{ width: 1 }} />
             <View style={{ width: '48%' }}>
-              <AppText style={{ textAlign: 'center', marginBottom: 10, color: colors.white }}>
+              <AppText style={{ textAlign: 'center', color: colors.white }}>
                 {removedSpacesTeamsTitle[1]}
               </AppText>
-              <FlatList
-                data={teamBPlayers}
-                renderItem={renderPastLineupItem}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{
-                  paddingBottom: 20, // Add extra padding for buttons
-                }}
-              />
             </View>
           </View>
+
+          <FlatList
+            ref={flatListRef}
+            data={pairedRows}
+            renderItem={renderPairedRow}
+            CellRendererComponent={CellRenderer}
+            showsVerticalScrollIndicator={false}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            initialNumToRender={10}
+            keyExtractor={item => item.stableKey}
+            contentContainerStyle={{
+              paddingBottom: 120,
+            }}
+          />
         </View>
       );
     }
@@ -1373,11 +1479,18 @@ const SelectPlayer = () => {
     return (
       <View style={{ width: Screen.Width - 25, marginTop: 10, alignSelf: 'center' }}>
         <FlatList
-          data={getFilteredPlayers()?.sort((a, b) => selectedPlayers.includes(b.pid) - selectedPlayers.includes(a.pid)) || []}
+          ref={flatListRef}
+          data={getFilteredPlayers()}
           renderItem={renderItem}
+          CellRendererComponent={CellRenderer}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={10}
+          keyExtractor={item => item.stableKey}
           contentContainerStyle={{
-            paddingBottom: 20, // Add extra padding for buttons
+            paddingBottom: 120,
           }}
         />
       </View>

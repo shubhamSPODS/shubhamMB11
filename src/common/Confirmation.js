@@ -11,7 +11,6 @@ import {
   POPPINS_BOLD_ITALIC,
   SEMI_BOLD,
   SIXTEEN,
-  THIRTEEN,
   WHITE,
 } from './AppText';
 import { useDispatch, useSelector } from 'react-redux';
@@ -46,18 +45,17 @@ const Confirmation = ({
   setIsModalVisible,
   details,
   matchDetails,
-  onClose,
   selectedTeam,
   teamLength,
   teamName,
   saveTeamName,
   selectMulty,
   JoinWithMULT,
-  privateContest
+  privateContest,
+  onClose,
 }) => {
   const dispatch = useDispatch();
   const myTeam = useSelector(state => state?.match?.myTeams);
-
   const userData = useSelector(state => {
     return state.profile.userData;
   });
@@ -75,7 +73,7 @@ const Confirmation = ({
   const { match_id, matchid, _id } = myTeam[0] ?? '';
   const { cash_bonus, totaldeposit } = userData ?? '';
   const newAmount = totaldeposit + userData?.winning_amount;
-  const sumOfTotal = totaldeposit + userData?.winning_amount + cash_bonus
+  const sumOfTotal = totaldeposit + userData?.winning_amount + cash_bonus;
   let usable =
     (Number(
       CreateContestData?.EnteryFee ? CreateContestData?.EnteryFee : EnteryFee,
@@ -95,15 +93,21 @@ const Confirmation = ({
     : Number(EnteryFee) - Number(usableBonus)
     }`;
   const { _id: contestListId, } = contestData ?? '';
-  const payTotalAmount = selectMulty?.length ? payAmount * selectMulty?.length : payAmount
+  const payTotalAmount = selectMulty?.length ? payAmount * selectMulty?.length : payAmount;
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+    setIsModalVisible(false);
+  };
 
   const onSubmit = () => {
-    console.log("welcome");
     if (CreateContestData?.EnteryFee) {
       dispatch(
         setcreateContest(CreateContestData, match_id, payTotalAmount, _id, matchid, FilterId?.name, contestListId),
       );
-      setIsModalVisible(false);
+      handleClose();
     }
     else if (payTotalAmount <= newAmount) {
       if (JoinWithMULT) {
@@ -126,10 +130,8 @@ const Confirmation = ({
           mutiple: true,
           arofobj: arofobj
         }
-        console.log(data, "join constest multi true");
-        setIsModalVisible(false);
+        handleClose();
         dispatch(joinContest(data, matchDetails));
-        onClose ? onClose() : null;
         setTimeout(() => {
           dispatch(setContestData(matchDetails));
           NavigationService.navigate(MY_CONTEST);
@@ -146,19 +148,15 @@ const Confirmation = ({
           teamName: FilterId?.name,
           shadow_contest_id: details?.shadow_contest_id,
         };
-        console.log(data, "join constest multi false");
-        setIsModalVisible(false);
+        handleClose();
         dispatch(joinContest(data, matchDetails));
-        onClose ? onClose() : null;
         setTimeout(() => {
           dispatch(setContestData(matchDetails));
           NavigationService.navigate(MY_CONTEST);
         }, 1000);
       }
     } else {
-      console.log('add cash condition');
-      setIsModalVisible(false);
-      onClose ? onClose() : null;
+      handleClose();
       NavigationService.navigate(MY_BALANCE, {
         ...selectedMatch,
         matchDetails: matchDetails,
@@ -169,14 +167,13 @@ const Confirmation = ({
       });
     }
   };
+
   return (
     <Modal
       animationType="fade"
       transparent={true}
       visible={isModalVisible}
-      onRequestClose={() => {
-        setIsModalVisible(!isModalVisible);
-      }}>
+      onRequestClose={handleClose}>
       <View style={styles.centeredView}>
         <View style={styles.modalContainer}>
           <View style={styles.modalTopSection}>
@@ -192,7 +189,7 @@ const Confirmation = ({
                 justifyContent: 'center',
                 alignItems: 'center',
               }}
-              onPress={() => setIsModalVisible(false)}>
+              onPress={handleClose}>
               <FastImage
                 source={CLOSE_WHITE_ICON}
                 style={styles.closeWhiteIcon}
@@ -257,7 +254,7 @@ const Confirmation = ({
           </View>
           <View style={styles.detailsStyle}>
             <AppText weight={SEMI_BOLD}>
-              By Joining this contest, you accept My Battle 11’s T&C and
+              By Joining this contest, you accept My Battle 11's T&C and
               confirm that you are not a resident of Assam, Odisha, Nagaland,
               Andhra Pradesh, Sikkim, Telangana.
             </AppText>
@@ -291,25 +288,12 @@ const Confirmation = ({
               </AppText>
             </LinearGradient>
           </TouchableOpacityView>
-          {/* <SecondaryButton
-            title={payAmount <= total_balance ? 'Join contest' : 'Add cash'}
-            onPress={onSubmit}
-            buttonStyle={styles.editButton}
-            titleStyle={styles.editButtonTitle}
-            btnStyle={{
-              borderWidth:0,
-            }}
-            buttonViewStyle={{height: 45, 
-              borderRadius:8,
-              backgroundColor:'#5389C4'}}
-          /> */}
         </View>
       </View>
     </Modal>
   );
 };
 
-export default Confirmation;
 const styles = StyleSheet.create({
   centeredView: {
     flex: 1,
@@ -319,11 +303,9 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     width: Dimensions.get('window').width - 20,
-    // height: 243,
     backgroundColor: NewColor.linerWhite,
     borderRadius: 16,
     overflow: 'hidden',
-    // justifyContent: 'space-between',
     paddingBottom: 20,
   },
   modalTopSection: {
@@ -343,12 +325,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  editButton: { width: '90%', alignSelf: 'center', marginTop: 10, height: 50 },
-  editButtonTitle: {
-    fontSize: 18,
-    fontFamily: poppinsBoldItalic,
-    // fontStyle: 'italic',
-  },
   detailsStyle: {
     borderWidth: 1,
     borderColor: colors.borderLightBlue,
@@ -366,3 +342,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
 });
+
+export default Confirmation;

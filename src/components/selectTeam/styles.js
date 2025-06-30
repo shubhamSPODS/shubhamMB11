@@ -1,30 +1,57 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import { colors } from '../../theme/color';
+import { universalPaddingHorizontal } from '../../theme/dimens';
 
 const styles = StyleSheet.create({
   container: {
-    position: 'relative',
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  closeImageContainer: {
-    padding: 10
+  topContainer: {
+    backgroundColor: colors.background,
+    paddingHorizontal: universalPaddingHorizontal,
+    paddingTop: 20,
+    paddingBottom: 10,
   },
-  closeIcon: {
-    height: 16,
-    width: 16,
+  bottomContainer: {
+    flex: 1,
+    paddingHorizontal: universalPaddingHorizontal,
   },
-  btnContainer: {
-    position: 'absolute',
-    bottom: 30,
-    height: 50,
-    width: '95%',
+  buttonContainer: {
+    paddingHorizontal: universalPaddingHorizontal,
+    paddingVertical: 10,
+  },
+  buttonStyle: {
+    width: '100%',
+  },
+  closeContainer: {
+    padding: 5,
+  },
+  closeWhiteIcon: {
+    height: 20,
+    width: 20,
+  },
+  teamCountContainer: {
+    backgroundColor: '#343434',
+    padding: 12,
+    borderRadius: 8,
     marginTop: 10,
-    alignSelf: 'center',
+    marginBottom: 5,
   },
-  btn: {
-    height: '100%',
-    justifyContent: 'center',
+  teamCountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    borderRadius: 10
+  },
+  teamCountBox: {
+    flex: 1,
+  },
+  teamCountDivider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: colors.white,
+    opacity: 0.1,
+    marginHorizontal: 15,
   },
 });
 

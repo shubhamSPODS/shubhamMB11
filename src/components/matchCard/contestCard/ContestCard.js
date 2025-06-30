@@ -39,6 +39,14 @@ import Confirmation from '../../../common/Confirmation';
 import { NewColor, colors } from '../../../theme/color';
 
 const ContestCard = ({ details, totalTeamCount }) => {
+  // console.log('ContestCard Details:', {
+  //   contestSize: details?.Contestsize,
+  //   entryFee: details?.EnteryFee,
+  //   joined: details?.joined,
+  //   winningAmount: details?.winning_amount,
+  //   fullDetails: details
+  // });
+
   const [saveTeamName, setSaveTeamName] = useState('');
   const dispatch = useDispatch();
   const selectTeam = useRef();
@@ -167,17 +175,23 @@ const ContestCard = ({ details, totalTeamCount }) => {
               0}% Winners l 1st ₹{details?.Rankdata[0]?.Price ?
                 details?.Rankdata[0]?.Price : 0}
           </AppText>
-          {details?.Contestsize == details?.joined || details?.remove == true || checkingTrue ? <></> :
-            <Pressable style={styles.bedge} onPress={onJoinContest}>
-              <AppText
-                numberOfLines={1}
-                style={{ color: 'white', marginHorizontal: 5, marginTop: 0, fontWeight: "800" }}
-                weight={LATO_BOLD}
-                type={THIRTEEN}>
-                ₹{numberWithCommas(details?.EnteryFee)}
-              </AppText>
-            </Pressable>
-          }
+          <Pressable 
+            style={[
+              styles.bedge,
+              details?.Contestsize == details?.joined || details?.remove == true || checkingTrue 
+                ? { opacity: 0.5 } 
+                : {}
+            ]} 
+            onPress={details?.Contestsize == details?.joined || details?.remove == true || checkingTrue ? null : onJoinContest}
+          >
+            <AppText
+              numberOfLines={1}
+              style={{ color: 'white', marginHorizontal: 5, marginTop: 0, fontWeight: "800" }}
+              weight={LATO_BOLD}
+              type={THIRTEEN}>
+              ₹{numberWithCommas(details?.EnteryFee || 0)}
+            </AppText>
+          </Pressable>
         </View>
         <View style={styles.progressBar}>
           <LinearGradient
@@ -233,7 +247,7 @@ const ContestCard = ({ details, totalTeamCount }) => {
               source={details?.JoinWithMULT ? m : SINGLE}
               resizeMode="contain"
               style={styles.gloryIcon}
-              tintColor={colors.lightOrange}
+              // tintColor={colors.lightOrange}
             />
             <AppText
               type={TEN}

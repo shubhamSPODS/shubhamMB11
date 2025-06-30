@@ -1,5 +1,5 @@
 import {useFocusEffect, useRoute} from '@react-navigation/native';
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
 import {
   View,
   StatusBar,
@@ -139,28 +139,35 @@ const MyContest = () => {
   }, []);
 
   const renderItem = ({item}) => {
-    console.log('Rendering item:', item);
+    // console.log('Rendering item:', item);
     return (
       <ContestCard
-        details={{
-          ...item,
-          Contestsize: item.contest_size || 0,
-          EnteryFee: item.entry_fee || 0,
-          EnteryType: item.entry_type || 'Paid',
-          JoinWithMULT: item.join_multiple || false,
-          Rankdata: item.rank_data || [{Price: 0}],
-          Winning_percent: item.winning_percentage || 0,
-          joined: item.joined_users || 0,
-          teams: item.max_teams || 1,
-          winning_amount: item.winning_amount || 0
-        }}
+        details={item}
         totalTeamCount={myTeam?.length}
       />
     );
   };
-  const renderMyTeam = ({item}) => {
+
+  // Memoize renderMyTeam function
+  const renderMyTeam = useCallback(({item}) => {
     return <MyTeam item={item} tab={route?.params?.tab} />;
-  };
+  }, [route?.params?.tab]);
+
+  // Memoize keyExtractor
+  const keyExtractor = useCallback((item) => item._id || item.id || String(item.pid), []);
+
+  // Memoize refresh handler
+  const handleRefresh = useCallback((type) => {
+    if (type === 'contest') {
+      let outputObject = {};
+      dispatch(getContestList(outputObject, isHome ? match_id : _id));
+    } else if (type === 'my contest') {
+      dispatch(getMyJoinedContest(isHome ? match_id : _id));
+    } else {
+      dispatch(getMyTeam(isHome ? match_id : _id));
+    }
+  }, [dispatch, isHome, match_id, _id]);
+
   const renderMyContest = ({item}) => {
     return <MyContestList item={item} matchDetails={route?.params} />;
   };
@@ -233,16 +240,6 @@ const MyContest = () => {
       </View>
     );
   };
-  const onRefresh = type => {
-    if (type == 'contest') {
-      let outputObject = {};
-      dispatch(getContestList(outputObject, isHome ? match_id : _id));
-    } else if (type == 'my contest') {
-      dispatch(getMyJoinedContest(isHome ? match_id : _id));
-    } else {
-      dispatch(getMyTeam(isHome ? match_id : _id));
-    }
-  };
 
   const userData = useSelector(state => {
     return state.profile.userData;
@@ -304,19 +301,25 @@ const MyContest = () => {
   ]);
   const [removeTabs, setRemoveTabs] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Update refresh interval to only run when needed
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      setRefreshKey(prevKey => prevKey + 1);
-      // Optionally, you can also call your refresh function here
-      onRefresh('my contest');
-    },10000); // 3000 milliseconds = 3 seconds
-  
-    // Clean up the interval on component unmount
-    return () => clearInterval(intervalId);
-  }, []);
+    let intervalId;
+    if (!route?.params?.isFromMyMatch) {
+      intervalId = setInterval(() => {
+        handleRefresh('my contest');
+      }, 30000); // Increased to 30 seconds to reduce re-renders
+    }
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [handleRefresh, route?.params?.isFromMyMatch]);
+
   const FirstRoute = () => {
     const contestData = contestList?.data?.[0]?.data || [];
-    console.log('Contest Data in FirstRoute:', contestData);
+    // console.log('Contest Data in FirstRoute:', contestData);
     
     return (
       <>
@@ -332,7 +335,7 @@ const MyContest = () => {
               refreshControl={
                 <RefreshControl
                   refreshing={isLoading}
-                  onRefresh={() => onRefresh('my contest')}
+                  onRefresh={() => handleRefresh('my contest')}
                 />
               }
               style={{
@@ -369,7 +372,7 @@ const MyContest = () => {
                     refreshControl={
                       <RefreshControl
                         refreshing={isLoading}
-                        onRefresh={() => onRefresh('contest')}
+                        onRefresh={() => handleRefresh('contest')}
                       />
                     }
                     style={{width: '100%', alignSelf: 'center'}}
@@ -406,7 +409,7 @@ const MyContest = () => {
               refreshControl={
                 <RefreshControl
                   refreshing={false}
-                  onRefresh={() => onRefresh('my team')}
+                  onRefresh={() => handleRefresh('my team')}
                 />
               }
               contentContainerStyle={{
@@ -442,7 +445,7 @@ const MyContest = () => {
               refreshControl={
                 <RefreshControl
                   refreshing={false}
-                  onRefresh={() => onRefresh('my contest')}
+                  onRefresh={() => handleRefresh('my contest')}
                 />
               }
             />
@@ -451,10 +454,12 @@ const MyContest = () => {
       </>
     );
   };
-  const ThirdRoute = () => {
+
+  // Memoize ThirdRoute component
+  const ThirdRoute = useCallback(() => {
     return (
       <>
-        {route?.params?.isFromMyMatch == true ? (
+        {route?.params?.isFromMyMatch ? (
           <Stats />
         ) : (
           <View
@@ -463,22 +468,28 @@ const MyContest = () => {
               alignSelf: 'center',
               marginTop: 5,
             }}>
+            <View style={styles.totalTeamsContainer}>
+              <AppText color={BLACK} type={TWELVE} weight={POPPINS_SEMI_BOLD}>
+                Total Teams: {myTeam?.length || 0}
+              </AppText>
+            </View>
             <FlatList
               data={myTeam}
               renderItem={renderMyTeam}
               showsVerticalScrollIndicator={false}
-              keyExtractor={(item, index) => index.toString()}
-              ListEmptyComponent={() => {
-                return (
-                  <View style={{marginTop: 30}}>
-                    <EmptyComponentTwo />
-                  </View>
-                );
-              }}
+              keyExtractor={keyExtractor}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={true}
+              ListEmptyComponent={() => (
+                <View style={{marginTop: 30}}>
+                  <EmptyComponentTwo />
+                </View>
+              )}
               refreshControl={
                 <RefreshControl
                   refreshing={false}
-                  onRefresh={() => onRefresh('my team')}
+                  onRefresh={() => handleRefresh('my team')}
                 />
               }
             />
@@ -486,7 +497,8 @@ const MyContest = () => {
         )}
       </>
     );
-  };
+  }, [route?.params?.isFromMyMatch, myTeam, renderMyTeam, keyExtractor, handleRefresh]);
+
   const renderScene = ({route}) => {
     switch (route.key) {
       case 'first':

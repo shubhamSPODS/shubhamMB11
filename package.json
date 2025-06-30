@@ -72,7 +72,6 @@
     "react-native-swiper": "^1.6.0",
     "react-native-tab-view": "^3.5.2",
     "react-native-toast-message": "^2.2.0",
-    "react-native-unity-launcher": "github:maulikatwork/react-native-unity-launcher",
     "react-native-webview": "^13.6.4",
     "react-navigation-drawer": "^2.7.2",
     "react-redux": "^9.1.0",
