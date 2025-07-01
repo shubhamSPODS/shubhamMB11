@@ -1,4 +1,4 @@
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated, Image } from 'react-native'
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View, Animated, Image, BackHandler } from 'react-native'
 import React, { useEffect, useRef, useState } from 'react'
 // import HeaderComponent from '../../../Components/HeaderComponent'
 // import AppText, { FULL_WIDTH } from '../../../Components/AppText'
@@ -7,7 +7,7 @@ import React, { useEffect, useRef, useState } from 'react'
 // import { DICE, DICE_1, DICE_2, PROFILE2 } from '../../../Components/ImageAsstes'
 // import { MEDIUM, SEMI_BOLD } from '../../../Components/AppFonts'
 // import CustomButton from '../../../Components/CustomButton'
-import { useNavigation } from '@react-navigation/native'
+import { useNavigation, useFocusEffect } from '@react-navigation/native'
 import { colors, NewColor } from '../../theme/color'
 import { AppText, SEMI_BOLD } from '../../common/AppText'
 import { FULL_WIDTH } from '../../Backend/Backend'
@@ -42,6 +42,28 @@ const LudoGameMode = () => {
             gameMode: 'Turbo',
         },
     ])
+
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            navigation.getParent()?.goBack();
+            return true;
+        });
+
+        return () => backHandler.remove();
+    }, [navigation]);
+
+    // Handle navigation when Home tab becomes active
+    useFocusEffect(
+        React.useCallback(() => {
+            const parent = navigation.getParent();
+            const currentRoute = parent?.getCurrentRoute?.();
+            if (parent && currentRoute?.name === 'Home') {
+                setTimeout(() => {
+                    parent.goBack();
+                }, 100);
+            }
+        }, [navigation])
+    );
 
     const fadeAnims = useRef(gameMode?.map(() => new Animated.Value(0))).current
     useEffect(() => {

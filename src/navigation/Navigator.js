@@ -1,8 +1,8 @@
 import React, {createContext, useEffect} from 'react';
-import {NavigationContainer, useIsFocused, useNavigation} from '@react-navigation/native';
+import {NavigationContainer, useIsFocused, useNavigation, useFocusEffect} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {StatusBar, RefreshControl, Platform} from 'react-native';
+import {StatusBar, RefreshControl, Platform, BackHandler} from 'react-native';
 import {AppSafeAreaView} from '../common/AppSafeAreaView';
 import {HomeTopHeader} from '../common/HomeTopHeader';
 import {KeyBoardAware} from '../common/KeyboardAware';
@@ -191,6 +191,15 @@ const CricketWrapper = () => {
   const [random, setRandom] = React.useState(0);
   const navigation = useNavigation();
 
+  React.useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      navigation.getParent()?.goBack();
+      return true;
+    });
+
+    return () => backHandler.remove();
+  }, [navigation]);
+
   return (
     <AppSafeAreaView
       statusColor={true}
@@ -203,9 +212,7 @@ const CricketWrapper = () => {
       />
       <HomeTopHeader
         showBack={true}
-        personClick={() => {
-          navigation.getParent()?.goBack();
-        }}
+        personClick={() => navigation.getParent()?.goBack()}
         walletIcon={true}
       />
       <KeyBoardAware
@@ -277,9 +284,7 @@ const CricketTab = () => {
         listeners={({navigation}) => ({
           tabPress: e => {
             e.preventDefault();
-            navigation.navigate(BOTTOM_NAVIGATION_STACK, {
-              screen: BOTTOM_TAB_HOMESCREEN,
-            });
+            navigation.getParent()?.goBack();
           },
         })}
       />
@@ -428,9 +433,7 @@ const LudoTab = () => {
         listeners={({navigation}) => ({
           tabPress: e => {
             e.preventDefault();
-            navigation.navigate(BOTTOM_NAVIGATION_STACK, {
-              screen: BOTTOM_TAB_HOMESCREEN,
-            });
+            navigation.getParent()?.goBack();
           },
         })}
       />
