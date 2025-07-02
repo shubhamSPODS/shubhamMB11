@@ -6,6 +6,8 @@ import {
   FlatList,
   StyleSheet,
   RefreshControl,
+  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import {
@@ -24,6 +26,9 @@ import { universalPaddingHorizontal } from '../../theme/dimens';
 import { setMyMatchesHome, setUpComingMatches } from '../../slices/matchSlice';
 import { KeyBoardAware } from '../../common/KeyboardAware';
 import { BASE_URL } from '../../helper/utility';
+import { TabView, TabBar } from 'react-native-tab-view';
+import LinearGradient from 'react-native-linear-gradient';
+import { colors } from '../../theme/color';
 
 const search = element => getDate(element).hour < 0;
 const Cricket = ({ random, setRefreshingTwo }) => {
@@ -34,42 +39,58 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   const userData = useSelector(state => {
     return state.profile.userData;
   });
+  const layout = useWindowDimensions();
   
   const { _id } = userData ?? '';
   const [isMoadlVisible, setIsModalVisible] = useState(false);
   const [intro, setIntro] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [refershing, setRefreshing] = useState(false);
-  // const URL = `${BASE_URL}upcoming-matches?limit=20&skip=0&userid=${_id}`;
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
+    {key: 'teams', title: 'Teams'},
+    {key: 'scoreboard', title: 'Scoreboard'},
+  ]);
+
+  // Filter matches based on type (will be updated when API provides separate arrays)
+  const getFilteredMatches = () => {
+    if (index === 0) {
+      // Return team matches when API provides them
+      return upcomingMatches;
+    } else {
+      // Return scoreboard matches when API provides them
+      return upcomingMatches;
+    }
+  };
+
   useEffect(() => {
     if (_id) {
-      onRefresh()
+      onRefresh();
     }
-  }, [random, _id])
+  }, [random, _id]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       const itemIndex = upcomingMatches.findIndex(search);
       let tempArray = [...upcomingMatches];
-      if (itemIndex !== -1 && upcomingMatches?.length !== 0) {``
+      if (itemIndex !== -1 && upcomingMatches?.length !== 0) {
         tempArray?.splice(itemIndex, 1);
         dispatch(setUpComingMatches(tempArray));
       }
     }, 1000);
     return () => clearInterval(interval);
   });
-  
+
   const onRefresh = React.useCallback(() => {
     const URL = `wss://app.mybattle11.com/upcoming-matches?limit=20&skip=0&userid=${_id}`;
     setRefreshing(true);
     setRefreshingTwo(true);
-    // Disconnect the WebSocket if it's already connected
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.close();
     }
     try {
       wsRef.current = new WebSocket(URL);
-      wsRef.current.onopen = () => {
-      };
+      wsRef.current.onopen = () => {};
       if (!wsRef.current) return;
       wsRef.current.onmessage = e => {
         const parseData = JSON.parse(e?.data);
@@ -77,7 +98,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         dispatch(setUpComingMatches(temp));
         dispatch(setMyMatchesHome(parseData?.mymatches));
       };
-      // Rest of your WebSocket setup and event handling
     } catch (error) {
       console.log(error);
     } finally {
@@ -85,6 +105,54 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       setRefreshing(false);
     }
   }, [_id]);
+
+  const renderScene = ({route}) => {
+    const filteredMatches = getFilteredMatches();
+    return (
+      <KeyBoardAware
+        refreshControl={
+          <RefreshControl refreshing={refershing} onRefresh={onRefresh} />
+        }
+        style={styles.flatlistContainer}>
+        {filteredMatches?.map(item => {
+          return <MatchCard details={item} matchType={route.key} />;
+        })}
+      </KeyBoardAware>
+    );
+  };
+
+  const renderTabBar = props => (
+    <TabBar
+      {...props}
+      indicatorStyle={{
+        backgroundColor: colors.playerDetailsLinerOne,
+        height: 3,
+        borderRadius: 3,
+      }}
+      style={{
+        backgroundColor: 'transparent',
+        elevation: 0,
+        marginHorizontal: universalPaddingHorizontal,
+        height: 45,
+        marginVertical: 10,
+      }}
+      renderLabel={({route, focused}) => {
+        return (
+          <View style={{width: '100%', alignItems: 'center'}}>
+            <AppText
+              type={EIGHTEEN}
+              weight={POPPINS_SEMI_BOLD}
+              color={WHITE}
+              style={{fontSize: 16}}>
+              {route.title}
+            </AppText>
+          </View>
+        );
+      }}
+      pressColor="transparent"
+      tabStyle={{borderRadius: 0}}
+    />
+  );
 
   return (
     <View style={styles.container}>
@@ -126,19 +194,15 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         }}
         type={EIGHTEEN}
         weight={POPPINS_SEMI_BOLD} color={WHITE}>
-
         Upcoming Matches
       </AppText>
-      <KeyBoardAware
-        refreshControl={
-          <RefreshControl refreshing={refershing} onRefresh={onRefresh} />
-        }
-        style={styles.flatlistContainer}>
-        {upcomingMatches?.map(item => {
-          console.log('Rendering MatchCard for item:', item);
-          return <MatchCard details={item} />;
-        })}
-      </KeyBoardAware>
+      <TabView
+        navigationState={{index, routes}}
+        renderScene={renderScene}
+        onIndexChange={setIndex}
+        initialLayout={{width: layout.width}}
+        renderTabBar={renderTabBar}
+      />
     </View>
   );
 };

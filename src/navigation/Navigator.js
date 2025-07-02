@@ -79,6 +79,9 @@ import {
   GAME_JOIN_TABLE,
   RUMMY_GAME_MODE,
   CRICKET_TAB,
+  SCOREBOARD_CREATE,
+  SCOREBOARD_LIST,
+  SCOREBOARD_DETAILS,
 } from './routes';
 import NavigationService from './NavigationService';
 import {useSelector, useDispatch} from 'react-redux';
@@ -181,7 +184,9 @@ import LudoGameMode from '../screens/Ludo/LudoGameMode';
 import GameTable from '../screens/GameTable';
 import GameJoinTable from '../helper/GameJoinTable';
 import RummyGameModes from '../screens/Rummy/RummyGameMode';
-// import LeaderBoard from '../screens/leaderBoard/LeaderBoard';
+import Create from '../screens/Scoreboard/Create';
+import List from '../screens/Scoreboard/List';
+import Details from '../screens/Scoreboard/Details';
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
@@ -692,6 +697,7 @@ const RootStackScreen = () => (
     initialRouteName={AUTH_LOADING_SCREEN}
     screenOptions={{
       headerShown: false,
+      animation: 'slide_from_right',
     }}>
     <Stack.Screen name="Transactions" component={TransactionsScreen} />
     <Stack.Screen
@@ -767,6 +773,21 @@ const RootStackScreen = () => (
     <Stack.Screen
       name={CRICKET_TAB}
       component={CricketTab}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={SCOREBOARD_CREATE}
+      component={Create}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={SCOREBOARD_LIST}
+      component={List}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={SCOREBOARD_DETAILS}
+      component={Details}
       options={{headerShown: false}}
     />
   </Stack.Navigator>

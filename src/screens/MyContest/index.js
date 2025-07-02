@@ -25,6 +25,8 @@ import {
   CREATE_CONTEST,
   MY_BALANCE,
   SELECT_PLAYER,
+  MY_CONTEST,
+  SCOREBOARD_CREATE,
 } from '../../navigation/routes';
 import {
   MycreateContest,
@@ -80,6 +82,7 @@ import {TouchableOpacityView} from '../../common/TouchableOpacityView';
 import LinearGradient from 'react-native-linear-gradient';
 import {LiveTime} from '../../common/LiveTime';
 import {SceneMap, TabBar, TabView} from 'react-native-tab-view';
+import List from '../Scoreboard/List';
 
 const MyContest = () => {
   const dispatch = useDispatch();
@@ -107,10 +110,34 @@ const MyContest = () => {
   const [contest, setContest] = useState([]);
   const [modalRemove, setModalRemove] = useState(false);
   const [saveTitle, setTitle] = useState('');
-  const [activeTab, setActiveTab] = useState(
-    route?.params?.isFromMyMatch == true || isPastTime == 'false' ? 2 : 1,
-  );
+  const [activeTab, setActiveTab] = useState(1);
   const [matchActiveTab, setMatchActiveTab] = useState('');
+  const layout = useWindowDimensions();
+  const {matchType} = route.params || {matchType: 'teams'};
+  
+  // Add DATA array here at component scope
+  const DATA = [
+    {
+      id: 1,
+      title: 'ENTRY',
+    },
+    {
+      id: 2,
+      title: 'SPOTS',
+    },
+    {
+      id: 3,
+      title: 'PRIZE POOL',
+    },
+    {
+      id: 4,
+      title: '%WINNER',
+    },
+  ];
+
+  const [selectedFilter, setSelectedFilter] = useState();
+  const [selectedHighLow, setSelectedHighLow] = useState('high');
+  
   useEffect(() => {
     setTitle(
       activeTab == 1
@@ -118,10 +145,10 @@ const MyContest = () => {
         : activeTab == 2
         ? 'My Contest'
         : activeTab == 3
-        ? 'My Team'
+        ? matchType === 'teams' ? 'My Team' : 'My Scoreboard'
         : 'Select Contest',
     );
-  }, [activeTab]);
+  }, [activeTab, matchType]);
   const {_id, isFromMyMatch, match_id, isHome, SeriesId} = contestData ?? '';
   useFocusEffect(
     useCallback(() => {
@@ -250,7 +277,6 @@ const MyContest = () => {
   const timeDifference = Math.floor(
     (inputDate - currentDate) / (24 * 60 * 60 * 1000),
   );
-  const layout = useWindowDimensions();
   const [index, setIndex] = React.useState(0);
   useEffect(() => {
     if (myContest) {
@@ -266,37 +292,35 @@ const MyContest = () => {
           key: 'second',
           title:
             route?.params?.isFromMyMatch == true
-              ? `My Team (${myTeam?.length})`
+              ? matchType === 'teams' ? `My Team (${myTeam?.length})` : 'My Scoreboard'
               : 'My Contest',
         },
         {
           key: 'third',
           title:
-            route?.params?.isFromMyMatch == true ? 'Player Stats' : 'My Team',
+            route?.params?.isFromMyMatch == true 
+              ? 'Player Stats' 
+              : matchType === 'teams' 
+                ? `My Team (${myTeam?.length})` 
+                : 'My Scoreboard',
         },
       ];
       setRoutes(initializedRoutes);
     }
-  }, [myContest, myTeam]);
+  }, [myContest, myTeam, matchType]);
 
   const [routes, setRoutes] = React.useState([
     {
       key: 'first',
-      title:
-        route?.params?.isFromMyMatch == true
-          ? `MyContest (${myContest?.length + MyCreateContestData?.length})`
-          : 'Contest',
+      title: route?.params?.isFromMyMatch == true ? `MyContest (${0})` : 'Contest',
     },
     {
       key: 'second',
-      title:
-        route?.params?.isFromMyMatch == true
-          ? `My Team (${myTeam?.length})`
-          : 'My Contest',
+      title: route?.params?.isFromMyMatch == true ? matchType === 'teams' ? `My Team (${0})` : 'My Scoreboard' : 'My Contest',
     },
     {
       key: 'third',
-      title: route?.params?.isFromMyMatch == true ? 'Player Stats' : 'My Team',
+      title: route?.params?.isFromMyMatch == true ? 'Player Stats' : matchType === 'teams' ? `My Team (${0})` : 'My Scoreboard',
     },
   ]);
   const [removeTabs, setRemoveTabs] = useState(false);
@@ -457,49 +481,39 @@ const MyContest = () => {
   };
 
   // Memoize ThirdRoute component
-  const ThirdRoute = useCallback(() => {
+  const ThirdRoute = () => {
     return (
-      <>
-        {route?.params?.isFromMyMatch ? (
-          <Stats />
-        ) : (
-          <View
+      <View style={{ flex: 1 }}>
+        {matchType === 'teams' ? (
+          <FlatList
+            data={myTeam}
+            showsVerticalScrollIndicator={false}
+            renderItem={renderMyTeam}
+            ListEmptyComponent={<EmptyComponentTwo />}
+            keyExtractor={keyExtractor}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={() => handleRefresh('my team')}
+              />
+            }
             style={{
-              width: Screen.Width - 10,
+              width: '100%',
               alignSelf: 'center',
-              marginTop: 5,
-            }}>
-            <View style={styles.totalTeamsContainer}>
-              <AppText color={BLACK} type={TWELVE} weight={POPPINS_SEMI_BOLD}>
-                Total Teams: {myTeam?.length || 0}
-              </AppText>
-            </View>
-            <FlatList
-              data={myTeam}
-              renderItem={renderMyTeam}
-              showsVerticalScrollIndicator={false}
-              keyExtractor={keyExtractor}
-              maxToRenderPerBatch={10}
-              windowSize={5}
-              removeClippedSubviews={true}
-              ListEmptyComponent={() => (
-                <View style={{marginTop: 30}}>
-                  <EmptyComponentTwo />
-                </View>
-              )}
-              contentContainerStyle={{ paddingBottom: 100 }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={false}
-                  onRefresh={() => handleRefresh('my team')}
-                />
-              }
-            />
-          </View>
+              flex: flexOne,
+            }}
+            contentContainerStyle={{
+              flexGrow: flexOne,
+              paddingHorizontal: 15,
+              paddingVertical: 10,
+            }}
+          />
+        ) : (
+          <List />
         )}
-      </>
+      </View>
     );
-  }, [route?.params?.isFromMyMatch, myTeam, renderMyTeam, keyExtractor, handleRefresh]);
+  };
 
   const renderScene = ({route}) => {
     switch (route.key) {
@@ -513,6 +527,23 @@ const MyContest = () => {
         return null;
     }
   };
+
+  const handleCreatePress = () => {
+    if (matchType === 'scoreboard') {
+      NavigationService.navigate(SCOREBOARD_CREATE, {
+        ...contestData,
+        isFromMyMatch,
+      });
+    } else {
+      dispatch(getTab(''));
+      dispatch(setAllPlayers([]));
+      let data = {cid: SeriesId};
+      dispatch(getAllPlayerList(_id, data));
+      NavigationService.navigate(SELECT_PLAYER, contestData, isFromMyMatch);
+      dispatch(setIsContestEntry(false));
+    }
+  };
+
   return (
     <AppSafeAreaView hidden={false}>
       <StatusBar
@@ -656,15 +687,126 @@ const MyContest = () => {
           onIndexChange={setIndex}
           initialLayout={{width: layout.width}}
           renderTabBar={props => (
-            <RenderTabBar
-              onSheet={() => {
-                filterSheet.current.open();
-              }}
-              onTabChange={e => {
-                setMatchActiveTab(e);
-              }}
-              {...props}
-            />
+            <>
+              <TabBar
+                {...props}
+                onTabPress={e => {
+                  setMatchActiveTab(e?.route?.title);
+                }}
+                scrollEnabled={true}
+                tabStyle={{
+                  width: layout.width / 3,
+                  backgroundColor: '#3F3F3F',
+                  height: 45,
+                  marginTop: 10,
+                }}
+                renderLabel={({route, focused}) => {
+                  const tabColors = focused
+                    ? [colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]
+                    : ['#3F3F3F', '#3F3F3F'];
+                  return (
+                    <View style={{height: 45, width: layout.width / 3}}>
+                      <LinearGradient
+                        style={{
+                          height: 45,
+                          bottom: 1,
+                          width: layout.width / 3,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderTopRightRadius: route?.key === 'first' ? 42 : null,
+                          borderBottomRightRadius: route?.key === 'first' ? 40 : null,
+                          borderRadius: route?.key === 'second' || route?.key === 'third' ? 35 : null,
+                          borderTopLeftRadius: route?.key === 'fourth' ? 35 : null,
+                          borderBottomLeftRadius: route?.key === 'fourth' ? 35 : null,
+                        }}
+                        start={{x: 0, y: 1}}
+                        end={{x: 1, y: 0}}
+                        colors={tabColors}>
+                        <AppText
+                          type={FORTEEN}
+                          color={focused ? 'white' : 'black'}
+                          weight={POPPINS_MEDIUM}
+                          numberOfLines={1}
+                          style={{paddingHorizontal: 5}}>
+                          {route?.title}
+                        </AppText>
+                      </LinearGradient>
+                    </View>
+                  );
+                }}
+                indicatorStyle={{backgroundColor: 'transparent'}}
+                style={{width: '100%', backgroundColor: 'transparent', elevation: 0}}
+              />
+              {index === 0 && (
+                <View
+                  style={{
+                    height: 33,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-evenly',
+                    width: '100%',
+                    alignSelf: 'center',
+                    paddingHorizontal: 20,
+                    backgroundColor: '#3F3F3F',
+                    marginTop: 10,
+                  }}>
+                  <AppText
+                    weight={POPPINS_LIGHT}
+                    style={{marginRight: 20, opacity: 0.8}}
+                    type={ELEVEN}
+                    color={WHITE}>
+                    Sort By:
+                  </AppText>
+                  <FlatList
+                    showsHorizontalScrollIndicator={false}
+                    data={DATA}
+                    horizontal
+                    renderItem={({item}) => (
+                      <TouchableOpacityView
+                        style={{
+                          padding: 5,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                        }}
+                        onPress={() => {
+                          setSelectedFilter(item?.title);
+                          allContestList ? filterDataTwo(item) : filterData(item);
+                        }}>
+                        <AppText type={TEN} weight={POPPINS_MEDIUM} style={{marginRight: 5}}>
+                          {item?.title}
+                        </AppText>
+                        {item?.title === selectedFilter ? (
+                          <FastImage
+                            style={{
+                              height: 10,
+                              width: 8,
+                              marginRight: 10,
+                              transform: [{rotate: selectedHighLow === 'high' ? '270deg' : '90deg'}],
+                            }}
+                            source={rightArrow}
+                            tintColor={colors.green}
+                            resizeMode="contain"
+                          />
+                        ) : null}
+                      </TouchableOpacityView>
+                    )}
+                  />
+                  <TouchableOpacityView
+                    onPress={() => filterSheet.current.open()}
+                    style={styles.filtermainbackground}>
+                    <FastImage
+                      source={FILTER_ICON}
+                      tintColor={colors.white}
+                      style={{
+                        height: 18,
+                        width: 18,
+                        resizeMode: 'contain',
+                      }}
+                    />
+                  </TouchableOpacityView>
+                </View>
+              )}
+            </>
           )}
         />
 
@@ -704,25 +846,16 @@ const MyContest = () => {
                 styles.buttonContainer,
                 {marginVertical: Platform.OS == 'ios' ? 20 : 10},
               ]}>
-              <PrimaryButton
-                buttonStyle={[
-                  styles.buttonStyle,
-                  {marginTop: Platform.OS == 'ios' ? -5 : 0, marginBottom: 13},
-                ]}
-                onPress={() => {
-                  dispatch(getTab(''));
-                  dispatch(setAllPlayers([]));
-                  let data = {cid: SeriesId};
-                  dispatch(getAllPlayerList(_id, data));
-                  NavigationService.navigate(
-                    SELECT_PLAYER,
-                    contestData,
-                    isFromMyMatch,
-                  );
-                  dispatch(setIsContestEntry(false));
-                }}
-                title="CREATE TEAM"
-              />
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10}}>
+                <PrimaryButton
+                  buttonStyle={[
+                    styles.buttonStyle,
+                    {marginTop: Platform.OS == 'ios' ? -5 : 0, marginBottom: 13, width: '100%'},
+                  ]}
+                  onPress={handleCreatePress}
+                  title={matchType === 'teams' ? 'CREATE TEAM' : 'CREATE SCOREBOARD'}
+                />
+              </View>
             </View>
           )}
         <SpinnerSecond loading={isLoading} />
@@ -734,14 +867,8 @@ const MyContest = () => {
 
 export default MyContest;
 export const RenderTabBar = props => {
-  const {
-    onTabChange,
-    saveTitle,
-    filterSelectedPlayer,
-    filterDataOfSorting,
-    newAllPlayer,
-    onSheet,
-  } = props;
+  const {onTabChange, saveTitle, filterSelectedPlayer, filterDataOfSorting, newAllPlayer, onSheet} =
+    props;
   const DATA = [
     {
       id: 1,
@@ -764,237 +891,7 @@ export const RenderTabBar = props => {
   const [selectedHighLow, setSelectedHighLow] = useState('high');
   const dispatch = useDispatch();
   const allContestList = useSelector(state => state?.match?.allContestList);
-  const filterData = filterOption => {
-    let sortedItems = [...idsFilter];
-    if (filterOption?.title === 'PRIZE POOL') {
-      if (selectedHighLow == 'high') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => b.winning_amount - a.winning_amount);
-        dispatch(getFilterSortby(highPricedItems));
-        setSelectedHighLow('low');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      } else if (selectedHighLow == 'low') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => a.winning_amount - b.winning_amount);
-        dispatch(getFilterSortby(highPricedItems));
-        setSelectedHighLow('high');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      }
-    } else if (filterOption?.title === 'ENTRY') {
-      if (selectedHighLow == 'high') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => b.EnteryFee - a.EnteryFee);
-        dispatch(getFilterSortby(highPricedItems));
-        setSelectedHighLow('low');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      } else if (selectedHighLow == 'low') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => a.EnteryFee - b.EnteryFee);
-        dispatch(getFilterSortby(highPricedItems));
-        setSelectedHighLow('high');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      }
-    } else if (filterOption?.title === 'SPOTS') {
-      if (selectedHighLow == 'high') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => b.Contestsize - a.Contestsize);
-        dispatch(getFilterSortby(highPricedItems));
-        setSelectedHighLow('low');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      } else if (selectedHighLow == 'low') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => a.Contestsize - b.Contestsize);
-        dispatch(getFilterSortby(highPricedItems));
-        setSelectedHighLow('high');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      }
-    } else if (filterOption?.title === '%WINNER') {
-      if (selectedHighLow == 'high') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems.slice().sort((a, b) => {
-          // Check for undefined or missing Winning_percent values
-          const winningPercentA = a.Winning_percent || Number.NEGATIVE_INFINITY;
-          const winningPercentB = b.Winning_percent || Number.NEGATIVE_INFINITY;
 
-          return winningPercentB - winningPercentA;
-        });
-        dispatch(getFilterSortby(highPricedItems));
-        setSelectedHighLow('low');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      } else if (selectedHighLow == 'low') {
-        const highPricedItems = sortedItems.slice().sort((a, b) => {
-          // Check for undefined or missing Winning_percent values
-          const winningPercentA =
-            a.Winning_percent !== undefined
-              ? a.Winning_percent
-              : Number.POSITIVE_INFINITY;
-          const winningPercentB =
-            b.Winning_percent !== undefined
-              ? b.Winning_percent
-              : Number.POSITIVE_INFINITY;
-
-          return winningPercentA - winningPercentB;
-        });
-        dispatch(getFilterSortby(highPricedItems));
-        setSelectedHighLow('high');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      }
-    }
-    // setrandom(Math.random());
-  };
-  const filterDataTwo = filterOption => {
-    let sortedItems = [...allContestList];
-    if (filterOption?.title === 'PRIZE POOL') {
-      if (selectedHighLow == 'high') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => b.winning_amount - a.winning_amount);
-        dispatch(setAllContest(highPricedItems));
-        setSelectedHighLow('low');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      } else if (selectedHighLow == 'low') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => a.winning_amount - b.winning_amount);
-        dispatch(setAllContest(highPricedItems));
-        setSelectedHighLow('high');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      }
-    } else if (filterOption?.title === 'ENTRY') {
-      if (selectedHighLow == 'high') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => b.EnteryFee - a.EnteryFee);
-        dispatch(setAllContest(highPricedItems));
-        setSelectedHighLow('low');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      } else if (selectedHighLow == 'low') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => a.EnteryFee - b.EnteryFee);
-        dispatch(setAllContest(highPricedItems));
-        setSelectedHighLow('high');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      }
-    } else if (filterOption?.title === 'SPOTS') {
-      if (selectedHighLow == 'high') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => b.Contestsize - a.Contestsize);
-        dispatch(setAllContest(highPricedItems));
-        setSelectedHighLow('low');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      } else if (selectedHighLow == 'low') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems
-          .slice()
-          .sort((a, b) => a.Contestsize - b.Contestsize);
-        dispatch(setAllContest(highPricedItems));
-        setSelectedHighLow('high');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      }
-    } else if (filterOption?.title === '%WINNER') {
-      if (selectedHighLow == 'high') {
-        dispatch(setLoading(true));
-        const highPricedItems = sortedItems.slice().sort((a, b) => {
-          // Check for undefined or missing Winning_percent values
-          const winningPercentA = a.Winning_percent || Number.NEGATIVE_INFINITY;
-          const winningPercentB = b.Winning_percent || Number.NEGATIVE_INFINITY;
-
-          return winningPercentB - winningPercentA;
-        });
-        dispatch(setAllContest(highPricedItems));
-        setSelectedHighLow('low');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      } else if (selectedHighLow == 'low') {
-        const highPricedItems = sortedItems.slice().sort((a, b) => {
-          // Check for undefined or missing Winning_percent values
-          const winningPercentA =
-            a.Winning_percent !== undefined
-              ? a.Winning_percent
-              : Number.POSITIVE_INFINITY;
-          const winningPercentB =
-            b.Winning_percent !== undefined
-              ? b.Winning_percent
-              : Number.POSITIVE_INFINITY;
-
-          return winningPercentA - winningPercentB;
-        });
-        dispatch(setAllContest(highPricedItems));
-        setSelectedHighLow('high');
-        setSelectedFilter(filterOption?.title);
-        dispatch(setLoading(false));
-      }
-    }
-    // setrandom(Math.random());
-  };
-  const renderItem = ({item}) => {
-    return (
-      <TouchableOpacityView
-        style={{
-          padding: 5,
-          flexDirection: 'row',
-          alignItems: 'center',
-        }}
-        onPress={() => {
-          setSelectedFilter(item?.title),
-            allContestList ? filterDataTwo(item) : filterData(item);
-        }}>
-        <AppText type={TEN} weight={POPPINS_MEDIUM} style={{marginRight: 5}}>
-          {item?.title}
-        </AppText>
-        {item?.title == selectedFilter ? (
-          <FastImage
-            style={{
-              height: 10,
-              width: 8,
-              marginRight: 10,
-              transform: [
-                {rotate: selectedHighLow == 'high' ? '270deg' : '90deg'},
-              ],
-            }}
-            source={rightArrow}
-            tintColor={colors.green}
-            resizeMode="contain"
-          />
-        ) : (
-          <></>
-        )}
-      </TouchableOpacityView>
-    );
-  };
   return (
     <>
       <>
@@ -1003,15 +900,13 @@ export const RenderTabBar = props => {
           onTabPress={e => {
             onTabChange(e?.route?.title);
           }}
-          scrollEnabled={false}
-          tabStyle={[
-            {
-              width: Screen.Width / 3,
-              backgroundColor: '#3F3F3F',
-              height: 45,
-              marginTop: 10,
-            },
-          ]}
+          scrollEnabled={true}
+          tabStyle={{
+            width: Screen.Width / 3,
+            backgroundColor: '#3F3F3F',
+            height: 45,
+            marginTop: 10,
+          }}
           renderLabel={({route, focused}) => {
             const tabColors = focused
               ? [colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]
@@ -1027,9 +922,9 @@ export const RenderTabBar = props => {
                     justifyContent: 'center',
                     borderTopRightRadius: route?.key === 'first' ? 42 : null,
                     borderBottomRightRadius: route?.key === 'first' ? 40 : null,
-                    borderRadius: route?.key === 'second' ? 35 : null,
-                    borderTopLeftRadius: route?.key === 'third' ? 35 : null,
-                    borderBottomLeftRadius: route?.key === 'third' ? 35 : null,
+                    borderRadius: route?.key === 'second' || route?.key === 'third' ? 35 : null,
+                    borderTopLeftRadius: route?.key === 'fourth' ? 35 : null,
+                    borderBottomLeftRadius: route?.key === 'fourth' ? 35 : null,
                   }}
                   start={{x: 0, y: 1}}
                   end={{x: 1, y: 0}}
@@ -1037,7 +932,9 @@ export const RenderTabBar = props => {
                   <AppText
                     type={FORTEEN}
                     color={focused ? 'white' : 'black'}
-                    weight={POPPINS_MEDIUM}>
+                    weight={POPPINS_MEDIUM}
+                    numberOfLines={1}
+                    style={{paddingHorizontal: 5}}>
                     {route?.title}
                   </AppText>
                 </LinearGradient>
@@ -1045,52 +942,77 @@ export const RenderTabBar = props => {
             );
           }}
           indicatorStyle={{backgroundColor: 'transparent'}}
-          pressColor={'transparent'}
-          style={[
-            {width: '100%', backgroundColor: 'transparent', elevation: 0},
-          ]}
+          style={[{width: '100%', backgroundColor: 'transparent', elevation: 0}]}
         />
       </>
 
-      <View
-        style={{
-          height: 33,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-evenly',
-          width: '100%',
-          alignSelf: 'center',
-          paddingHorizontal: 20,
-          backgroundColor: '#3F3F3F',
-          marginTop: 10,
-        }}>
-        <AppText
-          weight={POPPINS_LIGHT}
-          style={{marginRight: 20, opacity: 0.8}}
-          type={ELEVEN}
-          color={WHITE}>
-          Sort By:
-        </AppText>
-        <FlatList
-          showsHorizontalScrollIndicator={false}
-          data={DATA}
-          horizontal
-          renderItem={renderItem}
-        />
-        <TouchableOpacityView
-          onPress={onSheet}
-          style={styles.filtermainbackground}>
-          <FastImage
-            source={FILTER_ICON}
-            tintColor={colors.white}
-            style={{
-              height: 18,
-              width: 18,
-              resizeMode: 'contain',
-            }}
+      {props.navigationState.index === 0 && (
+        <View
+          style={{
+            height: 33,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-evenly',
+            width: '100%',
+            alignSelf: 'center',
+            paddingHorizontal: 20,
+            backgroundColor: '#3F3F3F',
+            marginTop: 10,
+          }}>
+          <AppText
+            weight={POPPINS_LIGHT}
+            style={{marginRight: 20, opacity: 0.8}}
+            type={ELEVEN}
+            color={WHITE}>
+            Sort By:
+          </AppText>
+          <FlatList
+            showsHorizontalScrollIndicator={false}
+            data={DATA}
+            horizontal
+            renderItem={({item}) => (
+              <TouchableOpacityView
+                style={{
+                  padding: 5,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+                onPress={() => {
+                  setSelectedFilter(item?.title);
+                  allContestList ? filterDataTwo(item) : filterData(item);
+                }}>
+                <AppText type={TEN} weight={POPPINS_MEDIUM} style={{marginRight: 5}}>
+                  {item?.title}
+                </AppText>
+                {item?.title === selectedFilter ? (
+                  <FastImage
+                    style={{
+                      height: 10,
+                      width: 8,
+                      marginRight: 10,
+                      transform: [{rotate: selectedHighLow === 'high' ? '270deg' : '90deg'}],
+                    }}
+                    source={rightArrow}
+                    tintColor={colors.green}
+                    resizeMode="contain"
+                  />
+                ) : null}
+              </TouchableOpacityView>
+            )}
           />
-        </TouchableOpacityView>
-      </View>
+          <TouchableOpacityView onPress={onSheet} style={styles.filtermainbackground}>
+            <FastImage
+              source={FILTER_ICON}
+              tintColor={colors.white}
+              style={{
+                height: 18,
+                width: 18,
+                resizeMode: 'contain',
+              }}
+            />
+          </TouchableOpacityView>
+        </View>
+      )}
     </>
   );
 };

@@ -500,7 +500,7 @@ const SelectPlayer = () => {
     } else {
       // Check if we can add more players
       if (selectedPlayers.length >= 11) {
-        toastAlert('You cannot select more than 11 players');
+        toastAlert.showToastError('You cannot select more than 11 players');
         return;
       }
 
@@ -513,13 +513,13 @@ const SelectPlayer = () => {
         : playerTwo.length;
 
       if (teamACount > 7 || teamBCount > 7) {
-        toastAlert('You cannot select more than 7 players from one team');
+        toastAlert.showToastError('You cannot select more than 7 players from one team');
         return;
       }
 
       // Check credits
       if (availableCredits < player.fantasy_player_rating) {
-        toastAlert('Not enough credits available');
+        toastAlert.showToastError('Not enough credits available');
         return;
       }
 

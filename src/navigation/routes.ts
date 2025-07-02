@@ -92,5 +92,10 @@ export const GAME_JOIN_TABLE='GameJoinTable'
 
 export const CRICKET_TAB = 'CRICKET_TAB';
 
+// Scoreboard routes
+export const SCOREBOARD_CREATE = 'Scoreboard/Create';
+export const SCOREBOARD_LIST = 'Scoreboard/List';
+export const SCOREBOARD_DETAILS = 'Scoreboard/Details';
+
 
 

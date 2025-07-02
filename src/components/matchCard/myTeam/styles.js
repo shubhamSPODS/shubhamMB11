@@ -1,13 +1,22 @@
 import { Dimensions, StyleSheet } from 'react-native';
 import { NewColor, colors } from '../../../theme/color';
+
 const styles = StyleSheet.create({
   card: {
     height: 162,
     borderColor: colors.lightgry,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 10,
-    // borderWidth: 1
+    marginBottom: 15,
+    marginHorizontal: 2,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
   },
   topContainer: {
     height: 162 - 33,
@@ -15,7 +24,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    marginLeft:-1
+    marginLeft: -1
   },
   top: {
     height: 33,

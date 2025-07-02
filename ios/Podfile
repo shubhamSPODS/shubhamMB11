@@ -2,24 +2,24 @@ require_relative '../node_modules/react-native/scripts/react_native_pods'
 require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
 
 platform :ios, '14.0'
-install! 'cocoapods', :deterministic_uuids => false
+prepare_react_native_project!
 
-IS_CI = ENV['APPCENTER_BUILD_ID']
+# If you are using a `react-native-flipper` your iOS build will fail when `NO_FLIPPER=1` is set.
+# because `react-native-flipper` depends on (FlipperKit,...) that will be excluded
+#
+# To fix this you can also exclude `react-native-flipper` using a `react-native.config.js`
+# ```js
+# module.exports = {
+#   dependencies: {
+#     ...(process.env.NO_FLIPPER ? { 'react-native-flipper': { platforms: { ios: null } } } : {}),
+# ```
+flipper_config = ENV['NO_FLIPPER'] == "1" ? FlipperConfiguration.disabled : FlipperConfiguration.enabled
 
-# Define find-and-replace function
-# def find_and_replace(dir, findstr, replacestr)
-#  Dir[dir].each do |name|
-#      text = File.read(name)
-#      replace = text.gsub(findstr,replacestr)
-#      replaced = text.index(replacestr)
-#      if replaced == nil && text != replace
-#          puts "Fix: " + name
-#          File.open(name, "w") { |file| file.puts replace }
-#          STDOUT.flush
-#      end
-#  end
-#  Dir[dir + '*/'].each(&method(:find_and_replace))
-#end
+linkage = ENV['USE_FRAMEWORKS']
+if linkage != nil
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
 
 target 'mybattle11' do
 	config = use_native_modules!
@@ -29,9 +29,14 @@ target 'mybattle11' do
 
 	use_react_native!(
 		:path => config[:reactNativePath],
-		# to enable hermes on iOS, change `false` to `true` and then install pods
-		:hermes_enabled => true,
+		# Hermes is now enabled by default. Disable by setting this flag to false.
+		:hermes_enabled => flags[:hermes_enabled],
 		:fabric_enabled => flags[:fabric_enabled],
+		# Enables Flipper.
+		#
+		# Note that if you have use_frameworks! enabled, Flipper will not work and
+		# you should disable the next line.
+		:flipper_configuration => flipper_config,
 		# An absolute path to your application root.
 		:app_path => "#{Pod::Config.instance.installation_root}/.."
 	)
@@ -46,41 +51,23 @@ target 'mybattle11' do
 	pod 'FirebaseCore', :modular_headers => true
 	pod 'GoogleSignIn', '~> 7.0.0'
   
-	# Enables Flipper.
-	#
-	# Note that if you have use_frameworks! enabled, Flipper will not work and
-	# you should disable these next few lines.
-	if not IS_CI
-		use_flipper!({ 'Flipper' => '0.162.0' })
-
-	end
 	post_install do |installer|
-		react_native_post_install(installer)
+		# https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
+		react_native_post_install(
+			installer,
+			config[:reactNativePath],
+			:mac_catalyst_enabled => false
+		)
+		
 		installer.pods_project.targets.each do |target|
-
-			if target.respond_to?(:product_type) and target.product_type == "com.apple.product-type.bundle"
-				target.build_configurations.each do |config|
-					config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
-				end
-			end
-		end
-		# # to build for the simulator on Apple M1
-		# installer.pods_project.targets.each do |target|
-		#   target.build_configurations.each do |config|
-		#     # disables arm64 builds for the simulator
-		#     config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
-		#   end
-		# end
-
-		#find_and_replace("Pods/RCT-Folly/folly/synchronization/DistributedMutex-inl.h",
-		#"atomic_notify_one(state)", "folly::atomic_notify_one(state)")
-
-		#find_and_replace("Pods/RCT-Folly/folly/synchronization/DistributedMutex-inl.h",
-		#"atomic_wait_until(&state, previous | data, deadline)", "folly::atomic_wait_until(&state, previous | data, deadline)")
-
-		installer.pods_project.build_configurations.each do |config|
-			if config.name == 'Release'
-				config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
+			target.build_configurations.each do |config|
+				config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+				
+				# Fix for Xcode 15 and arm64 architecture
+				config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+				
+				# Additional build settings for M1 compatibility
+				config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)', '_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION']
 			end
 		end
 	end

@@ -19,7 +19,7 @@ import {
   WHITE,
 } from '../../common/AppText';
 import NavigationService from '../../navigation/NavigationService';
-import {MY_CONTEST} from '../../navigation/routes';
+import {MY_CONTEST, SCOREBOARD_CREATE} from '../../navigation/routes';
 import {nameSlice, toastAlert} from '../../helper/utility';
 import {setContestData, setSortByFilter, getContestList} from '../../slices/matchSlice';
 import {useDispatch} from 'react-redux';
@@ -30,6 +30,7 @@ import {colors} from '../../theme/color';
 import {flexOne} from '../../theme/dimens';
 import {LiveTime} from '../../common/LiveTime';
 import LinearGradient from 'react-native-linear-gradient';
+import PrimaryButton from '../../common/primaryButton';
 
 const MatchCard = ({
   details,
@@ -38,6 +39,7 @@ const MatchCard = ({
   isHome,
   myMatches,
   completedmatch = true,
+  matchType = 'teams',
 }) => {
   console.log('MatchCard received details:', details);
   const dispatch = useDispatch();
@@ -69,16 +71,15 @@ const MatchCard = ({
   }, [data]);
 
   const onNavigateContest = () => {
-    console.log('Contest Details in MatchCard:', details?.contest_details);
     if (details?.Status === 'Completed') {
       dispatch(setContestData({...details, isFromMyMatch, tab, isHome}));
-      NavigationService.navigate(MY_CONTEST, {isFromMyMatch: true});
+      NavigationService.navigate(MY_CONTEST, {isFromMyMatch: true, matchType});
     } else if (details?.contest_details?.length == 0) {
       return toastAlert.showToastError('There Are No Contest For This Match');
     } else {
       dispatch(setContestData({...details, isFromMyMatch, tab, isHome}));
       dispatch(getContestList({}, details._id));
-      NavigationService.navigate(MY_CONTEST, {isFromMyMatch: false});
+      NavigationService.navigate(MY_CONTEST, {isFromMyMatch: false, matchType});
       dispatch(setSortByFilter([]));
     }
   };
@@ -285,6 +286,17 @@ const MatchCard = ({
                     }}
                   />
                 </View>
+              </View>
+              <View style={{
+                backgroundColor: '#ffffff09',
+                paddingHorizontal: 15,
+                paddingVertical: 10,
+              }}>
+                <PrimaryButton
+                  buttonStyle={{height: 45, width: '100%'}}
+                  onPress={onNavigateContest}
+                  title={matchType === 'teams' ? 'CREATE TEAM' : 'CREATE SCOREBOARD'}
+                />
               </View>
             </>
           )}

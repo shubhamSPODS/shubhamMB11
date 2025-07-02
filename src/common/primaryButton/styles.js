@@ -24,8 +24,8 @@ const styles = StyleSheet.create({
   buttonText:{
     color:'white',
     fontWeight:"700",
-    textTransform:"uppercase"
-
+    textTransform:"uppercase",
+    textAlign: 'center'
   },
 });
 
