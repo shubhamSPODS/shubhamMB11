@@ -32,7 +32,7 @@ import {
   MY_CONTEST,
   PAYMENT_OPTIONS_SCREEN,
 } from '../navigation/routes';
-import { fixedToTwo } from '../helper/utility';
+import { fixedToTwo, toastAlert } from '../helper/utility';
 import SecondaryButton from './secondaryButton';
 import { border } from 'native-base/lib/typescript/theme/styled-system';
 import { TouchableOpacityView } from './TouchableOpacityView';
@@ -111,60 +111,120 @@ const Confirmation = ({
     }
     else if (payTotalAmount <= newAmount) {
       if (JoinWithMULT) {
-        let arofobj = [];
-        for (let index = 0; index < selectMulty?.length; index++) {
-          const data = {
-            match_id: selectMulty[index]?.match_id,
-            matchid: selectMulty[index]?.matchid,
-            teams_id: [selectMulty[index]?._id],
-            contest_category_id: contest_category_id,
-            match_contest_category_id: inner_data_id,
+        if (!selectMulty?.length) {
+          toastAlert.showToastError('Please select teams to join the contest');
+          return;
+        }
+
+        const shadow_contest_id = details?.shadow_contest_id || '';
+        const match_contest_category_id = details?.match_contest_category_id || '';
+
+        console.log('Contest details for join:', {
+          contest_category_id: details?.contest_category_id,
+          details,
+          match_contest_category_id,
+          shadow_contest_id
+        });
+
+        if (!shadow_contest_id) {
+          console.error('Missing shadow_contest_id:', { shadow_contest_id });
+          toastAlert.showToastError('Missing contest ID');
+          return;
+        }
+
+        if (!match_contest_category_id) {
+          console.error('Missing match_contest_category_id:', { match_contest_category_id, details });
+          toastAlert.showToastError('Missing contest ID');
+          return;
+        }
+
+        const arofobj = selectMulty.map((team, index) => {
+          const teamId = team?._id;
+          const teamMatchId = team?.match_id || matchDetails?._id;
+          const teamMatchIdAlt = team?.matchid || matchDetails?.matchid;
+          const cid = matchDetails?.SeriesId || '';
+
+          if (!teamId || !teamMatchId || !cid) {
+            console.error('Invalid team data:', { team, matchDetails });
+            return null;
+          }
+
+          return {
+            cid,
+            match_id: teamMatchId,
+            matchid: teamMatchIdAlt,
+            teams_id: [teamId],
+            contest_category_id: details?.contest_category_id,
+            shadow_contest_id,
+            match_contest_category_id,
+            teamName: `T${index + 1}`, 
             method: 'wallet',
-            amount: selectedMatch?.EnteryFee,
-            teamName: selectMulty[index]?.name,
-            shadow_contest_id: details?.shadow_contest_id,
+            amount: Number(details?.EnteryFee || 0)
           };
-          arofobj?.push(data)
+        }).filter(Boolean);
+
+        if (arofobj.length === 0) {
+          toastAlert.showToastError('Invalid team data');
+          return;
         }
-        let data = {
+
+        const joinData = {
           mutiple: true,
-          arofobj: arofobj
-        }
-        handleClose();
-        dispatch(joinContest(data, matchDetails));
-        setTimeout(() => {
-          dispatch(setContestData(matchDetails));
-          NavigationService.navigate(MY_CONTEST);
-        }, 1000);
-      } else {
-        const data = {
-          match_id: FilterId?.match_id,
-          matchid: FilterId?.matchid,
-          teams_id: [FilterId?._id],
-          contest_category_id: contest_category_id,
-          match_contest_category_id: inner_data_id,
-          method: 'wallet',
-          amount: selectedMatch?.EnteryFee,
-          teamName: FilterId?.name,
-          shadow_contest_id: details?.shadow_contest_id,
+          arofobj
         };
+
+        console.log('Joining contest with multiple teams:', joinData);
+        dispatch(joinContest(joinData, matchDetails));
         handleClose();
-        dispatch(joinContest(data, matchDetails));
-        setTimeout(() => {
-          dispatch(setContestData(matchDetails));
-          NavigationService.navigate(MY_CONTEST);
-        }, 1000);
+      } else {
+        if (!match_id || !_id || !matchDetails?.SeriesId) {
+          console.error('Invalid single team data:', { match_id, _id, seriesId: matchDetails?.SeriesId });
+          toastAlert.showToastError('Invalid team data');
+          return;
+        }
+
+        const shadow_contest_id = details?.shadow_contest_id || '';
+        const match_contest_category_id = details?.match_contest_category_id || '';
+
+        console.log('Contest details for join:', {
+          contest_category_id: details?.contest_category_id,
+          details,
+          match_contest_category_id,
+          shadow_contest_id
+        });
+
+        if (!shadow_contest_id) {
+          console.error('Missing shadow_contest_id:', { shadow_contest_id });
+          toastAlert.showToastError('Missing contest ID');
+          return;
+        }
+
+        if (!match_contest_category_id) {
+          console.error('Missing match_contest_category_id:', { match_contest_category_id, details });
+          toastAlert.showToastError('Missing contest ID');
+          return;
+        }
+
+        const joinData = {
+          cid: matchDetails?.SeriesId,
+          match_id: match_id || matchDetails?._id,
+          matchid: matchid || matchDetails?.matchid,
+          teams_id: [_id],
+          contest_category_id: details?.contest_category_id,
+          shadow_contest_id,
+          match_contest_category_id,
+          teamName: 'T1', 
+          method: 'wallet',
+          amount: Number(details?.EnteryFee || 0)
+        };
+
+        console.log('Joining contest with single team:', joinData);
+        dispatch(joinContest(joinData, matchDetails));
+        handleClose();
       }
     } else {
+      NavigationService.navigate(ADD_MONEY_SCREEN);
       handleClose();
-      NavigationService.navigate(MY_BALANCE, {
-        ...selectedMatch,
-        matchDetails: matchDetails,
-        usableBonus,
-        payAmount,
-        total_balance,
-        value: payAmount,
-      });
     }
   };
 

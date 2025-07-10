@@ -166,9 +166,10 @@ const VerifyPAN = () => {
                 placeholder={'Pan Number'}
                 placeholderTextColor={colors.white}
                 style={styles.inputStyle}
-                value={pan?.toLocaleUpperCase()}
-                onChangeText={(value) => setPan(value)}
-                maxLength={12}
+                value={pan}
+                onChangeText={(value) => setPan(value.toUpperCase())}
+                maxLength={10}
+                autoCapitalize="characters"
               />
               {checkValidPanCardNumber(name) ?
                 <FastImage source={checkAdhaar} resizeMode='contain' style={styles.checkIcon} />
@@ -180,8 +181,9 @@ const VerifyPAN = () => {
                 placeholder={'Pan Card Holder Name '}
                 placeholderTextColor={colors.white}
                 style={styles.inputStyle}
-                value={name?.toLocaleUpperCase()}
-                onChangeText={(value) => setName(value)}
+                value={name}
+                onChangeText={(value) => setName(value.toUpperCase())}
+                autoCapitalize="characters"
               />
               
             </View>

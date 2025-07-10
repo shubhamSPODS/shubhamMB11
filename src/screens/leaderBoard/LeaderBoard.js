@@ -37,7 +37,7 @@ import { GLORY, SINGLE, WINNER, m } from '../../helper/image';
 import NavigationService from '../../navigation/NavigationService';
 import styles from './styles';
 import { useDispatch, useSelector } from 'react-redux';
-import { SELECT_PLAYER, VERIFY_ADHAAR_SCREEN } from '../../navigation/routes';
+import { SELECT_PLAYER, UPLOAD_AADHAR, VERIFY_ADHAAR_SCREEN } from '../../navigation/routes';
 import {
   getAllPlayerList,
   getMyTeam,
@@ -60,18 +60,29 @@ import PrimaryButton from '../../common/primaryButton';
 import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
 import { SpinnerSecond } from '../../common/SpinnerSecond';
 
-const FirstRoute = ({ route }) => (
-  <Winnings
-    id={
-      route?.route?.params?.details?.details?.contest_details?.shadow_contest_id
-    }
-    privateis={route?.route?.params?.privateis}
-    notLive={route?.route?.params?.notLive}
-    rankData={
-      route?.route?.params?.details?.Rankdata || route?.route?.params?.Rankdata
-    }
-  />
-);
+const FirstRoute = ({ route }) => {
+  const details = route?.route?.params?.details?.details;
+  console.log('FirstRoute details:', details);
+  
+  // Ensure rankData is properly formatted
+  const rankData = Array.isArray(details?.Rankdata) ? details.Rankdata.map(rank => ({
+    ...rank,
+    Price: Number(rank?.Price || 0),
+    StartRank: Number(rank?.StartRank || 0),
+    EndRank: Number(rank?.EndRank || 0)
+  })) : [];
+  
+  console.log('Formatted rankData:', rankData);
+  
+  return (
+    <Winnings
+      id={details?.contest_details?.shadow_contest_id}
+      privateis={route?.route?.params?.privateis}
+      notLive={route?.route?.params?.notLive}
+      rankData={rankData}
+    />
+  );
+};
 
 const SecondRoute = ({ route }) => (
   <LeaderBoardList
@@ -83,7 +94,6 @@ const SecondRoute = ({ route }) => (
     selfCreateContest={route?.params?.selfCreateContest}
     userDataID={route?.params?.userData}
   />
-
 );
 
 const ThirdRoute = ({ route }) => (
@@ -93,13 +103,13 @@ const LeaderBoard = () => {
   const route = useRoute();
   const wsRefTwo = useRef(null);
   const dispatch = useDispatch();
-  const details = route?.params?.details ?? '';
-  const totalTeamCount = route?.params?.totalTeamCount;
-  const matchDetails = useSelector(state => state?.match?.contestData);
-  const myTeam = useSelector(state => state?.match?.myTeams);
+  const details = route?.params?.details?.details ?? {};
+  const totalTeamCount = route?.params?.totalTeamCount ?? 0;
+  const matchDetails = useSelector(state => state?.match?.contestData) ?? {};
+  const myTeam = useSelector(state => state?.match?.myTeams) ?? [];
   const kycDetails = useSelector(state => {
     return state.profile.kycDetails;
-  });
+  }) ?? {};
   const [activeTab, setActiveTab] = useState(1);
   const [isAdd, setIsAdd] = useState(false);
   const [forStatus, setForStatus] = useState();
@@ -112,13 +122,13 @@ const LeaderBoard = () => {
   const [random, setRandom] = useState(10);
   const selectTeam = useRef();
   const [saveTeamName, setSaveTeamName] = useState('');
-  const { _id, SeriesId } = matchDetails ?? '';
+  const { _id = '', SeriesId = '' } = matchDetails ?? {};
   const userData = useSelector(state => {
     return state.profile.userData;
-  });
+  }) ?? {};
 
-  let url = `ws://app.mybattle11.com/leader-board?limit=10&skip=0&matchid=${route?.params?.matchDetails?.MatchId}&contest_category_id=${route?.params?.details?.contest_category_id}&user_id=${userData?._id}`;
-  let urlTwo = `ws://app.mybattle11.com/mainleaderboard?limit=10&skip=0&matchid=${route?.params?.matchDetails?.MatchId}&contest_category_id=${route?.params?.details?.contest_category_id}&user_id=${userData?._id}`;
+  let url = `ws://app.mybattle11.com/leader-board?limit=10&skip=0&matchid=${route?.params?.matchDetails?.MatchId || ''}&contest_category_id=${route?.params?.details?.contest_category_id || ''}&user_id=${userData?._id || ''}`;
+  let urlTwo = `ws://app.mybattle11.com/mainleaderboard?limit=10&skip=0&matchid=${route?.params?.matchDetails?.MatchId || ''}&contest_category_id=${route?.params?.details?.contest_category_id || ''}&user_id=${userData?._id || ''}`;
   // console.log(url  ,'====URL===='  , urlTwo  );
   useEffect(() => {
     if (
@@ -154,15 +164,19 @@ const LeaderBoard = () => {
       };
       if (!wsRefTwo.current) return;
       wsRefTwo.current.onmessage = e => {
-        const parseData = JSON.parse(e?.data);
-        setScoreBoard(parseData?.score);
-        setTeamAScore(parseData && parseData?.score[0]?.teama);
-        setTeamBScore(parseData && parseData?.score[0]?.teamb);
+        try {
+          const parseData = JSON.parse(e?.data);
+          setScoreBoard(parseData?.score || []);
+          setTeamAScore(parseData?.score?.[0]?.teama || []);
+          setTeamBScore(parseData?.score?.[0]?.teamb || []);
+        } catch (err) {
+          console.error('Error parsing websocket data:', err);
+        }
       };
     } catch (error) {
-    } finally {
+      console.error('Error in getData:', error);
     }
-  }, [isConnected]);
+  }, [isConnected, urlTwo]);
   const reconnectWebSocket = () => {
     if (wsRefTwo.current && wsRefTwo.current.readyState !== WebSocket.OPEN) {
       wsRefTwo.current = new WebSocket(url);
@@ -200,7 +214,10 @@ const LeaderBoard = () => {
   const isPastTime = inputDate < currentDate;
   const onJoinContest = async () => {
     if (kycDetails?.adhar_verified == 0) {
-      NavigationService.navigate(VERIFY_ADHAAR_SCREEN);
+      // NavigationService.navigate(VERIFY_ADHAAR_SCREEN);
+      NavigationService.navigate(UPLOAD_AADHAR);
+
+      
     } else if (kycDetails?.adhar_verified == 2) {
       toastAlert.showToastError(
         'Your aadhaar verification is pending please wait',
@@ -211,11 +228,11 @@ const LeaderBoard = () => {
         let data = { cid: matchDetails?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));
         NavigationService.navigate(SELECT_PLAYER, {
-          matchDetails,
+          matchDetails: matchDetails || {},
           isEditMode: false,
         });
         dispatch(setIsContestEntry(true));
-        dispatch(setSelectedMatch({ ...details }));
+        dispatch(setSelectedMatch(details ? { ...details } : {}));
       } else if (totalTeamCount === 1) {
         if (details?.teamDetails?.length) {
           dispatch(setAllPlayers([]));
@@ -223,15 +240,15 @@ const LeaderBoard = () => {
           let isNavigate = true;
           dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
           dispatch(setIsContestEntry(true));
-          dispatch(setSelectedMatch({ ...details }));
+          dispatch(setSelectedMatch(details ? { ...details } : {}));
           NavigationService.navigate(SELECT_PLAYER, {
-            matchDetails,
+            matchDetails: matchDetails || {},
             isEditMode: false,
           });
         } else {
           dispatch(getMyTeam(_id));
-          dispatch(setSelectedMatch({ ...details }));
-          setSaveTeamName(myTeam[0]?.name);
+          dispatch(setSelectedMatch(details ? { ...details } : {}));
+          setSaveTeamName(myTeam?.[0]?.name || '');
           setIsAdd(true);
         }
       } else if (totalTeamCount > 1) {
@@ -241,13 +258,13 @@ const LeaderBoard = () => {
           let isNavigate = true;
           dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
           dispatch(setIsContestEntry(true));
-          dispatch(setSelectedMatch({ ...details }));
+          dispatch(setSelectedMatch(details ? { ...details } : {}));
           NavigationService.navigate(SELECT_PLAYER, {
-            matchDetails,
+            matchDetails: matchDetails || {},
             isEditMode: false,
           });
         } else {
-          dispatch(setSelectedMatch({ ...details }));
+          dispatch(setSelectedMatch(details ? { ...details } : {}));
           selectTeam?.current?.open();
         }
       }
@@ -321,7 +338,7 @@ const LeaderBoard = () => {
                   <AppText type={TEN} color={BLACKOPACITY}>
                     PRIZE POOL
                   </AppText>
-                  {route?.params?.details?.JoinWithMULT && (
+                  {details?.JoinWithMULT && (
                     <AppText type={TEN} color={BLACKOPACITY}>
                       Multiple Entries
                     </AppText>
@@ -335,13 +352,13 @@ const LeaderBoard = () => {
                     marginVertical: 6,
                   }}>
                   <AppText type={FIFTEEN} weight={LATO_SEMI_BOLD}>
-                    ₹{route?.params?.details?.winning_amount}
+                    ₹{numberWithCommas(details?.winning_amount || 0)}
                   </AppText>
                 </View>
                 <View style={styles.progressBar}>
                   <LinearGradient
                     style={{
-                      width: `${route?.params?.progressBarWidth}%`,
+                      width: `${Math.min(details?.progressBarWidth || 0, 100)}%`,
                       height: '100%',
                       borderRadius: 4,
                     }}
@@ -356,12 +373,10 @@ const LeaderBoard = () => {
                     alignItems: 'center',
                   }}>
                   <AppText color={BLACKOPACITY} type={TEN}>
-                    {route?.params?.details?.Contestsize} spots
+                    {numberWithCommas(details?.Contestsize || 0)} spots
                   </AppText>
                   <AppText type={TEN} color={GREEN}>
-                    {`${route?.params?.details?.Contestsize -
-                      (route?.params?.details?.joined || 0)
-                      } spots left`}
+                    {numberWithCommas(Math.max(0, (details?.Contestsize || 0) - (details?.joined || 0)))} spots left
                   </AppText>
                 </View>
               </View>
@@ -391,9 +406,7 @@ const LeaderBoard = () => {
                       style={styles.commonTextStyle}>
                       {details?.EnteryType !== 'Paid'
                         ? 'Glory awaits!'
-                        : `₹${Math.round(details?.Rankdata[0]?.Price).toFixed(
-                          2,
-                        )}`}
+                        : `₹${numberWithCommas(details?.Rankdata?.[0]?.Price || details?.winning_amount || 0)}`}
                     </AppText>
                   </View>
                   <View style={styles.commonViewStyle}>
@@ -406,7 +419,7 @@ const LeaderBoard = () => {
                       color={BLACKOPACITY}
                       type={TEN}
                       style={styles.commonTextStyle}>
-                      {(details?.Winning_percent ? details?.Winning_percent : 0).toFixed(2)}%
+                      {details?.Winning_percent ? details?.Winning_percent : 0}% Winners
                     </AppText>
                   </View>
                   <View style={styles.commonViewStyle}>
@@ -430,7 +443,6 @@ const LeaderBoard = () => {
             </>
           )}
         </>
-
       </View>
     );
   };
@@ -679,6 +691,6 @@ export const RenderTabBar1 = props => {
 
       </>
     ),
-    [props], // dependencies
+    [props], 
   );
 };

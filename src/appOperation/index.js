@@ -54,7 +54,11 @@ export class AppOperation {
   }
 
   send(url, method, params, data, type) {
-    let uri = `${this.base_url}${this.root_path}${url}`;
+    let uri = this.base_url;
+    if (!uri.endsWith('/')) {
+      uri += '/';
+    }
+    uri += url;
 
     if (params) {
       let separator = '?';
@@ -63,6 +67,19 @@ export class AppOperation {
         separator = '&';
       });
     }
+
+    // Log the complete request details
+    console.log('API Request:', {
+      fullUrl: uri,
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(this.customerToken && type === CUSTOMER_TYPE ? {
+          'Authorization': this.customerToken
+        } : {})
+      },
+      body: data
+    });
 
     // check if there's any missing parameters
     const missingFields = uri.match(/(\{[a-zA-Z0-9_]+\})/g);
@@ -87,32 +104,35 @@ export class AppOperation {
         headers['Content-Type'] = 'multipart/form-data';
       } else {
         bodyData = JSON.stringify(data);
-        console.log(bodyData);
       }
 
       fetch(uri, { method, headers, body: bodyData })
         .then(response => {
-          // console.log(response, "response");
+          console.log('API Response Status:', response.status);
           let status = response.status;
           if (response.ok) {
             return response
               .text()
               .then(responseData => {
                 let jsonData = JSON.parse(responseData);
+                console.log('API Response Data:', jsonData);
                 resolve({ ...jsonData, code: status });
               })
-              .catch(errorResponse =>
-                Promise.reject({ code: status, data: errorResponse }),
-              );
+              .catch(errorResponse => {
+                console.log('API Response Error:', errorResponse);
+                Promise.reject({ code: status, data: errorResponse });
+              });
           }
           // Possible 401 or other network error
           return response
             .text()
-            .then(errorResponse =>
-              Promise.reject({ code: status, data: errorResponse }),
-            );
+            .then(errorResponse => {
+              console.log('API Error Response:', errorResponse);
+              Promise.reject({ code: status, data: errorResponse });
+            });
         })
         .catch(error => {
+          console.log('API Network Error:', error);
           const customError = this.getErrorMessageForResponse(error);
           reject(new ApiError(customError));
         });

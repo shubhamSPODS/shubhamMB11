@@ -81,10 +81,28 @@ export const getUserWallet = () => async dispatch => {
 export const getKycDetails = () => async dispatch => {
   try {
     const res = await appOperation.customer.getKycDetails();
-    if (res?.code == 200) {
-      dispatch(setKycDetails(res?.data));
+    // console.log('KYC API Response:', JSON.stringify(res, null, 2));
+    // console.log('KYC Data:', JSON.stringify(res?.data, null, 2));
+    
+    if (res?.code === 200 || res?.success) {
+      // Ensure all verification statuses are numbers
+      const normalizedData = {
+        ...res?.data,
+        mobile_verified: Number(res?.data?.mobile_verified || 0),
+        email_verified: Number(res?.data?.email_verified || 0),
+        selfie_verified: Number(res?.data?.selfie_verified || 0),
+        pan_verified: Number(res?.data?.pan_verified || 0),
+        bank_verified: Number(res?.data?.bank_verified || 0),
+        adhar_verified: Number(res?.data?.adhar_verified || 0),
+        upi_verified: Number(res?.data?.upi_verified || 0)
+      };
+      // console.log('Normalized KYC Data:', JSON.stringify(normalizedData, null, 2));
+      dispatch(setKycDetails(normalizedData));
+    } else {
+      console.error('Failed to get KYC details:', res?.message);
     }
   } catch (e) {
+    console.error('Error getting KYC details:', e);
   }
 };
 

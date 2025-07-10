@@ -312,18 +312,51 @@ export const MycreateContest = (data, condition) => async dispatch => {
 };
 export const joinContest = (data, matchDetails) => async dispatch => {
   try {
-    const res = await appOperation.customer.joinContest(data);
-    if (res.code == 200) {
-      toastAlert.showToastError(res?.message);
-      let data = {};
-      dispatch(getContestList(matchDetails?._id));
-      dispatch(getMyTeam(matchDetails?._id));
-      dispatch(getMyJoinedContest(matchDetails?._id));
-      dispatch(getUserProfile(false, false));
-      let outputObject = {};
-      dispatch(getContestList(outputObject, matchDetails?._id));
+    const validateData = data?.mutiple ? data?.arofobj?.[0] : data;
+    const requiredFields = {
+      cid: validateData?.cid,
+      match_id: validateData?.match_id,
+      teams_id: validateData?.teams_id,
+      contest_category_id: validateData?.contest_category_id,
+      shadow_contest_id: validateData?.shadow_contest_id,
+      match_contest_category_id: validateData?.match_contest_category_id
+    };
+
+    console.log('Join contest validation:', {
+      isMultiple: data?.mutiple,
+      requiredFields,
+      fullData: data
+    });
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      console.error('Missing required fields for joining contest:', missingFields);
+      toastAlert.showToastError(`Missing required fields: ${missingFields.join(', ')}`);
+      return;
     }
-  } catch (e) {}
+
+    dispatch(setLoading(true));
+    const res = await appOperation.customer.joinContest(data);
+    console.log('Join contest response:', res);
+
+    if (res?.code === 200 || res?.success === true) {
+      toastAlert.showToastSuccess(res?.message || 'Contest joined successfully');
+      dispatch(getMyJoinedContest(matchDetails?._id));
+      dispatch(getContestList(matchDetails?.object, matchDetails?._id));
+      dispatch(getMyTeam(matchDetails?._id));
+      dispatch(getUserProfile(false, false));
+    } else {
+      toastAlert.showToastError(res?.message || 'Failed to join contest');
+    }
+  } catch (error) {
+    console.error('Join contest error:', error);
+    toastAlert.showToastError(error?.message || 'Failed to join contest');
+  } finally {
+    dispatch(setLoading(false));
+  }
 };
 export const savekey = data => async dispatch => {
   try {
@@ -342,65 +375,89 @@ export const getContestList = (outputObject, id) => async dispatch => {
   try {
     dispatch(setLoading(true));
     const res = await appOperation.customer.getContestList(data);
-    console.log('API Response:', res);
+    console.log('Raw contest list response:', res?.data[0]?.data);
     
     if (res?.code === 200 || res?.success === true) {
       const contestData = res?.data || [];
       
       const newData = contestData.map(category => {
+        if (!category?.data) {
+          console.log('Skipping category with no data:', category);
+          return category;
+        }
+
         const transformedData = category.data.map(contestItem => {
-          // Find matching category details
-          const categoryDetails = category.contest_category_details.find(
-            detail => detail._id === contestItem.contest_category_id
+          if (!contestItem) {
+            console.log('Skipping null contest item');
+            return null;
+          }
+
+          const categoryDetails = category.contest_category_details?.find(
+            detail => detail?._id === contestItem?.contest_category_id
           );
 
-          console.log('Merging contest data:', {
-            contestItem,
-            categoryDetails,
-          });
-
-          // Create merged data with correct field names
           const mergedData = {
-            ...contestItem,
-            Contestsize: categoryDetails?.Contestsize || 0,
-            EnteryFee: categoryDetails?.EnteryFee || 0,
-            EnteryType: categoryDetails?.EnteryType,
-            JoinWithMULT: categoryDetails?.JoinWithMULT || false,
-            ConfirmedWin: categoryDetails?.ConfirmedWin || false,
-            Rankdata: categoryDetails?.Rankdata || [],
-            teams: categoryDetails?.teams || 0,
-            winning_amount: contestItem.winning_amount,
-            joined: contestItem.joined || 0,
-            contest_category_id: contestItem.contest_category_id,
-            categoryName: categoryDetails?.categoryName,
-            UsableBonusPercantage: categoryDetails?.UsableBonusPercantage || "0"
-          };
+            Contestsize: Number(contestItem?.Contestsize || 0),
+            EnteryFee: Number(contestItem?.EnteryFee || 0),
+            EnteryType: String(contestItem?.EnteryType || ''),
+            JoinWithMULT: Boolean(contestItem?.JoinWithMULT),
+            ConfirmedWin: Boolean(contestItem?.ConfirmedWin),
+            teams: Number(contestItem?.teams || 0),
+            winning_amount: Number(contestItem?.winning_amount || 0),
+            joined: Number(contestItem?.joined || 0),
+            contest_category_id: String(contestItem?.contest_category_id || ''),
+            categoryName: String(contestItem?.categoryName || ''),
+            UsableBonusPercantage: Number(contestItem?.UsableBonusPercantage || 0),
+            shadow_contest_id: String(contestItem?.shadow_contest_id || contestItem?._id || ''),
+            match_contest_category_id: String(contestItem?._id || ''),
+            
+            ...(categoryDetails ? {
+              Contestsize: Number(categoryDetails.Contestsize || contestItem?.Contestsize || 0),
+              EnteryFee: Number(categoryDetails.EnteryFee || contestItem?.EnteryFee || 0),
+              EnteryType: String(categoryDetails.EnteryType || contestItem?.EnteryType || ''),
+              JoinWithMULT: Boolean(categoryDetails.JoinWithMULT || contestItem?.JoinWithMULT),
+              ConfirmedWin: Boolean(categoryDetails.ConfirmedWin || contestItem?.ConfirmedWin),
+              teams: Number(categoryDetails.teams || contestItem?.teams || 0),
+              winning_amount: Number(categoryDetails.winning_amount || contestItem?.winning_amount || 0),
+              UsableBonusPercantage: Number(categoryDetails.UsableBonusPercantage || contestItem?.UsableBonusPercantage || 0),
+              shadow_contest_id: String(categoryDetails.shadow_contest_id || contestItem?.shadow_contest_id || contestItem?._id || '')
+            } : {}),
 
-          console.log('Merged Data:', mergedData);
+            Rankdata: Array.isArray(contestItem?.Rankdata) ? contestItem.Rankdata.map(rank => ({
+              ...rank,
+              Price: Number(rank?.Price || 0),
+              StartRank: Number(rank?.StartRank || 0),
+              EndRank: Number(rank?.EndRank || 0)
+            })) : (Array.isArray(categoryDetails?.Rankdata) ? categoryDetails.Rankdata.map(rank => ({
+              ...rank,
+              Price: Number(rank?.Price || 0),
+              StartRank: Number(rank?.StartRank || 0),
+              EndRank: Number(rank?.EndRank || 0)
+            })) : [])
+          };
 
           const arrayfilter = res?.getuserjounedcont?.filter(
             e =>
               e?.contest_category_id === contestItem?.contest_category_id &&
               !categoryDetails?.JoinWithMULT,
-          );
+          ) || [];
+          
           const arrayfilterMulti = res?.getuserjounedcont?.filter(
             e => e?.contest_category_id === contestItem?.contest_category_id,
-          );
+          ) || [];
 
           return {
             ...mergedData,
             remove: arrayfilter?.length ? true : false,
-            teamDetails: arrayfilterMulti || [],
+            teamDetails: arrayfilterMulti,
           };
-        });
+        }).filter(Boolean); 
 
         return {
           ...category,
           data: transformedData,
         };
       });
-
-      console.log('Final transformed data:', newData[0]?.data?.[0]);
       
       dispatch(setContestList({ data: newData }));
       dispatch(setContestListTeam(res?.getuserjounedcont || []));
@@ -850,7 +907,18 @@ export const addharVerifiyOtp = (data, filterSheet) => async dispatch => {
 export const panVerifiy = data => async dispatch => {
   dispatch(setLoading(true));
   try {
+    console.log('PAN Verification Request Data:', {
+      url: 'user/pan_pro',
+      method: 'POST',
+      requestBody: data
+    });
     const res = await appOperation.customer.panVerifiyKyc(data);
+    console.log('PAN Verification API Response:', {
+      success: res?.success,
+      message: res?.message,
+      data: res?.data,
+      fullResponse: res
+    });
     if (res?.success) {
       toastAlert.showToastError(res.message);
       dispatch(getKycDetails());
@@ -860,6 +928,7 @@ export const panVerifiy = data => async dispatch => {
       dispatch(setLoading(false));
     }
   } catch (e) {
+    console.error('PAN Verification Error:', e);
   } finally {
     dispatch(setLoading(false));
   }

@@ -115,7 +115,6 @@ const MyContest = () => {
   const layout = useWindowDimensions();
   const {matchType} = route.params || {matchType: 'teams'};
   
-  // Add DATA array here at component scope
   const DATA = [
     {
       id: 1,
@@ -326,13 +325,12 @@ const MyContest = () => {
   const [removeTabs, setRemoveTabs] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Update refresh interval to only run when needed
   useEffect(() => {
     let intervalId;
     if (!route?.params?.isFromMyMatch) {
       intervalId = setInterval(() => {
         handleRefresh('my contest');
-      }, 30000); // Increased to 30 seconds to reduce re-renders
+      }, 30000); 
     }
     return () => {
       if (intervalId) {
@@ -480,7 +478,6 @@ const MyContest = () => {
     );
   };
 
-  // Memoize ThirdRoute component
   const ThirdRoute = () => {
     return (
       <View style={{ flex: 1 }}>

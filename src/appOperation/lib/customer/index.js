@@ -19,12 +19,23 @@ export default appOperation => ({
   uploadImg: data => appOperation.post(`upload`, data, CUSTOMER_TYPE),
   getSeriesData: () =>
     appOperation.post('TeamData/Serieslist', {}, CUSTOMER_TYPE),
-  getContestList: data =>
-    appOperation.post(
+  getContestList: data => {
+    console.log('getContestList called with data:', data);
+    return appOperation.post(
       `match/contests/${data?.matchid}`,
       data?.object,
       CUSTOMER_TYPE,
-    ),
+    );
+  },
+  getContestCategoryDetails: data => {
+    console.log('getContestCategoryDetails called with data:', data);
+    return appOperation.get(
+      `match/contest-category/${data?.category_id}`,
+      undefined,
+      undefined,
+      CUSTOMER_TYPE,
+    );
+  },
   editProfile: (data, id) =>
     appOperation.put(`user/update-profile?user=${id}`, data, CUSTOMER_TYPE),
   alltransactions: (type) =>
@@ -179,7 +190,7 @@ export default appOperation => ({
       `verify_email`, data, CUSTOMER_TYPE),
   panVerifiyKyc: (data) =>
     appOperation.post(
-      `user/pan_verify`, data, CUSTOMER_TYPE),
+      `user/pan_pro`, data, CUSTOMER_TYPE),
   dlVerifiyKyc: (data) =>
     appOperation.post(
       `user/dlverify`, data, CUSTOMER_TYPE),

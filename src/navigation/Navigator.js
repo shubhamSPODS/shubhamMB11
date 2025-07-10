@@ -82,6 +82,7 @@ import {
   SCOREBOARD_CREATE,
   SCOREBOARD_LIST,
   SCOREBOARD_DETAILS,
+  GAME_WEB_VIEW,
 } from './routes';
 import NavigationService from './NavigationService';
 import {useSelector, useDispatch} from 'react-redux';
@@ -187,6 +188,7 @@ import RummyGameModes from '../screens/Rummy/RummyGameMode';
 import Create from '../screens/Scoreboard/Create';
 import List from '../screens/Scoreboard/List';
 import Details from '../screens/Scoreboard/Details';
+import GameWebView from '../screens/GameWebView';
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
@@ -769,6 +771,7 @@ const RootStackScreen = () => (
     <Stack.Screen name={GAME_TABLE} component={GameTable} />
     <Stack.Screen name={LUDO_GAME_MODE} component={LudoTab} />
     <Stack.Screen name={GAME_JOIN_TABLE} component={GameJoinTable} />
+    <Stack.Screen name={GAME_WEB_VIEW} component={GameWebView} />
     <Stack.Screen name={RUMMY_GAME_MODE} component={RummyTab} />
     <Stack.Screen
       name={CRICKET_TAB}

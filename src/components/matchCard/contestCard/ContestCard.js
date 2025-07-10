@@ -39,13 +39,10 @@ import Confirmation from '../../../common/Confirmation';
 import { NewColor, colors } from '../../../theme/color';
 
 const ContestCard = ({ details, totalTeamCount }) => {
-  // console.log('ContestCard Details:', {
-  //   contestSize: details?.Contestsize,
-  //   entryFee: details?.EnteryFee,
-  //   joined: details?.joined,
-  //   winningAmount: details?.winning_amount,
-  //   fullDetails: details
-  // });
+  if (!details) {
+    console.log('Contest details are undefined');
+    return null;
+  }
 
   const [saveTeamName, setSaveTeamName] = useState('');
   const dispatch = useDispatch();
@@ -53,25 +50,59 @@ const ContestCard = ({ details, totalTeamCount }) => {
   const myTeam = useSelector(state => state?.match?.myTeams);
   const contestData = useSelector(state => state?.match?.contestData);
   const { _id, SeriesId } = contestData ?? '';
-  const percentage = (details?.joined / (details?.Contestsize || 0)) * 100;
+  
+  // Ensure numeric values
+  const contestSize = Number(details?.Contestsize || 0);
+  const joined = Number(details?.joined || 0);
+  const percentage = (joined / (contestSize || 1)) * 100;
+  const spotsLeft = Math.max(0, contestSize - joined);
+  const winningAmount = Number(details?.winning_amount || 0);
+  const entryFee = Number(details?.EnteryFee || 0);
+  const winningPercent = Number(details?.Winning_percent || 0);
+  const firstPrize = Number(details?.Rankdata?.[0]?.Price || winningAmount || 0);
+
   const matchDetails = useSelector(state => state?.match?.contestData);
   const kycDetails = useSelector(state => {
     return state.profile.kycDetails;
   });
   const [isAdd, setIsAdd] = useState(false);
+
   const onClickContest = () => {
+    const safeDetails = {
+      ...details,
+      contest_category_id: details?.contest_category_id || '',
+      inner_data_id: details?.inner_data_id || '',
+      winning_amount: Number(details?.winning_amount || 0),
+      joined: Number(details?.joined || 0),
+      Contestsize: Number(details?.Contestsize || 0),
+      EnteryFee: Number(details?.EnteryFee || 0),
+      Rankdata: Array.isArray(details?.Rankdata) ? details.Rankdata.map(rank => ({
+        ...rank,
+        Price: Number(rank?.Price || 0),
+        StartRank: Number(rank?.StartRank || 0),
+        EndRank: Number(rank?.EndRank || 0)
+      })) : [],
+      JoinWithMULT: Boolean(details?.JoinWithMULT),
+      teams: Number(details?.teams || 0),
+      Winning_percent: Number(details?.Winning_percent || 0),
+      shadow_contest_id: details?.shadow_contest_id || details?._id || ''  
+    };
+
+    console.log('Contest details being passed:', safeDetails);
+
     NavigationService.navigate(LEADERBOARD, {
       details: {
-        ...details,
-        match_contest_category_id: details?.inner_data_id,
+        details: safeDetails,
+        match_contest_category_id: safeDetails.inner_data_id,
       },
-      firstTeamName: matchDetails?.TeamA,
-      secondTeamName: matchDetails?.TeamB,
-      progressBarWidth: percentage,
-      matchDetails: matchDetails,
-      totalTeamCount: totalTeamCount,
+      firstTeamName: matchDetails?.TeamA || '',
+      secondTeamName: matchDetails?.TeamB || '',
+      progressBarWidth: percentage || 0,
+      matchDetails: matchDetails || {},
+      totalTeamCount: totalTeamCount || 0,
     });
   };
+
   const onJoinContest = async () => {
     if (kycDetails?.adhar_verified == 0) {
       NavigationService.navigate(VERIFY_ADHAAR_SCREEN)
@@ -84,11 +115,11 @@ const ContestCard = ({ details, totalTeamCount }) => {
         let data = { cid: matchDetails?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));
         NavigationService.navigate(SELECT_PLAYER, {
-          matchDetails,
+          matchDetails: matchDetails || {},
           isEditMode: false,
         });
         dispatch(setIsContestEntry(true));
-        dispatch(setSelectedMatch({ ...details }));
+        dispatch(setSelectedMatch(details ? { ...details } : {}));
 
       } else if (totalTeamCount === 1) {
         if (details?.teamDetails?.length) {
@@ -97,49 +128,40 @@ const ContestCard = ({ details, totalTeamCount }) => {
           let isNavigate = true
           dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
           dispatch(setIsContestEntry(true));
-          dispatch(setSelectedMatch({ ...details }));
+          dispatch(setSelectedMatch(details ? { ...details } : {}));
           NavigationService.navigate(SELECT_PLAYER, {
-            matchDetails,
+            matchDetails: matchDetails || {},
             isEditMode: false,
           });
         } else {
           setIsAdd(true);
-          // dispatch(getMyTeam(_id));
-          dispatch(setSelectedMatch({ ...details }));
-          setSaveTeamName(myTeam[0]?.name)
-        }
-      } else if (totalTeamCount > 1) {
-        if (details?.teamDetails?.length == myTeam?.length) {
-          dispatch(setAllPlayers([]))
-          let data = { cid: matchDetails?.SeriesId };
-          let isNavigate = true
-          dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
-          dispatch(setIsContestEntry(true));
-          dispatch(setSelectedMatch({ ...details }));
-          NavigationService.navigate(SELECT_PLAYER, {
-            matchDetails,
-            isEditMode: false,
-          });
-        } else {
-          dispatch(setSelectedMatch({ ...details }));
-          selectTeam?.current?.open();
-          // NavigationService.navigate(SELECTTEAM, {
-          //   contestDetails: details,
-          //   matchDetails: matchDetails,
-          //   teamDetails: details?.teamDetails,
-          //   JoinWithMULT: details?.JoinWithMULT,
-          //   joinWith: details.teams,
-          //   selectTeam: selectTeam
-          // })
+          dispatch(setSelectedMatch(details ? { ...details } : {}));
+          setSaveTeamName(myTeam?.[0]?.name || '')
         }
       }
-      // }
+      if (details?.teamDetails?.length == myTeam?.length) {
+        dispatch(setAllPlayers([]))
+        let data = { cid: matchDetails?.SeriesId };
+        let isNavigate = true
+        dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
+        dispatch(setIsContestEntry(true));
+        dispatch(setSelectedMatch(details ? { ...details } : {}));
+        NavigationService.navigate(SELECT_PLAYER, {
+          matchDetails: matchDetails || {},
+          isEditMode: false,
+        });
+      } else {
+        dispatch(setSelectedMatch(details ? { ...details } : {}));
+        selectTeam?.current?.open();
+      }
     }
   };
+
   let checkingMulty = details?.teamDetails?.filter((e) => {
     return e?.contest_category_id == details?.contest_category_id
-  })
-  let checkingTrue = checkingMulty?.length == details.teams
+  }) || [];
+  
+  let checkingTrue = checkingMulty?.length == details?.teams;
   return (
     <Pressable style={styles.container} onPress={onClickContest}>
       <View style={styles.topContainer}>
@@ -160,7 +182,7 @@ const ContestCard = ({ details, totalTeamCount }) => {
             justifyContent: 'space-between',
           }}>
           <AppText type={FIFTEEN} weight={LATO_HEAVY} color={WHITE}>
-            ₹{numberWithCommas(details?.winning_amount)}
+            ₹{numberWithCommas(winningAmount)}
           </AppText>
           <AppText
             type={TEN}
@@ -171,31 +193,29 @@ const ContestCard = ({ details, totalTeamCount }) => {
               flex: 1,
               fontWeight: "500"
             }}>
-            {details?.Winning_percent ? Number(details?.Winning_percent)?.toFixed(2) :
-              0}% Winners l 1st ₹{details?.Rankdata[0]?.Price ?
-                details?.Rankdata[0]?.Price : 0}
+            {winningPercent.toFixed(2)}% Winners l 1st ₹{numberWithCommas(firstPrize)}
           </AppText>
           <Pressable 
             style={[
               styles.bedge,
-              details?.Contestsize == details?.joined || details?.remove == true || checkingTrue 
+              contestSize === joined || details?.remove === true || checkingTrue 
                 ? { opacity: 0.5 } 
                 : {}
             ]} 
-            onPress={details?.Contestsize == details?.joined || details?.remove == true || checkingTrue ? null : onJoinContest}
+            onPress={contestSize === joined || details?.remove === true || checkingTrue ? null : onJoinContest}
           >
             <AppText
               numberOfLines={1}
               style={{ color: 'white', marginHorizontal: 5, marginTop: 0, fontWeight: "800" }}
               weight={LATO_BOLD}
               type={THIRTEEN}>
-              ₹{numberWithCommas(details?.EnteryFee || 0)}
+              ₹{numberWithCommas(entryFee)}
             </AppText>
           </Pressable>
         </View>
         <View style={styles.progressBar}>
           <LinearGradient
-            style={{ width: `${percentage}%`, height: '100%', borderRadius: 4 }}
+            style={{ width: `${Math.min(percentage, 100)}%`, height: '100%', borderRadius: 4 }}
             start={{ x: 0, y: 0 }}
             colors={[
               "#DBA73E",
@@ -206,10 +226,10 @@ const ContestCard = ({ details, totalTeamCount }) => {
           <AppText type={TEN}
             weight={POPPINS_MEDIUM}
             color={WHITE}>
-            {`${numberWithCommas(details?.Contestsize)} spots`}
+            {`${numberWithCommas(contestSize)} spots`}
           </AppText>
           <AppText type={TEN} weight={LATO_BOLD} color={GREEN}>
-            {`${details?.Contestsize - (details?.joined || 0)} spots left`}
+            {`${numberWithCommas(spotsLeft)} spots left`}
           </AppText>
         </View>
       </View>
@@ -223,9 +243,9 @@ const ContestCard = ({ details, totalTeamCount }) => {
               weight={POPPINS_SEMI_BOLD}
               style={styles.commonTextStyle}>
               {details?.EnteryType !== 'Paid' ||
-                details?.Rankdata[0]?.Price == undefined
+                firstPrize === 0
                 ? 'Glory awaits!'
-                : `₹${Math.round(details?.Rankdata[0]?.Price)}`}
+                : `₹${numberWithCommas(firstPrize)}`}
             </AppText>
           </View>
           <View style={styles.commonViewStyle}>
@@ -235,10 +255,7 @@ const ContestCard = ({ details, totalTeamCount }) => {
               color={WHITE}
               weight={POPPINS_SEMI_BOLD}
               style={styles.commonTextStyle}>
-              {details?.Winning_percent
-                ? Number(details?.Winning_percent)?.toFixed(2)
-                : 0}
-              %
+              {winningPercent.toFixed(2)}% Winners
             </AppText>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>

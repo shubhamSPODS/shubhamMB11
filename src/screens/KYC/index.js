@@ -126,33 +126,44 @@ const KYC = () => {
   ];
 
   const isVerified = id => {
+    console.log(`Checking verification for id ${id}:`, {
+      mobile: kycDetails?.mobile_verified,
+      email: kycDetails?.email_verified,
+      selfie: kycDetails?.selfie_verified,
+      pan: kycDetails?.pan_verified,
+      bank: kycDetails?.bank_verified,
+      adhar: kycDetails?.adhar_verified
+    });
+
     if (id == 0) {
-      return kycDetails?.mobile_verified == 1;
+      return kycDetails?.mobile_verified == 1 || kycDetails?.mobile_verified === '1';
     } else if (id == 1) {
-      return kycDetails?.email_verified == 1;
+      return kycDetails?.email_verified == 1 || kycDetails?.email_verified === '1';
     } else if (id == 5) {
-      return kycDetails?.selfie_verified == 1;
+      return kycDetails?.selfie_verified == 1 || kycDetails?.selfie_verified === '1';
     } else if (id == 3) {
-      return kycDetails?.pan_verified == 1;
+      return kycDetails?.pan_verified == 1 || kycDetails?.pan_verified === '1';
     } else if (id == 4) {
-      return kycDetails?.bank_verified == 1;
+      return kycDetails?.bank_verified == 1 || kycDetails?.bank_verified === '1';
     } else if (id == 2) {
-      return kycDetails?.adhar_verified == 1;
+      return kycDetails?.adhar_verified == 1 || kycDetails?.adhar_verified === '1';
     }
+    return false;
   };
 
   const checkInProgress = id => {
     if (id == 1) {
-      return kycDetails?.email_verified == 2;
+      return kycDetails?.email_verified == 2 || kycDetails?.email_verified === '2';
     } else if (id == 5) {
-      return kycDetails?.selfie_verified == 2;
+      return kycDetails?.selfie_verified == 2 || kycDetails?.selfie_verified === '2';
     } else if (id == 3) {
-      return kycDetails?.pan_verified == 2;
+      return kycDetails?.pan_verified == 2 || kycDetails?.pan_verified === '2';
     } else if (id == 4) {
-      return kycDetails?.bank_verified == 2;
+      return kycDetails?.bank_verified == 2 || kycDetails?.bank_verified === '2';
     } else if (id == 2) {
-      return kycDetails?.adhar_verified == 2;
+      return kycDetails?.adhar_verified == 2 || kycDetails?.adhar_verified === '2';
     }
+    return false;
   };
   // const newCheck = (kycDetails?.pan_verified == 1 && kycDetails?.email_verified == 1) && (kycDetails?.upi_verified == 1 || kycDetails?.bank_verified == 1)
 
@@ -313,7 +324,7 @@ const KYC = () => {
         />
         <KeyBoardAware style={styles.bottomContainer}>
           <AppText style={[styles.headerText]} type={SIXTEEN} weight={POPPINS_SEMI_BOLD}>
-            Let’s verify KYC
+            Let's verify KYC
           </AppText>
           {DATA.map((item, index) => {
             return renderItem({ item });

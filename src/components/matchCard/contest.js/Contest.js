@@ -12,29 +12,68 @@ const Contest = ({ details, totalTeamCount, matchId }) => {
   const contestList = useSelector(state => state?.match?.contestList);
 
   const renderContest = ({ item }) => {
-    console.log('Rendering contest item:', item);
-    return <ContestCard details={item} totalTeamCount={totalTeamCount} />;
+    if (!item) {
+      console.log('Skipping null or undefined contest item');
+      return null;
+    }
+    
+    // Add default values for required fields
+    const contestDetails = {
+      Contestsize: 2, // Default to 2 for head to head
+      EnteryFee: 0, // Default entry fee
+      Rankdata: [{ Price: 0 }], // Default rank data
+      JoinWithMULT: false,
+      teams: 1,
+      name: 'Contest',
+      Winning_percent: 50, // Default to 50% for head to head
+      ...item // Spread item after defaults to allow overrides
+    };
+    
+    // Calculate entry fee if not provided but winning amount exists
+    if (!contestDetails.EnteryFee && contestDetails.winning_amount) {
+      contestDetails.EnteryFee = Math.ceil(contestDetails.winning_amount * 0.2);
+    }
+    
+    console.log('Rendering contest with details:', contestDetails);
+    
+    return <ContestCard details={contestDetails} totalTeamCount={totalTeamCount} />;
   };
 
   const onSubmit = () => {
     const checkId = details?.data?.[0]?.contest_category_id;
+    if (!checkId) {
+      console.log('No contest category ID found');
+      return;
+    }
+
     const filteredData = contestList?.data?.filter(category =>
-      category.data?.some(contest => contest.contest_category_id === checkId),
+      category?.data?.some(contest => contest?.contest_category_id === checkId),
     );
-    const HighestData = filteredData?.[0]?.data || [];
+
+    if (!filteredData?.length) {
+      console.log('No matching contests found');
+      return;
+    }
+
+    const HighestData = filteredData[0]?.data || [];
     const highPricedItems = [...HighestData].sort(
-      (a, b) => b.winning_amount - a.winning_amount,
+      (a, b) => ((b?.winning_amount || 0) - (a?.winning_amount || 0)),
     );
+    
     dispatch(setAllContest(highPricedItems));
     NavigationService.navigate(ALL_CONTEST_LIST, {
-      contest_category_id: details?.data?.[0]?.contest_category_id,
-      contestName: details?.name,
+      contest_category_id: checkId,
+      contestName: details?.name || 'Contest',
       matchId: matchId,
       totalTeamCount: totalTeamCount,
     });
   };
 
-  if (!details?.data?.length) {
+  // Check if we have contest data in the correct structure
+  const contestData = details?.contest_details?.[0]?.data || details?.data || [];
+  
+  if (!contestData?.length) {
+    console.log('No contest data available:', details);
     return null;
   }
 
@@ -51,13 +90,13 @@ const Contest = ({ details, totalTeamCount, matchId }) => {
           type={SIXTEEN}
           style={{marginVertical: 10}}
           weight={POPPINS_BOLD}>
-          {details?.name}
+          {details?.name || 'Contest'}
         </AppText>
       </View>
       <FlatList
-        data={details?.data}
+        data={contestData}
         renderItem={renderContest}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={item => item?.contest_category_id || item?._id || Math.random().toString()}
         showsVerticalScrollIndicator={false}
       />
     </View>

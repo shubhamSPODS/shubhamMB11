@@ -36,8 +36,8 @@ const LudoGameMode = () => {
         },
         {
             id: 2,
-            name: 'Ludo 50',
-            description: `In this game each player will get 50 moves. All tokens will be ready to move from starting of the game. Players to score higher points will WIN the game.`,
+            name: 'Ludo 51',
+            description: `In this game each player will get 51 moves. All tokens will be ready to move from starting of the game. Players to score higher points will WIN the game.`,
             img: DICE2,
             gameMode: 'Turbo',
         },
@@ -52,7 +52,6 @@ const LudoGameMode = () => {
         return () => backHandler.remove();
     }, [navigation]);
 
-    // Handle navigation when Home tab becomes active
     useFocusEffect(
         React.useCallback(() => {
             const parent = navigation.getParent();

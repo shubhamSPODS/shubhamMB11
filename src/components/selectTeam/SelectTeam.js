@@ -8,6 +8,7 @@ import {
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import styles from './styles';
 import FastImage from "@d11/react-native-fast-image";
+import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 
 import { CLOSE_WHITE_ICON, greenmark } from '../../helper/image';
 import {
@@ -40,7 +41,6 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, joinWi
   const [saveTeamName, setSaveTeamName] = useState('');
   const [selectMulty, setSelectMulty] = useState([]);
 
-  // Memoize filtered and processed data
   const { filteredData, newData, result } = useMemo(() => {
     const filtered = myTeam
       .filter(dataItem => {
@@ -135,7 +135,7 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, joinWi
   }, [onClose]);
 
   return (
-    <View style={styles.container}>
+    <AppSafeAreaView style={styles.container}>
       <View style={styles.topContainer}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <AppText type={SIXTEEN} weight={POPPINS_BOLD_ITALIC}>
@@ -218,7 +218,7 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, joinWi
         selectMulty={selectMulty}
         JoinWithMULT={JoinWithMULT}
       />
-    </View>
+    </AppSafeAreaView>
   );
 };
 

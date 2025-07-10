@@ -33,20 +33,32 @@ const Winnings = ({ id, privateis, notLive, rankData }) => {
   //   getPrizeList();
   // }, [isFocus]);
   const renderWinnings = ({ item }) => {
+    if (!item) {
+      console.log('Skipping null or undefined rank item');
+      return null;
+    }
+
+    const startRank = Number(item?.StartRank || 0);
+    const endRank = Number(item?.EndRank || 0);
+    const price = Number(item?.Price || 0);
+
+    console.log('Rendering rank item:', { startRank, endRank, price });
+
     return (
       <>
-        {item?.EndRank !== null ?
+        {endRank !== null ? (
           <View style={styles.winningContainer}>
             <AppText color={WHITE}>
-              #{item.StartRank == item?.EndRank ? item.StartRank : `${item?.StartRank}-${item?.EndRank}`}
+              #{startRank === endRank ? startRank : `${startRank}-${endRank}`}
             </AppText>
-            <AppText color={WHITE}>{parseInt(item?.Price)?.toFixed(2)}</AppText>
-          </View >
-          : <View style={{
+            <AppText color={WHITE}>₹{price.toFixed(2)}</AppText>
+          </View>
+        ) : (
+          <View style={{
             alignItems: "center",
             justifyContent: "center",
             marginTop: "20%"
-          }} >
+          }}>
             <AppText weight={POPPINS_BOLD}
               type={FORTEEN}
               color={LIGHTBLUE}>
@@ -68,10 +80,7 @@ const Winnings = ({ id, privateis, notLive, rankData }) => {
               }}
             />
           </View>
-
-        }
-        
-         
+        )}
       </>
     );
   };

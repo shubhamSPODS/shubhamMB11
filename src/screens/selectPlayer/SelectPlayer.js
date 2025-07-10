@@ -292,7 +292,6 @@ const SelectPlayer = () => {
   const route = useRoute();
   const layout = useWindowDimensions();
   
-  // Tab state management
   const [index, setIndex] = useState(0);
   const [routes] = useState([
     { key: 'pl', title: 'Squads' },
@@ -302,7 +301,6 @@ const SelectPlayer = () => {
     { key: 'bowl', title: 'BOWL' },
   ]);
 
-  // Other state declarations
   const [saveTitle, setSaveTitle] = useState('');
   const [newAllPlayer, setNewAllPlayer] = useState('high');
   const AleartLive = useRef();
@@ -340,7 +338,6 @@ const SelectPlayer = () => {
   };
   const removedSpacesTeamsTitle = convertToTeamsTitle2(contestData?.TeamsTitle);
 
-  // Define sorting functions
   const customSort = useCallback((a, b) => {
     if (a.playing11 === b.playing11) return 0;
     if (a.playing11 === 'true') return -1;
@@ -487,7 +484,6 @@ const SelectPlayer = () => {
 
   const handlePlayerSelection = useCallback((player) => {
     if (selectedPlayers.includes(player.pid)) {
-      // Remove player
       setSelectedPlayers(prev => prev.filter(id => id !== player.pid));
       setSelectedPlayersDetails(prev => prev.filter(p => p.pid !== player.pid));
       setAvailableCredits(prev => prev + player.fantasy_player_rating);
@@ -498,13 +494,11 @@ const SelectPlayer = () => {
         setPlayerTwo(prev => prev.filter(p => p.pid !== player.pid));
       }
     } else {
-      // Check if we can add more players
       if (selectedPlayers.length >= 11) {
         toastAlert.showToastError('You cannot select more than 11 players');
         return;
       }
 
-      // Check team balance
       const teamACount = player.title === removedSpacesTeamsTitle[0] 
         ? player.length + 1 
         : player.length;
@@ -626,11 +620,9 @@ const SelectPlayer = () => {
       filteredPlayers = allPlayers.filter(player => player.playing_role === role);
     }
 
-    // Group players by team
     const teamAPlayers = filteredPlayers.filter(p => p.title === removedSpacesTeamsTitle[0]);
     const teamBPlayers = filteredPlayers.filter(p => p.title === removedSpacesTeamsTitle[1]);
 
-    // Apply sorting based on saveTitle and newAllPlayer
     const sortPlayers = (players) => {
       if (saveTitle === 'PLAYERS') {
         return newAllPlayer === 'high'
@@ -782,25 +774,22 @@ const SelectPlayer = () => {
 
   const { width } = useWindowDimensions();
   
-  // Create data provider
   const dataProvider = useMemo(() => {
     return new DataProvider((r1, r2) => {
       return r1.pid !== r2.pid;
     });
   }, []);
 
-  // Memoize the data provider with current data
   const memoizedDataProvider = useMemo(() => {
     return dataProvider.cloneWithRows(getPlayersData() || []);
   }, [dataProvider, getPlayersData]);
 
-  // Create layout provider
   const layoutProvider = useMemo(() => {
     return new LayoutProvider(
-      () => 0, // Only one view type
+      () => 0, 
       (type, dim) => {
         dim.width = width;
-        dim.height = 80; // Adjust this based on your item height
+        dim.height = 80; 
       }
     );
   }, [width]);
@@ -881,15 +870,11 @@ const SelectPlayer = () => {
     
     const { teamA, teamB } = getPlayersData(route.key.toLowerCase());
     
-    // Special handling for Squads tab
     if (route.key === 'pl') {
-      // Calculate the maximum length needed for the lists
       const maxLength = Math.max(teamA.length, teamB.length);
-      // Create arrays of equal length by padding with null
       const paddedTeamA = [...teamA, ...Array(maxLength - teamA.length).fill(null)];
       const paddedTeamB = [...teamB, ...Array(maxLength - teamB.length).fill(null)];
       
-      // Combine both teams into pairs
       const combinedData = paddedTeamA.map((teamAPlayer, index) => ({
         teamAPlayer,
         teamBPlayer: paddedTeamB[index],
@@ -952,7 +937,6 @@ const SelectPlayer = () => {
       );
     }
     
-    // Regular tab view for other tabs
     return (
       <View style={{ flex: 1, marginTop: 10 }}>
         <FlatList

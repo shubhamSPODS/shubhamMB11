@@ -17,13 +17,13 @@ import PrimaryButton from '../common/primaryButton'
 import Loader from '../components/Loader'
 import { USER_TOKEN_KEY } from '../libs/constants'
 import LinearGradient from 'react-native-linear-gradient'
+import WebView from 'react-native-webview'
 
 const GameJoinTable = ({ route, navigation }) => {
     const userData = useSelector(state => {
         return state.profile.userData;
     });
     console.log(userData, '==userdqata');
-
 
     const [matchId, setMatchId] = useState('');
     const walletBalance = Number(userData?.winning_amount || 0) + Number(userData?.cash_bonus || 0) + Number(userData?.totaldeposit || 0);
@@ -112,61 +112,53 @@ const GameJoinTable = ({ route, navigation }) => {
             }
         });
     };
-    const handleJoinTable = () => {
+    const handleJoinTable = async () => {
         if (walletBalance === 0) {
             toastAlert.showToastError('Match not found.');
             return;
         }
 
-        if (!socket.current?.connected) {
-            setupSocketConnection();
-        }
-
-        if (socket.current?.connected) {
+        const baseUrl = 'http://103.110.127.215:3006';
+        const endpoint = '/findgame';
+        
+        try {
             setIsLoading(true);
-            setIsJoining(true);
+            console.log('Starting game join process...');
+            console.log('User data:', userData);
+            console.log('User token:', userToken);
 
-            socket.current.emit('get_players', {
-                playerId: userData?._id,
-                contestId: routeData?._id,
-                timestamp: Date.now()
+            // Construct the game URL with query parameters
+            const gameUrl = `${baseUrl}${endpoint}?userId=${userData?._id}&tableId=${routeData?._id}`;
+            console.log('Navigating to game URL:', gameUrl);
+
+            // Navigate directly to WebView
+            navigation.navigate('GameWebView', {
+                url: gameUrl,
+                token: userToken,
+                userId: userData?._id,
+                tableId: routeData?._id
             });
-        } else {
+
             setIsLoading(false);
+
+        } catch (error) {
+            setIsLoading(false);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            
+            toastAlert.showToastError('Unable to join game. Please try again.');
         }
     };
     const onMatchIdFound = async () => {
         try {
             const matchFoundRes = await GET_WITH_TOKEN(`game/${matchId}`);
             if (matchFoundRes?.success === true) {
-                const otherPlayerIds = matchFoundRes?.data?.players?.filter(
-                    playerId => playerId !== userData?._id
-                );
-                const playerProfiles = await Promise.all(
-                    otherPlayerIds.map(async (playerId) => {
-                        try {
-                            const profileRes = await GET_WITH_TOKEN(`user/getprofile?user_id=${playerId}`);
-                            if (profileRes?.success) {
-                                return {
-                                    name: profileRes?.data?.username || 'Player',
-                                    _id: profileRes?.data?.id,
-                                    avatar: !profileRes?.data?.logo ? USER_IMG : `${BASE_URL}${profileRes?.data?.logo}`,
-                                    joinedAt: 'Just now'
-                                };
-                            }
-                            return null;
-                        } catch (error) {
-                            console.log(`Error fetching profile for ${playerId}:`, error);
-                            return null;
-                        }
-                    })
-                );
-                const validPlayers = playerProfiles?.filter(player => player !== null);
-                setPlayers(validPlayers);
-                if (!!validPlayers) {
-                    setIsLoading(false);
-                    navigation.goBack();
-                }
+                setIsLoading(false);
+                const webViewUrl = `http://192.168.240.1:3006//findgame?userId=${userData?._id}&tableId=${matchId}`;
+                navigation.replace('GameWebView', { url: webViewUrl });
             }
         } catch (error) {
             console.log(error, '==error');
@@ -290,7 +282,6 @@ const GameJoinTable = ({ route, navigation }) => {
             </View>
 
             <TouchableOpacity
-                disabled={isJoining || isWaitingForUnity || isCountdownActive}
                 onPress={handleJoinTable}
                 style={{ width: '90%', alignSelf: 'center', marginTop: 10, borderRadius: 10 }}>
                 <LinearGradient
@@ -302,7 +293,7 @@ const GameJoinTable = ({ route, navigation }) => {
                         type={SIXTEEN}
                         weight={POPPINS_BOLD}
                         style={[styles.buttonText]}>
-                        {isWaitingForUnity ? formatTime(countdown) : (isJoining ? "Waiting for Match..." : "Join Table Now")}
+                        Join Table Now
                     </AppText>
                 </LinearGradient>
             </TouchableOpacity>

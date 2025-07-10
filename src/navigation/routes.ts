@@ -89,6 +89,7 @@ export const RUMMY_GAME_MODE='RummyGameMode'
 
 export const GAME_TABLE='GameTable'
 export const GAME_JOIN_TABLE='GameJoinTable'
+export const GAME_WEB_VIEW='GameWebView'
 
 export const CRICKET_TAB = 'CRICKET_TAB';
 
