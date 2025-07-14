@@ -40,6 +40,7 @@ import {
   setAllPlayers,
   setIsContestEntry,
   setLoading,
+  setContestCategories,
 } from '../../slices/matchSlice';
 import styles from './styles';
 import Contest from '../../components/matchCard/contest.js/Contest';
@@ -100,6 +101,7 @@ const MyContest = () => {
   const MyCreateContestData = useSelector(
     state => state?.match?.MyCreateContestData,
   );
+  const allContestList = useSelector(state => state?.match?.allContestList);
   const currentDate = new Date();
   const inputDate = new Date(contestData?.StartDateTime);
   const isPastTime = inputDate < currentDate;
@@ -112,8 +114,19 @@ const MyContest = () => {
   const [saveTitle, setTitle] = useState('');
   const [activeTab, setActiveTab] = useState(1);
   const [matchActiveTab, setMatchActiveTab] = useState('');
+  const [isSheet, setIsSheet] = useState(false);
+  const {matchType = 'teams', matchId} = route.params || {};
   const layout = useWindowDimensions();
-  const {matchType} = route.params || {matchType: 'teams'};
+
+  const onRefresh = useCallback(() => {
+    let outputObject = {};
+    dispatch(getContestList(outputObject, _id));
+    dispatch(getMyTeam(_id));
+    dispatch(getMyJoinedContest(_id));
+    dispatch(MycreateContest(_id));
+    let data = {cid: SeriesId};
+    dispatch(getAllPlayerList(_id, data));
+  }, [_id, SeriesId, dispatch]);
   
   const DATA = [
     {
@@ -165,10 +178,12 @@ const MyContest = () => {
   }, []);
 
   const renderItem = ({item}) => {
-    // console.log('Rendering item:', item);
     return (
       <ContestCard
-        details={item}
+        details={{
+          ...item,
+          contest_category_details: item.contest_category_details || []
+        }}
         totalTeamCount={myTeam?.length}
       />
     );
@@ -197,13 +212,37 @@ const MyContest = () => {
   const renderMyContest = ({item}) => {
     return <MyContestList item={item} matchDetails={route?.params} />;
   };
+
   const renderContest = ({item}) => {
+    console.log('Rendering contest:', {
+      id: item._id,
+      entryFee: item.EntryFee,
+      contestSize: item.ContestSize,
+      contest_category_details: contestList?.contest_category_details
+    });
+    
     return (
-      <>
-        <ContestCard details={item} totalTeamCount={myTeam?.length} />
-      </>
+      <ContestCard
+        details={{
+          ...item,
+          contest_category_details: contestList?.contest_category_details || []
+        }}
+        totalTeamCount={myTeam?.length}
+        matchDetails={contestData}
+        onPress={() => {
+          dispatch(setIsContestEntry(true));
+          dispatch(setContestData(item));
+          NavigationService.navigate(MY_CONTEST, {
+            contestId: item?._id,
+            matchId: contestData?._id,
+            teamId: item?.teamId,
+            matchType: contestData?.Type,
+          });
+        }}
+      />
     );
   };
+
   const renderMyCreateContest = () => {
     return (
       MyCreateContestData &&
@@ -246,26 +285,6 @@ const MyContest = () => {
       </View>
     );
   };
-  const EmptyComponentTwo = () => {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        <AppText
-          style={{
-            color: 'white',
-            fontSize: 14,
-            textAlign: 'center',
-          }}>
-          You haven't created a team yet!{'\n'}The first step to winning starts
-          here.
-        </AppText>
-      </View>
-    );
-  };
 
   const userData = useSelector(state => {
     return state.profile.userData;
@@ -284,21 +303,21 @@ const MyContest = () => {
           key: 'first',
           title:
             route?.params?.isFromMyMatch == true
-              ? `MyContest (${myContest?.length + MyCreateContestData?.length})`
+              ? 'Contest'
               : 'Contest',
         },
         {
           key: 'second',
           title:
             route?.params?.isFromMyMatch == true
-              ? matchType === 'teams' ? `My Team (${myTeam?.length})` : 'My Scoreboard'
+              ? matchType === 'teams' ? `My Team` : 'My Contest'
               : 'My Contest',
         },
         {
           key: 'third',
           title:
-            route?.params?.isFromMyMatch == true 
-              ? 'Player Stats' 
+            route?.params?.isFromMyMatch == true && matchType === 'scoreboard'
+              ? 'My Scoreboard' 
               : matchType === 'teams' 
                 ? `My Team (${myTeam?.length})` 
                 : 'My Scoreboard',
@@ -311,19 +330,56 @@ const MyContest = () => {
   const [routes, setRoutes] = React.useState([
     {
       key: 'first',
-      title: route?.params?.isFromMyMatch == true ? `MyContest (${0})` : 'Contest',
+      title: route?.params?.isFromMyMatch == true ? `Contest` : 'Contest',
     },
     {
       key: 'second',
-      title: route?.params?.isFromMyMatch == true ? matchType === 'teams' ? `My Team (${0})` : 'My Scoreboard' : 'My Contest',
+      title: route?.params?.isFromMyMatch == true ? matchType === 'teams' ? `My Team (${0})` :  'My Contest' : 'My Contest',
     },
     {
       key: 'third',
-      title: route?.params?.isFromMyMatch == true ? 'Player Stats' : matchType === 'teams' ? `My Team (${0})` : 'My Scoreboard',
+      title: route?.params?.isFromMyMatch == true ? 'Player Stats' : matchType === 'teams' ? `My Team (${0})` : 'My Contest',
     },
   ]);
   const [removeTabs, setRemoveTabs] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (matchId) {
+      const fetchContestData = async () => {
+        try {
+          const response = await dispatch(getContestList({}, matchId));
+          console.log('Full API Response:', JSON.stringify(response, null, 2));
+          
+          // Check if contest_category_details exists in any contest
+          const hasContestDetails = response?.payload?.data?.some(
+            contest => contest.contest_category_details?.Rankdata?.length > 0
+          );
+          console.log('Has Rankdata in response:', hasContestDetails);
+          
+          // Extract and log sample contest category details
+          const sampleContest = response?.payload?.data?.find(
+            contest => contest.contest_category_details?.Rankdata?.length > 0
+          );
+          console.log('Sample Contest with Rankdata:', {
+            id: sampleContest?._id,
+            rankDataLength: sampleContest?.contest_category_details?.Rankdata?.length
+          });
+          
+          // Update contest categories
+          const categories = response?.payload?.data
+            ?.filter(c => c.contest_category_details)
+            ?.map(c => c.contest_category_details);
+          dispatch(setContestCategories(categories || []));
+          
+          console.log('Stored contest categories:', categories?.length);
+        } catch (error) {
+          console.error('Error fetching contest list:', error);
+        }
+      };
+      fetchContestData();
+    }
+  }, [matchId, dispatch]);
 
   useEffect(() => {
     let intervalId;
@@ -340,109 +396,80 @@ const MyContest = () => {
   }, [handleRefresh, route?.params?.isFromMyMatch]);
 
   const FirstRoute = () => {
-    const contestData = contestList?.data?.[0]?.data || [];
-    // console.log('Contest Data in FirstRoute:', contestData);
-    
+    const contestDataForList = useMemo(() => {
+      if (matchType === 'teams') {
+        return contestData?.teams;
+      } else if (matchType === 'scoreboard') {
+        return contestData?.scorecard;
+      } else {
+        return allContestList
+          ? allContestList
+          : contestList?.data?.[0]?.data
+          ? contestList.data[0].data
+          : transformedData;
+      }
+    }, [matchType, contestData, allContestList, contestList, transformedData]);
+
     return (
-      <>
-        {route?.params?.isFromMyMatch == true ? (
-          <View style={{flex: 1}}>
+      <View style={flexOne}>
+        {MyCreateContestData?.length > 0 && (
+          <View>
+            <AppText
+              style={{marginTop: 20, marginLeft: 10}}
+              weight={POPPINS_SEMI_BOLD}>
+              My Created Contest
+            </AppText>
             <FlatList
-              data={myContest}
-              showsVerticalScrollIndicator={false}
-              renderItem={renderMyContest}
-              ListHeaderComponent={renderMyCreateContest}
-              ListEmptyComponent={<EmptyComponent />}
-              keyExtractor={(item, index) => index.toString()}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isLoading}
-                  onRefresh={() => handleRefresh('my contest')}
-                />
-              }
-              style={{
-                width: '100%',
-                alignSelf: 'center',
-                flex: flexOne,
-              }}
-              contentContainerStyle={{
-                flexGrow: flexOne,
-              }}
+              data={MyCreateContestData}
+              renderItem={renderMyCreateContest}
+              keyExtractor={item => item?._id}
             />
           </View>
-        ) : (
-          <View style={{width: Screen.Width - 10, alignSelf: 'center', marginTop: 5}}>
-            {SortbyFilterData?.length > 0 ? (
-              <FlatList
-                data={SortbyFilterData}
-                renderItem={renderItem}
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{marginTop: 10}}
-                keyExtractor={(item, index) => index.toString()}
-                ListFooterComponent={() => {
-                  return <View style={{height: 80}} />;
-                }}
-              />
-            ) : (
-              <>
-                {!route?.params?.isFromMyMatch && (
-                  <FlatList
-                    data={contestData}
-                    showsVerticalScrollIndicator={false}
-                    renderItem={renderItem}
-                    keyExtractor={(item, index) => index.toString()}
-                    refreshControl={
-                      <RefreshControl
-                        refreshing={isLoading}
-                        onRefresh={() => handleRefresh('contest')}
-                      />
-                    }
-                    style={{width: '100%', alignSelf: 'center'}}
-                    ListEmptyComponent={() => (
-                      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50}}>
-                        <AppText weight={POPPINS_MEDIUM}>
-                          No contests available for this match
-                        </AppText>
-                      </View>
-                    )}
-                  />
-                )}
-              </>
-            )}
-          </View>
         )}
-      </>
+        <FlatList
+          data={contestDataForList}
+          renderItem={renderContest}
+          showsVerticalScrollIndicator={false}
+          style={{paddingBottom: 50}}
+          keyExtractor={(item, index) => index.toString()}
+          ListEmptyComponent={EmptyComponent}
+          refreshControl={
+            <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
+          }
+        />
+      </View>
     );
   };
+
   const SecondRoute = () => {
     return (
       <>
         {route?.params?.isFromMyMatch == true ? (
           <View
             style={{
-              flex: flexOne,
+              width: Screen.Width - 10,
+              alignSelf: 'center',
+              marginTop: 5,
             }}>
             <FlatList
-              data={myTeam}
-              renderItem={renderMyTeam}
+              data={myContest}
               showsVerticalScrollIndicator={false}
-              keyExtractor={keyExtractor}
-              maxToRenderPerBatch={10}
-              windowSize={5}
-              removeClippedSubviews={true}
-              ListEmptyComponent={<EmptyComponentTwo />}
-              contentContainerStyle={{ paddingBottom: 10 }}
+              renderItem={renderMyContest}
+              ListHeaderComponent={renderMyCreateContest}
+              ListEmptyComponent={() => {
+                return (
+                  <View style={{marginTop: 30}}>
+                    <EmptyComponent />
+                  </View>
+                );
+              }}
+              keyExtractor={(item, index) => index.toString()}
               refreshControl={
                 <RefreshControl
                   refreshing={false}
-                  onRefresh={() => handleRefresh('my team')}
+                  onRefresh={() => handleRefresh('my contest')}
                 />
               }
-              style={{
-                width: '100%',
-                flex: flexOne,
-                alignSelf: 'center',
-              }}
             />
           </View>
         ) : (
@@ -479,14 +506,31 @@ const MyContest = () => {
   };
 
   const ThirdRoute = () => {
+    if (matchType === 'teams' && myTeam?.length === 0) {
+      return (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
+            You haven't created any team for this match
+          </AppText>
+        </View>
+      );
+    } else if (matchType === 'scoreboard' && myContest?.length === 0) {
+      return (
+        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+          <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
+            You haven't created any Scoreboard yet
+          </AppText>
+        </View>
+      );
+    }
     return (
       <View style={{ flex: 1 }}>
         {matchType === 'teams' ? (
           <FlatList
             data={myTeam}
-            showsVerticalScrollIndicator={false}
             renderItem={renderMyTeam}
-            ListEmptyComponent={<EmptyComponentTwo />}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={<EmptyComponent />}
             keyExtractor={keyExtractor}
             refreshControl={
               <RefreshControl
@@ -494,36 +538,31 @@ const MyContest = () => {
                 onRefresh={() => handleRefresh('my team')}
               />
             }
-            style={{
-              width: '100%',
-              alignSelf: 'center',
-              flex: flexOne,
-            }}
-            contentContainerStyle={{
-              flexGrow: flexOne,
-              paddingHorizontal: 15,
-              paddingVertical: 10,
-            }}
           />
         ) : (
-          <List />
+          <FlatList
+            data={myContest}
+            renderItem={renderItem}
+            showsVerticalScrollIndicator={false}
+            keyExtractor={(item, index) => index.toString()}
+            contentContainerStyle={{paddingBottom: 50}}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={() => handleRefresh('my scoreboard')}
+              />
+            }
+          />
         )}
       </View>
     );
   };
 
-  const renderScene = ({route}) => {
-    switch (route.key) {
-      case 'first':
-        return <FirstRoute />;
-      case 'second':
-        return <SecondRoute />;
-      case 'third':
-        return <ThirdRoute />;
-      default:
-        return null;
-    }
-  };
+  const renderScene = SceneMap({
+    first: FirstRoute,
+    second: SecondRoute,
+    third: ThirdRoute,
+  });
 
   const handleCreatePress = () => {
     if (matchType === 'scoreboard') {
@@ -539,6 +578,15 @@ const MyContest = () => {
       NavigationService.navigate(SELECT_PLAYER, contestData, isFromMyMatch);
       dispatch(setIsContestEntry(false));
     }
+  };
+
+  const shouldShowCreateButton = () => {
+    console.log('Button conditions:', {
+      activeTab,
+      routeParams: route.params,
+      isPastTime
+    });
+    return true; // Temporarily always show for debugging
   };
 
   return (
@@ -788,9 +836,7 @@ const MyContest = () => {
                       </TouchableOpacityView>
                     )}
                   />
-                  <TouchableOpacityView
-                    onPress={() => filterSheet.current.open()}
-                    style={styles.filtermainbackground}>
+                  <TouchableOpacityView onPress={() => filterSheet.current.open()} style={styles.filtermainbackground}>
                     <FastImage
                       source={FILTER_ICON}
                       tintColor={colors.white}
@@ -835,26 +881,21 @@ const MyContest = () => {
             setContest={setContest}
           />
         </RBSheet>
-        {activeTab !== 2 &&
-          !route?.params?.isFromMyMatch &&
-          isPastTime != 'false' && (
-            <View
-              style={[
-                styles.buttonContainer,
+        {shouldShowCreateButton() && (
+          <View style={[
+            styles.buttonContainer,
                 {marginVertical: Platform.OS == 'ios' ? 20 : 10},
-              ]}>
-              <View style={{flexDirection: 'row', justifyContent: 'space-between', width: '100%', paddingHorizontal: 10}}>
-                <PrimaryButton
-                  buttonStyle={[
-                    styles.buttonStyle,
+          ]}>
+            <PrimaryButton
+              buttonStyle={[
+                styles.buttonStyle,
                     {marginTop: Platform.OS == 'ios' ? -5 : 0, marginBottom: 13, width: '100%'},
-                  ]}
-                  onPress={handleCreatePress}
-                  title={matchType === 'teams' ? 'CREATE TEAM' : 'CREATE SCOREBOARD'}
-                />
-              </View>
-            </View>
-          )}
+              ]}
+              onPress={handleCreatePress}
+              title={route.params?.matchType === 'scoreboard' ? 'CREATE SCOREBOARD' : 'CREATE TEAM'}
+            />
+          </View>
+        )}
         <SpinnerSecond loading={isLoading} />
       </CommonImageBackground>
       <MatchLiveModal AleartLive={AleartLive} />

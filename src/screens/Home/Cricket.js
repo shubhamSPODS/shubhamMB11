@@ -23,7 +23,7 @@ import Matchsection, { getDate } from './Matchsection';
 import { BOTTOM_TAB_CONTEST_SCREEN } from '../../navigation/routes';
 import NavigationService from '../../navigation/NavigationService';
 import { universalPaddingHorizontal } from '../../theme/dimens';
-import { setMyMatchesHome, setUpComingMatches } from '../../slices/matchSlice';
+import { setMyMatchesHome, setUpComingMatches, getContestList, setSelectedMatch } from '../../slices/matchSlice';
 import { KeyBoardAware } from '../../common/KeyboardAware';
 import { BASE_URL } from '../../helper/utility';
 import { TabView, TabBar } from 'react-native-tab-view';
@@ -36,6 +36,19 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   const wsRef = useRef(null);
   const upcomingMatches = useSelector(state => state.match.upcomingMatches);
   const myMatchesHome = useSelector(state => state.match.myMatchesHome);
+  const contestList = useSelector(state => state.match.contestList);
+  
+  // Add logging for matches
+  useEffect(() => {
+    console.log('=== My Matches ===', myMatchesHome);
+    console.log('=== Upcoming Matches ===', upcomingMatches);
+    // Add logging for filtered matches
+    const teamsMatches = upcomingMatches.filter(match => !match.scorecard || match.scorecard.length === 0);
+    const scoreboardMatches = upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
+    console.log('=== Teams Tab Matches ===', teamsMatches.length);
+    console.log('=== Scoreboard Tab Matches ===', scoreboardMatches.length);
+  }, [myMatchesHome, upcomingMatches]);
+
   const userData = useSelector(state => {
     return state.profile.userData;
   });
@@ -55,11 +68,11 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   // Filter matches based on type (will be updated when API provides separate arrays)
   const getFilteredMatches = () => {
     if (index === 0) {
-      // Return team matches when API provides them
-      return upcomingMatches;
+      // For Teams tab, return matches that have a 'teams' array with items
+      return upcomingMatches.filter(match => match.teams && match.teams.length > 0);
     } else {
-      // Return scoreboard matches when API provides them
-      return upcomingMatches;
+      // For Scoreboard tab, return matches that have a 'scorecard' array with items
+      return upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
     }
   };
 
@@ -90,34 +103,116 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     }
     try {
       wsRef.current = new WebSocket(URL);
-      wsRef.current.onopen = () => {};
-      if (!wsRef.current) return;
+      wsRef.current.onopen = () => {
+        console.log('WebSocket connection established to:', URL);
+      };
       wsRef.current.onmessage = e => {
+        console.log('Full WebSocket response:', JSON.parse(e.data));
         const parseData = JSON.parse(e?.data);
         let temp = parseData?.upcoming;
+        
+        // Log contest data before dispatch
+        if (temp && temp.length > 0) {
+          temp.forEach(match => {
+            console.log('Match contests:', {
+              matchId: match._id,
+              contests: match.teams,
+              entryFees: match.teams?.map(t => t.EntryFee),
+              contestSizes: match.teams?.map(t => t.ContestSize)
+            });
+          });
+        }
+        
         dispatch(setUpComingMatches(temp));
         dispatch(setMyMatchesHome(parseData?.mymatches));
+        
+        // Extract and dispatch contest data for each match
+        if (temp && temp.length > 0) {
+          temp.forEach(match => {
+            if (match.teams && match.teams.length > 0) {
+              const contests = match.teams.map(contest => ({
+                ...contest,
+                matchId: match._id,
+                matchName: match.Team1vsTeam2
+              }));
+              dispatch(getContestList(contests, match._id));
+            }
+          });
+        }
+        setRefreshing(false);
+        setRefreshingTwo(false);
+      };
+      wsRef.current.onerror = e => {
+        console.log('WebSocket error:', e);
+        setRefreshing(false);
+        setRefreshingTwo(false);
+      };
+      wsRef.current.onclose = e => {
+        setRefreshing(false);
+        setRefreshingTwo(false);
       };
     } catch (error) {
-      console.log(error);
-    } finally {
-      setRefreshingTwo(false);
+      console.log('error', error);
       setRefreshing(false);
+      setRefreshingTwo(false);
     }
   }, [_id]);
 
   const renderScene = ({route}) => {
     const filteredMatches = getFilteredMatches();
+    console.log(`Rendering ${route.key} tab with ${filteredMatches?.length} matches`);
+    
+    // Add contest_details array if it doesn't exist
+    const matchesWithContests = filteredMatches.map(match => ({
+      ...match,
+      contest_details: contestList?.data?.filter(contest => contest.matchid === match._id) || [],
+    }));
+
     return (
-      <KeyBoardAware
+      <ScrollView
         refreshControl={
           <RefreshControl refreshing={refershing} onRefresh={onRefresh} />
         }
-        style={styles.flatlistContainer}>
-        {filteredMatches?.map(item => {
-          return <MatchCard details={item} matchType={route.key} />;
+        style={styles.flatlistContainer}
+        contentContainerStyle={styles.scrollContent}>
+        {matchesWithContests?.map((item, idx) => {
+          console.log(`Rendering match ${idx}:`, {
+            id: item._id,
+            teams: item.Team1vsTeam2,
+            hasContests: item.contest_details?.length > 0
+          });
+          return (
+            <MatchCard 
+              key={`${route.key}-${item._id || idx}`}
+              details={item} 
+              matchType={route.key}
+              isFromMyMatch={false}
+              isHome={true}
+              onPressScoreboard={() => {
+                const onPressScoreboard = item => {
+                  dispatch(setSelectedMatch(item));
+                  NavigationService.navigate('MY_CONTEST', {
+                    matchId: item._id,
+                    matchType: 'scoreboard',
+                    TeamA: item.TeamA,
+                    TeamB: item.TeamB,
+                    isFromMyMatch: false,
+                    contestId: item.contestId,
+                  });
+                };
+                onPressScoreboard(item);
+              }}
+            />
+          );
         })}
-      </KeyBoardAware>
+        {matchesWithContests?.length === 0 && (
+          <View style={styles.noMatchesContainer}>
+            <AppText type={EIGHTEEN} weight={POPPINS_MEDIUM} color={WHITE}>
+              No matches available
+            </AppText>
+          </View>
+        )}
+      </ScrollView>
     );
   };
 
@@ -172,17 +267,16 @@ const Cricket = ({ random, setRefreshingTwo }) => {
             <ScrollView
               showsHorizontalScrollIndicator={false}
               horizontal={true}>
-              {myMatchesHome?.map((data, index) => {
-                return (
-                  <Matchsection
-                    details={data}
-                    isFromMyMatch={true}
-                    tab={'Upcoming'}
-                    isHome={true}
-                    index={index}
-                  />
-                );
-              })}
+              {myMatchesHome?.map((data, index) => (
+                <Matchsection
+                  key={`my-match-${data._id || index}`}
+                  details={data}
+                  isFromMyMatch={true}
+                  tab={'Upcoming'}
+                  isHome={true}
+                  index={index}
+                />
+              ))}
             </ScrollView>
           </View>
         </View>
@@ -202,6 +296,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         onIndexChange={setIndex}
         initialLayout={{width: layout.width}}
         renderTabBar={renderTabBar}
+        style={styles.tabView}
       />
     </View>
   );
@@ -210,6 +305,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000',
   },
   one: {
     flexDirection: 'row',
@@ -228,9 +324,23 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   flatlistContainer: {
+    flex: 1,
     width: '100%',
-    marginTop: 5,
+    backgroundColor: '#000000',
+  },
+  scrollContent: {
     paddingHorizontal: universalPaddingHorizontal,
+    paddingBottom: 20,
+  },
+  tabView: {
+    flex: 1,
+  },
+  noMatchesContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 20,
   },
 });
+
 export default Cricket;

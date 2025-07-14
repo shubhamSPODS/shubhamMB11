@@ -40,82 +40,120 @@ import { NewColor, colors } from '../../../theme/color';
 
 const ContestCard = ({ details, totalTeamCount }) => {
   if (!details) {
-    console.log('Contest details are undefined');
+    console.log('Contest details:', details);
     return null;
   }
 
+  // Get full contest details including Rankdata
+  const contestDetails = details?.contest_category_details?.find(
+    cat => cat?._id === details?.contest_category_id
+  ) || details;
+
+  // Log contest data for debugging
+  console.log('Contest data received:', {
+    entryFee: details.EntryFee || details.EnteryFee,
+    contestSize: details.ContestSize || details.Contestsize,
+    winningAmount: details.winning_amount,
+    Rankdata: contestDetails?.Rankdata || []
+  });
+
+  // State declarations
   const [saveTeamName, setSaveTeamName] = useState('');
+  const [isAdd, setIsAdd] = useState(false);
+
   const dispatch = useDispatch();
   const selectTeam = useRef();
   const myTeam = useSelector(state => state?.match?.myTeams);
   const contestData = useSelector(state => state?.match?.contestData);
   const { _id, SeriesId } = contestData ?? '';
+  const { contestCategories } = useSelector(state => state.match);
   
   // Ensure numeric values
-  const contestSize = Number(details?.Contestsize || 0);
+  const contestSize = Number(contestDetails?.ContestSize || contestDetails?.Contestsize || 0);
   const joined = Number(details?.joined || 0);
   const percentage = (joined / (contestSize || 1)) * 100;
   const spotsLeft = Math.max(0, contestSize - joined);
-  const winningAmount = Number(details?.winning_amount || 0);
-  const entryFee = Number(details?.EnteryFee || 0);
-  const winningPercent = Number(details?.Winning_percent || 0);
-  const firstPrize = Number(details?.Rankdata?.[0]?.Price || winningAmount || 0);
-
-  const matchDetails = useSelector(state => state?.match?.contestData);
-  const kycDetails = useSelector(state => {
-    return state.profile.kycDetails;
-  });
-  const [isAdd, setIsAdd] = useState(false);
+  const winningAmount = Number(details?.winning_amount || contestDetails?.WinningAmount || 0);
+  const entryFee = Number(details?.EntryFee || details?.EnteryFee || contestDetails?.EnteryFee || 0);
+  const winningPercent = Number(contestDetails?.Winning_percent || 0);
+  const firstPrize = Number(contestDetails?.Rankdata?.[0]?.Price || winningAmount || 0);
 
   const onClickContest = () => {
+    console.log('Navigating to LEADERBOARD with:', {
+      contestDetails: contestDetails,
+      Rankdata: contestDetails?.Rankdata,
+      contest_category_id: details?.contest_category_id
+    });
+
+    console.log('Available contestCategories:', contestCategories?.length);
+    
+    const contestCategory = contestCategories?.find(
+      cat => cat?._id === details?.contest_category_id
+    );
+    
+    console.log('Found contest category:', {
+      id: contestCategory?._id,
+      rankDataLength: contestCategory?.Rankdata?.length
+    });
+    
     const safeDetails = {
       ...details,
       contest_category_id: details?.contest_category_id || '',
       inner_data_id: details?.inner_data_id || '',
-      winning_amount: Number(details?.winning_amount || 0),
-      joined: Number(details?.joined || 0),
-      Contestsize: Number(details?.Contestsize || 0),
-      EnteryFee: Number(details?.EnteryFee || 0),
-      Rankdata: Array.isArray(details?.Rankdata) ? details.Rankdata.map(rank => ({
+      winning_amount: winningAmount,
+      joined: joined,
+      Contestsize: contestSize,
+      EnteryFee: entryFee,
+      Rankdata: (contestCategory?.Rankdata || []).map(rank => ({
         ...rank,
         Price: Number(rank?.Price || 0),
         StartRank: Number(rank?.StartRank || 0),
         EndRank: Number(rank?.EndRank || 0)
-      })) : [],
-      JoinWithMULT: Boolean(details?.JoinWithMULT),
-      teams: Number(details?.teams || 0),
-      Winning_percent: Number(details?.Winning_percent || 0),
-      shadow_contest_id: details?.shadow_contest_id || details?._id || ''  
+      })),
+      JoinWithMULT: Boolean(details?.JoinWithMULT || contestDetails?.JoinWithMULT),
+      teams: Number(details?.teams || contestDetails?.teams || 0),
+      Winning_percent: winningPercent,
+      shadow_contest_id: details?.shadow_contest_id || details?._id || ''
     };
-
-    console.log('Contest details being passed:', safeDetails);
+    
+    console.log('Final Rankdata being passed:', safeDetails.Rankdata?.length);
+    
+    console.log('Final contest details with Rankdata:', {
+      rankData: safeDetails.Rankdata,
+      length: safeDetails.Rankdata?.length
+    });
 
     NavigationService.navigate(LEADERBOARD, {
       details: {
         details: safeDetails,
         match_contest_category_id: safeDetails.inner_data_id,
+        winningsData: {
+          totalWinnings: safeDetails.winning_amount,
+          rankWinnings: safeDetails.Rankdata,
+          winningPercent: safeDetails.Winning_percent
+        }
       },
-      firstTeamName: matchDetails?.TeamA || '',
-      secondTeamName: matchDetails?.TeamB || '',
+      firstTeamName: contestData?.TeamA || '',
+      secondTeamName: contestData?.TeamB || '',
       progressBarWidth: percentage || 0,
-      matchDetails: matchDetails || {},
+      matchDetails: contestData || {},
       totalTeamCount: totalTeamCount || 0,
     });
   };
 
   const onJoinContest = async () => {
-    if (kycDetails?.adhar_verified == 0) {
+    if (contestData?.kycDetails?.adhar_verified == 0) {
       NavigationService.navigate(VERIFY_ADHAAR_SCREEN)
     } else 
-    if (kycDetails?.adhar_verified == 2) {
+    if (contestData?.kycDetails?.adhar_verified == 2) {
       toastAlert.showToastError('Your aadhaar verification is pending please wait')
     } else {
       if (totalTeamCount === 0) {
         dispatch(setAllPlayers([]))
-        let data = { cid: matchDetails?.SeriesId };
+        let data = { cid: contestData?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));
         NavigationService.navigate(SELECT_PLAYER, {
-          matchDetails: matchDetails || {},
+          matchDetails: contestData || {},
           isEditMode: false,
         });
         dispatch(setIsContestEntry(true));
@@ -124,13 +162,13 @@ const ContestCard = ({ details, totalTeamCount }) => {
       } else if (totalTeamCount === 1) {
         if (details?.teamDetails?.length) {
           dispatch(setAllPlayers([]))
-          let data = { cid: matchDetails?.SeriesId };
+          let data = { cid: contestData?.SeriesId };
           let isNavigate = true
           dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
           dispatch(setIsContestEntry(true));
           dispatch(setSelectedMatch(details ? { ...details } : {}));
           NavigationService.navigate(SELECT_PLAYER, {
-            matchDetails: matchDetails || {},
+            matchDetails: contestData || {},
             isEditMode: false,
           });
         } else {
@@ -141,13 +179,13 @@ const ContestCard = ({ details, totalTeamCount }) => {
       }
       if (details?.teamDetails?.length == myTeam?.length) {
         dispatch(setAllPlayers([]))
-        let data = { cid: matchDetails?.SeriesId };
+        let data = { cid: contestData?.SeriesId };
         let isNavigate = true
         dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
         dispatch(setIsContestEntry(true));
         dispatch(setSelectedMatch(details ? { ...details } : {}));
         NavigationService.navigate(SELECT_PLAYER, {
-          matchDetails: matchDetails || {},
+          matchDetails: contestData || {},
           isEditMode: false,
         });
       } else {
@@ -242,7 +280,7 @@ const ContestCard = ({ details, totalTeamCount }) => {
               color={WHITE}
               weight={POPPINS_SEMI_BOLD}
               style={styles.commonTextStyle}>
-              {details?.EnteryType !== 'Paid' ||
+              {details?.EntryType !== 'Paid' ||
                 firstPrize === 0
                 ? 'Glory awaits!'
                 : `₹${numberWithCommas(firstPrize)}`}
@@ -264,7 +302,6 @@ const ContestCard = ({ details, totalTeamCount }) => {
               source={details?.JoinWithMULT ? m : SINGLE}
               resizeMode="contain"
               style={styles.gloryIcon}
-              // tintColor={colors.lightOrange}
             />
             <AppText
               type={TEN}
@@ -307,7 +344,7 @@ const ContestCard = ({ details, totalTeamCount }) => {
         }}>
         <SelectTeam
           contestDetails={details}
-          matchDetails={matchDetails}
+          matchDetails={contestData}
           onClose={() => selectTeam?.current?.close()}
           selectTeam={selectTeam}
           teamDetails={details?.teamDetails}
@@ -319,7 +356,7 @@ const ContestCard = ({ details, totalTeamCount }) => {
         isModalVisible={isAdd}
         details={details}
         setIsModalVisible={setIsAdd}
-        matchDetails={matchDetails}
+        matchDetails={contestData}
         teamLength={false}
         saveTeamName={saveTeamName}
         selectMulty={[]}

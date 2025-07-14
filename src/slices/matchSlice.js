@@ -30,6 +30,7 @@ export const initialState = {
   isLoading: false,
   contestData: undefined,
   contestList: [],
+  contestCategories: [], 
   isContestEntry: false,
   selectedMatch: undefined,
   allPlayers: [],
@@ -171,6 +172,9 @@ export const matchSlice = createSlice({
     setPointsFilterStats: (state, {payload}) => {
       state.pointsFilterStats = payload;
     },
+    setContestCategories: (state, action) => {
+      state.contestCategories = action.payload;
+    },
   },
 });
 
@@ -214,6 +218,7 @@ export const {
   setSavePidstats,
   setPointsFilterStats,
   setSaveTeamNameStats,
+  setContestCategories,
 } = matchSlice.actions;
 export default matchSlice.reducer;
 
@@ -375,106 +380,47 @@ export const getContestList = (outputObject, id) => async dispatch => {
   try {
     dispatch(setLoading(true));
     const res = await appOperation.customer.getContestList(data);
-    console.log('Raw contest list response:', res?.data[0]?.data);
+    console.log('Raw contest list response:', res?.data[0]);
     
     if (res?.code === 200 || res?.success === true) {
       const contestData = res?.data || [];
-      
       const newData = contestData.map(category => {
-        if (!category?.data) {
-          console.log('Skipping category with no data:', category);
-          return category;
+        if (!category?.data || !category?.contest_category_details) {
+          return { ...category, data: [] };
         }
 
+        const detailsMap = category.contest_category_details.reduce((map, detail) => {
+          map[detail._id] = detail;
+          return map;
+        }, {});
+
         const transformedData = category.data.map(contestItem => {
-          if (!contestItem) {
-            console.log('Skipping null contest item');
-            return null;
-          }
-
-          const categoryDetails = category.contest_category_details?.find(
-            detail => detail?._id === contestItem?.contest_category_id
-          );
-
-          const mergedData = {
-            Contestsize: Number(contestItem?.Contestsize || 0),
-            EnteryFee: Number(contestItem?.EnteryFee || 0),
-            EnteryType: String(contestItem?.EnteryType || ''),
-            JoinWithMULT: Boolean(contestItem?.JoinWithMULT),
-            ConfirmedWin: Boolean(contestItem?.ConfirmedWin),
-            teams: Number(contestItem?.teams || 0),
-            winning_amount: Number(contestItem?.winning_amount || 0),
-            joined: Number(contestItem?.joined || 0),
-            contest_category_id: String(contestItem?.contest_category_id || ''),
-            categoryName: String(contestItem?.categoryName || ''),
-            UsableBonusPercantage: Number(contestItem?.UsableBonusPercantage || 0),
-            shadow_contest_id: String(contestItem?.shadow_contest_id || contestItem?._id || ''),
-            match_contest_category_id: String(contestItem?._id || ''),
-            
-            ...(categoryDetails ? {
-              Contestsize: Number(categoryDetails.Contestsize || contestItem?.Contestsize || 0),
-              EnteryFee: Number(categoryDetails.EnteryFee || contestItem?.EnteryFee || 0),
-              EnteryType: String(categoryDetails.EnteryType || contestItem?.EnteryType || ''),
-              JoinWithMULT: Boolean(categoryDetails.JoinWithMULT || contestItem?.JoinWithMULT),
-              ConfirmedWin: Boolean(categoryDetails.ConfirmedWin || contestItem?.ConfirmedWin),
-              teams: Number(categoryDetails.teams || contestItem?.teams || 0),
-              winning_amount: Number(categoryDetails.winning_amount || contestItem?.winning_amount || 0),
-              UsableBonusPercantage: Number(categoryDetails.UsableBonusPercantage || contestItem?.UsableBonusPercantage || 0),
-              shadow_contest_id: String(categoryDetails.shadow_contest_id || contestItem?.shadow_contest_id || contestItem?._id || '')
-            } : {}),
-
-            Rankdata: Array.isArray(contestItem?.Rankdata) ? contestItem.Rankdata.map(rank => ({
-              ...rank,
-              Price: Number(rank?.Price || 0),
-              StartRank: Number(rank?.StartRank || 0),
-              EndRank: Number(rank?.EndRank || 0)
-            })) : (Array.isArray(categoryDetails?.Rankdata) ? categoryDetails.Rankdata.map(rank => ({
-              ...rank,
-              Price: Number(rank?.Price || 0),
-              StartRank: Number(rank?.StartRank || 0),
-              EndRank: Number(rank?.EndRank || 0)
-            })) : [])
-          };
-
-          const arrayfilter = res?.getuserjounedcont?.filter(
-            e =>
-              e?.contest_category_id === contestItem?.contest_category_id &&
-              !categoryDetails?.JoinWithMULT,
-          ) || [];
-          
-          const arrayfilterMulti = res?.getuserjounedcont?.filter(
-            e => e?.contest_category_id === contestItem?.contest_category_id,
-          ) || [];
-
+          const details = detailsMap[contestItem.contest_category_id];
           return {
-            ...mergedData,
-            remove: arrayfilter?.length ? true : false,
-            teamDetails: arrayfilterMulti,
+            ...contestItem,
+            ...(details || {}),
+            _id: contestItem._id, // Preserve original contest ID
           };
-        }).filter(Boolean); 
+        });
 
-        return {
-          ...category,
-          data: transformedData,
-        };
+        return { ...category, data: transformedData };
       });
-      
       dispatch(setContestList({ data: newData }));
       dispatch(setContestListTeam(res?.getuserjounedcont || []));
-
       const finalArray = {
         data: newData.reduce((acc, category) => {
           if (category?.data) {
             acc.push(...category.data);
           }
           return acc;
-        }, [])
+        }, []),
       };
-
       dispatch(getFilterSortby(finalArray));
     }
+    return res; // Return the response
   } catch (e) {
     console.error('Error in getContestList:', e);
+    throw e; // Re-throw the error to be caught by the caller
   } finally {
     dispatch(setLoading(false));
   }

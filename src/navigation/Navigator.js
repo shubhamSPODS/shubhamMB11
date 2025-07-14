@@ -83,6 +83,7 @@ import {
   SCOREBOARD_LIST,
   SCOREBOARD_DETAILS,
   GAME_WEB_VIEW,
+  SCOREBOARD_MATCH,
 } from './routes';
 import NavigationService from './NavigationService';
 import {useSelector, useDispatch} from 'react-redux';
@@ -296,8 +297,8 @@ const CricketTab = () => {
         })}
       />
       <Tab.Screen
-        name={'Transactions'}
-        component={TransactionsScreen}
+        name={BOTTOM_TAB_CONTEST_SCREEN}
+        component={MyContestDrawer}
         options={{
           tabBarIcon: ({focused}) => (
             <>
@@ -317,7 +318,7 @@ const CricketTab = () => {
                 />
               ) : null}
               <FastImage
-                source={transactionIcon}
+                source={contest_icon}
                 style={{
                   width: 25,
                   height: 25,
@@ -330,7 +331,7 @@ const CricketTab = () => {
                 color={focused ? BROWNYELLOW : GRY}
                 weight={POPPINS_MEDIUM}
                 type={TEN}>
-                Transactions
+                Contests
               </AppText>
             </>
           ),
@@ -1106,4 +1107,3 @@ const MyReferDrawer = ({navigation}) => {
     </Drawer.Navigator>
   );
 };
-

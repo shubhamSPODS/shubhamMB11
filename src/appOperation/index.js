@@ -68,18 +68,18 @@ export class AppOperation {
       });
     }
 
-    // Log the complete request details
-    console.log('API Request:', {
-      fullUrl: uri,
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(this.customerToken && type === CUSTOMER_TYPE ? {
-          'Authorization': this.customerToken
-        } : {})
-      },
-      body: data
-    });
+    // // Log the complete request details
+    // console.log('API Request:', {
+    //   fullUrl: uri,
+    //   method,
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     ...(this.customerToken && type === CUSTOMER_TYPE ? {
+    //       'Authorization': this.customerToken
+    //     } : {})
+    //   },
+    //   body: data
+    // });
 
     // check if there's any missing parameters
     const missingFields = uri.match(/(\{[a-zA-Z0-9_]+\})/g);
@@ -108,7 +108,6 @@ export class AppOperation {
 
       fetch(uri, { method, headers, body: bodyData })
         .then(response => {
-          console.log('API Response Status:', response.status);
           let status = response.status;
           if (response.ok) {
             return response
@@ -127,7 +126,7 @@ export class AppOperation {
           return response
             .text()
             .then(errorResponse => {
-              console.log('API Error Response:', errorResponse);
+              // console.log('API Error Response:', errorResponse);
               Promise.reject({ code: status, data: errorResponse });
             });
         })

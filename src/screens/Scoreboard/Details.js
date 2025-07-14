@@ -17,9 +17,26 @@ import {backIconMain} from '../../helper/image';
 import {Screen} from '../../theme/dimens';
 
 const Details = ({route}) => {
-  const {scoreboardData, allPredictions} = route?.params || {};
+  console.log('Details screen received:', {
+    scoreboardData: route.params?.scoreboardData,
+    allPredictions: route.params?.allPredictions,
+    details: route.params?.details
+  });
+
+  console.log('Received winningsData:', {
+    rankWinnings: route.params?.details?.winningsData?.rankWinnings,
+    length: route.params?.details?.winningsData?.rankWinnings?.length
+  });
+
+  const {scoreboardData, allPredictions, details} = route?.params || {};
   const matchType = scoreboardData?.match_details?.Type || 'T20';
   const totalRuns = allPredictions?.reduce((sum, over) => sum + over.runs, 0) || 0;
+  
+  // Extract winnings data from details.details.winningsData
+  const winningsData = details?.details?.winningsData || {};
+  const totalWinnings = winningsData.totalWinnings || 0;
+  const winningPercent = winningsData.winningPercent || 0;
+  const rankWinnings = winningsData.rankWinnings || [];
 
   const renderOver = (prediction) => (
     <View key={prediction.over_number} style={styles.overContainer}>
@@ -36,6 +53,60 @@ const Details = ({route}) => {
           </AppText>
         </View>
       </View>
+    </View>
+  );
+
+  const renderWinningsSection = () => (
+    <View style={styles.winningsContainer}>
+      <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.sectionTitle}>
+        Winnings Breakdown
+      </AppText>
+      
+      <View style={styles.winningsSummary}>
+        <View style={styles.winningsRow}>
+          <AppText weight={POPPINS_MEDIUM} color={WHITE}>
+            Total Winnings:
+          </AppText>
+          <AppText weight={POPPINS_BOLD} color={WHITE}>
+            ₹{numberWithCommas(totalWinnings)}
+          </AppText>
+        </View>
+        
+        <View style={styles.winningsRow}>
+          <AppText weight={POPPINS_MEDIUM} color={WHITE}>
+            Winning Percentage:
+          </AppText>
+          <AppText weight={POPPINS_BOLD} color={WHITE}>
+            {winningPercent.toFixed(2)}%
+          </AppText>
+        </View>
+      </View>
+      
+      {rankWinnings.length > 0 && (
+        <View style={styles.rankTable}>
+          <View style={styles.tableHeader}>
+            <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.headerCell}>
+              Rank
+            </AppText>
+            <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.headerCell}>
+              Prize
+            </AppText>
+          </View>
+          
+          {rankWinnings.map((rank, index) => (
+            <View key={index} style={styles.tableRow}>
+              <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.tableCell}>
+                {rank.StartRank === rank.EndRank 
+                  ? `#${rank.StartRank}` 
+                  : `#${rank.StartRank}-${rank.EndRank}`}
+              </AppText>
+              <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.tableCell}>
+                ₹{numberWithCommas(rank.Price)}
+              </AppText>
+            </View>
+          ))}
+        </View>
+      )}
     </View>
   );
 
@@ -58,26 +129,29 @@ const Details = ({route}) => {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.matchInfoContainer}>
-          <View style={styles.matchTypeBadge}>
-            <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
-              {matchType}
-            </AppText>
-          </View>
-          <View style={styles.totalRunsContainer}>
-            <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.totalRunsText}>
-              {totalRuns}
-            </AppText>
-            <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.totalRunsLabel}>
-              Total Runs
-            </AppText>
-          </View>
-        </View>
-
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}>
+          
+          {renderWinningsSection()}
+          
+          <View style={styles.matchInfoContainer}>
+            <View style={styles.matchTypeBadge}>
+              <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
+                {matchType}
+              </AppText>
+            </View>
+            <View style={styles.totalRunsContainer}>
+              <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.totalRunsText}>
+                {totalRuns}
+              </AppText>
+              <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.totalRunsLabel}>
+                Total Runs
+              </AppText>
+            </View>
+          </View>
+
           {allPredictions?.map(prediction => renderOver(prediction))}
         </ScrollView>
       </CommonImageBackground>
@@ -190,6 +264,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     opacity: 0.8,
   },
+  winningsContainer: {
+    backgroundColor: colors.darkBlue,
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    marginBottom: 10,
+  },
+  winningsSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+  },
+  winningsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rankTable: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    padding: 10,
+    borderRadius: 10,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  headerCell: {
+    fontSize: 14,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 5,
+  },
+  tableCell: {
+    fontSize: 14,
+  },
 });
 
-export default Details; 
+export default Details;
