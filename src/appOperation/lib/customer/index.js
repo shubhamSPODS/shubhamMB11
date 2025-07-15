@@ -20,7 +20,7 @@ export default appOperation => ({
   getSeriesData: () =>
     appOperation.post('TeamData/Serieslist', {}, CUSTOMER_TYPE),
   getContestList: data => {
-    console.log('getContestList called with data:', data);
+    // console.log('getContestList called with data:', data);
     return appOperation.post(
       `match/contests/${data?.matchid}`,
       data?.object,

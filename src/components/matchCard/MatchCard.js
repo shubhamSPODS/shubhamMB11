@@ -59,9 +59,7 @@ const MatchCard = ({
     (inputDate - currentDate) / (24 * 60 * 60 * 1000),
   );
 
-  // Get contests from either teams array or contest_details
   const allContests = details?.teams || details?.contest_details || [];
-  console.log('Available contests:', allContests);
 
   useEffect(() => {
     if (allContests.length > 0) {

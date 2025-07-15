@@ -42,8 +42,28 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   useEffect(() => {
     console.log('=== My Matches ===', myMatchesHome);
     console.log('=== Upcoming Matches ===', upcomingMatches);
+    
+    // Special logging for Maharashtra Premier League matches
+    const maharashtraMatches = upcomingMatches?.filter(match => 
+      match.SeriesName?.includes('Maharashtra') || 
+      match.Team1vsTeam2?.includes('Eagle') || 
+      match.Team1vsTeam2?.includes('Puneri')
+    );
+    if (maharashtraMatches?.length > 0) {
+      console.log('🏏 Cricket.js - Maharashtra matches found:', maharashtraMatches.map(m => ({
+        id: m._id,
+        series: m.SeriesName,
+        teams: m.Team1vsTeam2,
+        status: m.Status,
+        hasTeams: m.teams?.length,
+        hasScorecard: m.scorecard?.length,
+        contestsWithJoined: m.teams?.filter(t => t.joined > 0).length,
+        startDateTime: m.StartDateTime
+      })));
+    }
+    
     // Add logging for filtered matches
-    const teamsMatches = upcomingMatches.filter(match => !match.scorecard || match.scorecard.length === 0);
+    const teamsMatches = upcomingMatches.filter(match => match.teams && match.teams.length > 0);
     const scoreboardMatches = upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
     console.log('=== Teams Tab Matches ===', teamsMatches.length);
     console.log('=== Scoreboard Tab Matches ===', scoreboardMatches.length);

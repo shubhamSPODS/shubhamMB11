@@ -380,7 +380,7 @@ export const getContestList = (outputObject, id) => async dispatch => {
   try {
     dispatch(setLoading(true));
     const res = await appOperation.customer.getContestList(data);
-    console.log('Raw contest list response:', res?.data[0]);
+    // console.log('Raw contest list response:', res?.data[0]);
     
     if (res?.code === 200 || res?.success === true) {
       const contestData = res?.data || [];

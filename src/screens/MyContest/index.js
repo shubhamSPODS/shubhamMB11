@@ -518,7 +518,7 @@ const MyContest = () => {
       return (
         <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
           <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
-            You haven't created any Scoreboard yet
+            You haven't created any Scoreboard for this match
           </AppText>
         </View>
       );
