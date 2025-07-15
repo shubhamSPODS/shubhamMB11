@@ -214,13 +214,6 @@ const MyContest = () => {
   };
 
   const renderContest = ({item}) => {
-    console.log('Rendering contest:', {
-      id: item._id,
-      entryFee: item.EntryFee,
-      contestSize: item.ContestSize,
-      contest_category_details: contestList?.contest_category_details
-    });
-    
     return (
       <ContestCard
         details={{
@@ -350,21 +343,6 @@ const MyContest = () => {
         try {
           const response = await dispatch(getContestList({}, matchId));
           console.log('Full API Response:', JSON.stringify(response, null, 2));
-          
-          // Check if contest_category_details exists in any contest
-          const hasContestDetails = response?.payload?.data?.some(
-            contest => contest.contest_category_details?.Rankdata?.length > 0
-          );
-          console.log('Has Rankdata in response:', hasContestDetails);
-          
-          // Extract and log sample contest category details
-          const sampleContest = response?.payload?.data?.find(
-            contest => contest.contest_category_details?.Rankdata?.length > 0
-          );
-          console.log('Sample Contest with Rankdata:', {
-            id: sampleContest?._id,
-            rankDataLength: sampleContest?.contest_category_details?.Rankdata?.length
-          });
           
           // Update contest categories
           const categories = response?.payload?.data

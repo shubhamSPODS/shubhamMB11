@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {StyleSheet, View, ActivityIndicator} from 'react-native';
 
 const SpinnerSecond = ({style, loading}) => {
+  const [showSpinner, setShowSpinner] = useState(loading);
+  
+  // Add a safety timeout to hide spinner after 15 seconds
+  useEffect(() => {
+    setShowSpinner(loading);
+    
+    let timeoutId;
+    if (loading) {
+      timeoutId = setTimeout(() => {
+        console.log('SpinnerSecond safety timeout reached, hiding spinner');
+        setShowSpinner(false);
+      }, 15000);
+    }
+    
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [loading]);
+  
   return (
     <>
-      {loading ? (
+      {showSpinner ? (
         <View style={[styles.spinnerStyle, style]}>
           <ActivityIndicator size={'large'} color={'#FFD700'} />
         </View>

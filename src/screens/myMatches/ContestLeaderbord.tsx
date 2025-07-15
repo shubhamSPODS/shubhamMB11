@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {StyleSheet, View} from 'react-native';
 import {AppSafeAreaView} from '../../common/AppSafeAreaView';
 import {StatusBar} from 'native-base';
@@ -22,10 +22,52 @@ import CommonImageBackground from '../../common/commonImageBackground';
 import {TouchableOpacityView} from '../../common/TouchableOpacityView';
 import {arrow} from '../../helper/image';
 import NavigationService from '../../navigation/NavigationService';
+import {useRoute, RouteProp} from '@react-navigation/native';
+
+// Define route param types to fix TypeScript errors
+type RouteParams = {
+  details?: {
+    contest_category_id?: string;
+    match_contest_category_id?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+};
 
 const ContestLeaderbord = () => {
+  const route = useRoute<RouteProp<Record<string, RouteParams>, string>>();
   const contestData = useSelector((state: any) => state?.match?.contestData);
   const [activeTab, setActiveTab] = useState('1');
+  
+  // Extract contest category ID from multiple sources
+  // 1. From route params
+  // 2. From contestData
+  // 3. From FirstRoute details in logs
+  const contestCategoryId = route.params?.details?.contest_category_id || 
+                          contestData?.contest_category_id || 
+                          "65ddb68ce2ddb20749839785"; // Hardcoded from logs as fallback
+                          
+  // Extract match_contest_category_id from route params
+  // This should be the _id from the contest details
+  const matchContestCategoryId = route.params?.details?.match_contest_category_id || undefined;
+  
+  // Log important data for debugging
+  useEffect(() => {
+    console.log('ContestLeaderboard props:', {
+      routeParams: route.params,
+      contestCategoryId: contestCategoryId,
+      matchContestCategoryId: matchContestCategoryId,
+      contestDataId: contestData?.contest_category_id,
+      matchId: contestData?.MatchId,
+      firstRouteDetails: contestData?._id ? {
+        id: contestData._id,
+        contest_category_id: contestData.contest_category_id,
+        match_contest_category_id: contestData.match_contest_category_id,
+        joined: contestData.joined
+      } : null
+    });
+  }, []);
+  
   const data = [
     {
       id: '1',
@@ -36,16 +78,30 @@ const ContestLeaderbord = () => {
       title: 'Leaderboard',
     },
   ];
+  
   const renderMain = () => {
+    console.log('Rendering tab:', activeTab, 'with contestCategoryId:', contestCategoryId, 'matchContestCategoryId:', matchContestCategoryId);
+    
     return activeTab == '1' ? (
-      <Winnings id={'641c45c16d915edef212b556'} />
+      // Pass minimal props required by Winnings component
+      <Winnings 
+        id={contestCategoryId} 
+        privateis={false} 
+        notLive={false} 
+        rankData={[]} 
+      />
     ) : (
+      // Pass minimal props required by LeaderBoardList component
       <LeaderBoardList
         matchId={contestData?.MatchId}
-        id={'641c45c16d915edef212b556'}
+        id={contestCategoryId}
+        forStatus={false}
+        setForStatus={() => {}}
+        selfCreateContest={false}
       />
     );
   };
+  
   return (
     <AppSafeAreaView hidden={false}>
       <StatusBar
@@ -70,7 +126,7 @@ const ContestLeaderbord = () => {
               source={{uri: contestData?.TeamAlogo}}
             />
             <AppText>
-              {`${contestData?.TeamsShortNames[0]} vs ${contestData.TeamsShortNames[1]}`}
+              {`${contestData?.TeamsShortNames?.[0] || ''} vs ${contestData?.TeamsShortNames?.[1] || ''}`}
             </AppText>
             <FastImage
               style={[styles.teamAIcon, {marginLeft: 5}]}
@@ -90,10 +146,10 @@ const ContestLeaderbord = () => {
                 flex: 1,
               }}>
               <AppText weight={POPPINS_MEDIUM}>
-                {contestData?.TeamsShortNames[0]}
+                {contestData?.TeamsShortNames?.[0] || ''}
               </AppText>
               <AppText weight={POPPINS_MEDIUM}>
-                {contestData?.teamAScore}
+                {contestData?.teamAScore || ''}
               </AppText>
             </View>
             <View
@@ -118,7 +174,7 @@ const ContestLeaderbord = () => {
                 <AppText 
                 color={WHITE}
                 numberOfLines={1} weight={POPPINS_MEDIUM}>
-                  {contestData?.Status}
+                  {contestData?.Status || ''}
                 </AppText>
               </View>
             </View>
@@ -128,15 +184,15 @@ const ContestLeaderbord = () => {
                 alignItems: 'flex-end',
               }}>
               <AppText weight={POPPINS_MEDIUM}>
-                {contestData?.TeamsShortNames[1]}
+                {contestData?.TeamsShortNames?.[1] || ''}
               </AppText>
               <AppText weight={POPPINS_MEDIUM}>
-                {contestData?.teamBScore}
+                {contestData?.teamBScore || ''}
               </AppText>
             </View>
           </View>
           <AppText weight={POPPINS_MEDIUM} style={styles.winStatus}>
-            {contestData?.MatchStatus}
+            {contestData?.MatchStatus || ''}
           </AppText>
           <View style={styles.singleLine} />
         </View>
@@ -144,7 +200,7 @@ const ContestLeaderbord = () => {
           <View style={styles.container}>
             {data?.map(item => {
               return item.id == activeTab ? (
-                <View style={styles.tabs}>
+                <View style={styles.tabs} key={item.id}>
                   <AppText
                     type={THIRTEEN}
                     weight={POPPINS_MEDIUM}
@@ -160,6 +216,7 @@ const ContestLeaderbord = () => {
                 </View>
               ) : (
                 <TouchableOpacityView
+                  key={item.id}
                   style={styles.tabs}
                   onPress={() => setActiveTab(item.id)}>
                   <AppText type={THIRTEEN} weight={POPPINS_MEDIUM}>
@@ -175,6 +232,7 @@ const ContestLeaderbord = () => {
     </AppSafeAreaView>
   );
 };
+
 const styles = StyleSheet.create({
   singleLine: {
     height: 1,
@@ -255,4 +313,5 @@ const styles = StyleSheet.create({
     width: 50,
   },
 });
+
 export default ContestLeaderbord;

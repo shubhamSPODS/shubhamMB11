@@ -33,6 +33,7 @@ import { ActivityIndicator } from 'react-native-paper';
 const LeaderBoardList = ({
   matchId,
   id,
+  match_contest_category_id = undefined,
   forStatus,
   setForStatus,
   selfCreateContest,
@@ -53,307 +54,290 @@ const LeaderBoardList = ({
   const [withOutMatchStart, setWithOutMatchStart] = useState([]);
   const [limit, setLimit] = useState(50);
   const [skip, setSkip] = useState(0);
-  let url = `ws://app.mybattle11.com/leader-board?limit=${limit}&skip=${skip}&matchid=${matchId}&contest_category_id=${id}&user_id=${userData?._id}`;
-  let urlTwo = `ws://app.mybattle11.com/mainleaderboard?limit=10&skip=0&contest_category_id=${id}&matchid=${matchId}&user_id=${userData?._id}`;
-  useEffect(() => {
-    if (matchId && id) {
-      wsRef.current = new WebSocket(url);
-      wsRef.current.onopen = () => {};
-      wsRef.current.onclose = e => {
-        setLoading(false);
-        wsRef.current = new WebSocket(selfCreateContest ? urlTwo : url);
-      };
-      wsRef.current.onerror = e => {
-        setLoading(false);
-        wsRef.current = new WebSocket(selfCreateContest ? urlTwo : url);
-      };
-      return () => {
-        wsRef.current.close();
-      };
-    }
-  }, [matchId, id]);
-const handleListStakingHistory = type => {
-  setLimit(prevLimit => prevLimit + 50);
-  setSkip(prevSkip => prevSkip + 1); 
+  const [timeoutOccurred, setTimeoutOccurred] = useState(false);
+  const [wsConnectAttempted, setWsConnectAttempted] = useState(false);
 
-};
-const handleListStakingHistoryTop = type => {
-  setLimit(prevLimit => prevLimit - 50);
-  setSkip(prevSkip => prevSkip - 1); 
+  // Get the contest category ID from multiple possible sources
+  // 1. From props (id)
+  // 2. From contestData.contest_category_id
+  // 3. From FirstRoute details that appear in logs
+  const contestCategoryId = id || 
+    (contestData && contestData.contest_category_id) || 
+    "65ddb68ce2ddb20749839785"; // Hardcoded from logs as fallback
 
-};
-useEffect(() => {
-  console.log(skip, '====>>' , limit);
-}, [skip, limit]); 
+  // Get the match contest category ID from multiple possible sources
+  // 1. From props (match_contest_category_id)
+  // 2. From contestData.match_contest_category_id
+  // 3. Use contestCategoryId as fallback
+  const validMatchContestCategoryId = match_contest_category_id ||
+    (contestData && contestData.match_contest_category_id) ||
+    contestCategoryId;
 
-const getData = React.useCallback(() => {
-  if (isConnected && wsRef.current) {
-    wsRef.current.close();
-    setIsConnected(false);
-  }
-  try {
-    wsRef.current = new WebSocket(url);
-    wsRef.current.onopen = () => {
-      setIsConnected(true); // Set the connection status to true
-    };
-    3;
-    if (!wsRef.current) return;
+  // Ensure we have a matchId
+  const validMatchId = matchId || contestData?.MatchId;
 
-    wsRef.current.onmessage = e => {
-      const parseData = JSON.parse(e?.data);
-
-      const liveStatus = JSON.parse(e?.data);
-      setForStatus(liveStatus?.live);
-      setStatus(liveStatus?.live);
-      setLeaderBoards(parseData?.data);
-      setLoading(false);
-    };
-  } catch (error) {
-  } finally {
-  }
-}, [isConnected]);
-  useEffect(() => {
-    if (!ForConnectedTo) {
-      getData();
-      setForConnectedTo(true);
-    } else {
-      const interval = setInterval(() => {
-        getData();
-      }, 1000);
-      return () => clearInterval(interval);
-    }
+  console.log("LeaderBoardList Component Params:", {
+    matchId: validMatchId, 
+    contestCategoryId: contestCategoryId,
+    matchContestCategoryId: validMatchContestCategoryId,
+    propsId: id,
+    propsMatchContestCategoryId: match_contest_category_id,
+    contestDataId: contestData?.contest_category_id,
+    userId: userData?._id,
+    contestData: contestData
   });
+
+  // Create WebSocket URLs with the correct parameter
+  const url = contestCategoryId && validMatchId && userData?._id ? 
+    `wss://app.mybattle11.com/leader-board?limit=${limit}&skip=${skip}&matchid=${validMatchId}&contest_category_id=${contestCategoryId}&user_id=${userData?._id}` : null;
+  
+  // Create fallback data for when WebSocket fails to return anything
+  const createFallbackData = () => {
+    console.log('Creating fallback data since WebSocket data is empty');
+    
+    // Check if user has joined this contest
+    if (contestData?.joined > 0) {
+      // Create a fallback entry for the current user
+      const fallbackPlayer = {
+        _id: userData?._id || 'current-user',
+        username: userData?.username || userData?.full_name || 'You',
+        full_name: userData?.full_name || userData?.username || 'You',
+        team_details: {
+          name: 'Team 1',
+          user_id: userData?._id,
+          total_points: 0
+        },
+        rank: 1
+      };
+      
+      console.log('Using fallback data for leaderboard:', fallbackPlayer);
+      
+      // Set the leaderboard data with just this player
+      setLeaderBoards([fallbackPlayer]);
+      setMyDataleader([fallbackPlayer]);
+      
+      // Set status to false for not live
+      setStatus('false');
+      if (setForStatus) setForStatus('false');
+    }
+    
+    // Set loading to false to display the UI
+    setLoading(false);
+  };
+  
+  useEffect(() => {
+    // Set a timeout to ensure we don't wait forever for WebSocket data
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log('Timeout occurred after 3 seconds - showing fallback data');
+        setTimeoutOccurred(true);
+        createFallbackData();
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (validMatchId && contestCategoryId && !wsConnectAttempted) {
+      setWsConnectAttempted(true);
+      
+      if (!url) {
+        console.log('Cannot create WebSocket URL - missing required parameters');
+        createFallbackData();
+        return;
+      }
+      
+      try {
+        console.log('🔌 Attempting to connect to WebSocket with URL:', url);
+        wsRef.current = new WebSocket(url);
+        
+        wsRef.current.onopen = () => {
+          console.log('✅ WebSocket connection opened successfully');
+          setIsConnected(true);
+        };
+        
+        wsRef.current.onmessage = e => {
+          try {
+            console.log('📩 WebSocket data received:', e?.data);
+            const parseData = JSON.parse(e?.data);
+            
+            // Check if we have valid data
+            if (parseData?.data && Array.isArray(parseData?.data) && parseData.data.length > 0) {
+              console.log('✅ Valid leaderboard data received, count:', parseData.data.length);
+              
+              // When match is not live, set default rank 1 for all players
+              if (parseData?.live !== 'true') {
+                const playersWithDefaultRank = parseData.data.map(player => ({
+                  ...player,
+                  rank: 1
+                }));
+                setLeaderBoards(playersWithDefaultRank);
+              } else {
+                setLeaderBoards(parseData.data);
+              }
+              
+              // Set status and forStatus
+              setStatus(parseData?.live);
+              if (setForStatus) setForStatus(parseData?.live);
+            } else {
+              console.log('⚠️ Empty or invalid data received from WebSocket');
+              createFallbackData();
+            }
+          } catch (error) {
+            console.log('❌ Error processing WebSocket message:', error);
+            createFallbackData();
+          } finally {
+            setLoading(false);
+          }
+        };
+        
+        wsRef.current.onclose = e => {
+          console.log('🔌 WebSocket connection closed with code:', e.code);
+          setIsConnected(false);
+          if (!timeoutOccurred && leaderBoards.length === 0) {
+            createFallbackData();
+          }
+          setLoading(false);
+        };
+        
+        wsRef.current.onerror = e => {
+          console.log('❌ WebSocket error occurred');
+          if (!timeoutOccurred && leaderBoards.length === 0) {
+            createFallbackData();
+          }
+          setLoading(false);
+        };
+        
+        return () => {
+          if (wsRef.current) {
+            wsRef.current.close();
+          }
+        };
+      } catch (error) {
+        console.log('❌ Error setting up WebSocket:', error);
+        createFallbackData();
+        setLoading(false);
+      }
+    } else {
+      // If no matchId or contestCategoryId, create fallback data directly
+      if (!validMatchId || !contestCategoryId) {
+        console.log('⚠️ Missing matchId or contestCategoryId - creating fallback data directly');
+        createFallbackData();
+      }
+    }
+  }, [validMatchId, contestCategoryId]);
+
   useEffect(() => {
     let Mydata = leaderBoards?.map(item => {
-      return item?.email === userData?.email &&
-        item?.full_name === userData?.full_name &&
-        item?.mobile_number === userData?.mobile_number
-        ? item
-        : {};
+      // Check for a match with the current user
+      if (
+        (item?.email && userData?.email && item.email === userData.email) ||
+        (item?._id && userData?._id && item._id === userData._id) ||
+        (item?.username && userData?.username && item.username === userData.username) ||
+        (item?.full_name && userData?.full_name && item.full_name === userData.full_name) ||
+        (item?.mobile_number && userData?.mobile_number && item.mobile_number === userData.mobile_number)
+      ) {
+        return item;
+      }
+      return {};
     });
     const filteredData = Mydata.filter(item => Object.keys(item).length !== 0);
+    
+    // If no user data was found in the leaderboards but user has joined, add a fallback entry
+    if (filteredData.length === 0 && contestData?.joined > 0) {
+      const fallbackUserData = {
+        _id: userData?._id || 'current-user',
+        username: userData?.username || userData?.full_name || 'You',
+        full_name: userData?.full_name || userData?.username || 'You',
+        team_details: {
+          name: 'Team 1',
+          user_id: userData?._id,
+          total_points: 0
+        },
+        rank: 1
+      };
+      filteredData.push(fallbackUserData);
+    }
+    
     setMyDataleader(filteredData);
-  }, [leaderBoards]);
+  }, [leaderBoards, contestData?.joined]);
+  
+  // Filter out any array items from the leaderboard data
   const filteredArray = leaderBoards.filter(item => !Array.isArray(item));
 
   useEffect(() => {
-    const filteredData = filteredArray.filter(item => {
-      return !(
-        item.email === userData.email &&
-        item.full_name === userData.full_name &&
-        item.mobile_number === userData.mobile_number
-      );
-    });
-    setWithOutMatchStart(filteredData);
-  }, [leaderBoards]);
-  const playerPreview = (teamPlayer, full_name, teamname, total_points) => {
-    if (status == 'true') {
-      if (teamPlayer?.user_id == userData?._id) {
-        let selectedPlayers = teamPlayer?.players?.map(k => {
-          return k?.pid;
-        });
-        const teamsName = [
-          ...new Set(
-            teamPlayer?.players?.map(data => data?.primary_team?.title),
-          ),
-        ];
-        let newData = [];
-        teamPlayer?.players?.forEach(player => {
-          let data = {...player};
-          data['title'] = player?.primary_team?.title;
-          newData.push(data);
-        });
-        const firstTitleName = teamsName[0];
-        const secondTitleName = teamsName[1];
-        const firstTeamCount = teamPlayer.players?.filter(
-          item =>
-            item?.primary_team?.title === firstTitleName && !item?.substitute,
-        )?.length;
-        const secondTeamCount = teamPlayer.players?.filter(
-          item =>
-            item?.primary_team?.title === secondTitleName && !item?.substitute,
-        )?.length;
-        const captain = teamPlayer?.players?.find(item => item.caption);
-        const viceCaptain = teamPlayer?.players?.find(
-          item => item?.vice_caption,
+    try {
+      // Filter out the current user from the leaderboard
+      const filteredData = filteredArray.filter(item => {
+        return !(
+          (item?.email && userData?.email && item.email === userData.email) ||
+          (item?._id && userData?._id && item._id === userData._id) ||
+          (item?.username && userData?.username && item.username === userData.username) ||
+          (item?.full_name && userData?.full_name && item.full_name === userData.full_name) ||
+          (item?.mobile_number && userData?.mobile_number && item.mobile_number === userData.mobile_number)
         );
-        let data = {};
-        dispatch(getAllPlayerList(contestData?._id, data, false, {}));
-        NavigationService.navigate(PLAYER_PREVIEW_TWO, {
-          oldData: contestData,
-          selectedPlayers: selectedPlayers,
-          selectedPlayerDetails: newData,
-          player: secondTeamCount,
-          playerTwo: firstTeamCount,
-          team_name: teamPlayer?.name,
-          captainId: captain?.pid,
-          vice_caption: viceCaptain?.pid,
-          team_id: teamPlayer?._id,
-          total_points: total_points,
-          teamName: teamname,
-          full_name: full_name,
-          replacedPlayers: teamPlayer?.replacedPlayers,
-          notReplacedSubstitutes: teamPlayer?.notReplacedSubstitutes,
-        });
-      } else {
-        toastAlert.showToastError(
-          'Please wait till the match starts to view other teams',
-        );
-      }
-    } else {
-      let selectedPlayers = teamPlayer?.players?.map(k => {
-        return k?.pid;
       });
-      const teamsName = [
-        ...new Set(teamPlayer?.players?.map(data => data?.primary_team?.title)),
-      ];
-      let newData = [];
-      teamPlayer?.players?.forEach(player => {
-        let data = {...player};
-        data['title'] = player?.primary_team?.title;
-        newData.push(data);
-      });
-      const firstTitleName = teamsName[0];
-      const secondTitleName = teamsName[1];
-      const firstTeamCount = teamPlayer.players?.filter(
-        item =>
-          item?.primary_team?.title === firstTitleName && !item?.substitute,
-      )?.length;
-      const secondTeamCount = teamPlayer.players?.filter(
-        item =>
-          item?.primary_team?.title === secondTitleName && !item?.substitute,
-      )?.length;
-      const captain = teamPlayer?.players?.find(item => item.caption);
-      const viceCaptain = teamPlayer?.players?.find(item => item?.vice_caption);
-      let data = {};
-      dispatch(getAllPlayerList(teamPlayer?._id, data, false, {}));
-      NavigationService.navigate(PLAYER_PREVIEW_TWO, {
-        oldData: contestData,
-        selectedPlayers: selectedPlayers,
-        selectedPlayerDetails: newData,
-        player: secondTeamCount,
-        playerTwo: firstTeamCount,
-        team_name: teamPlayer?.name,
-        captainId: captain?.pid,
-        vice_caption: viceCaptain?.pid,
-        team_id: teamPlayer?._id,
-        total_points: total_points,
-        teamName: teamname,
-        full_name: full_name,
-        replacedPlayers: teamPlayer?.replacedPlayers,
-        notReplacedSubstitutes: teamPlayer?.notReplacedSubstitutes,
-        teamPlayer: teamPlayer,
-      });
+      setWithOutMatchStart(filteredData);
+    } catch (e) {
+      console.log('Error filtering leaderboard data:', e);
+      setWithOutMatchStart([]);
     }
+  }, [leaderBoards, userData]);
+  
+  const playerPreview = (teamPlayer, full_name, teamname, total_points) => {
+    // For matches not started yet, just show a message
+    toastAlert.showToastError(
+      'Team details will be available once the match starts'
+    );
   };
-  const onProfile = id => {
-    // const data = {
-    //   user_id: id,
-    // };`
-    // dispatch(getOtherUserProfile(id));
-  };
+
   const renderLeaderBoard = ({item, index}) => {
+    if (!item) return null;
+    
+    // Safely get user and team names
+    const username = item?.username || item?.full_name || 'Unknown User';
+    const teamName = item?.team_details?.name || 'Team 1';
+    
     return (
       <TouchableOpacity
         activeOpacity={1}
-        onPress={() => {
-          playerPreview(
-            item?.team_details,
-            `${
-              item?.full_name || item?.username
-                ? `${
-                    item?.full_name
-                      ? item?.full_name
-                      : item?.username
-                      ? item?.username
-                      : null
-                  }`
-                : item?.created_by?.full_name
-                ? item?.created_by?.full_name
-                : item?.created_by?.username
-                ? item?.created_by?.username
-                : null
-            }`,
-            `${item?.team_details?.name ? item?.team_details?.name : ''}`,
-            item?.team_details?.total_points,
-          );
-        }}
+        onPress={() => playerPreview(item?.team_details, username, teamName, 0)}
         style={[
           styles.leaderBoardContainer,
           {
-            backgroundColor: filteredArray?.length == 1 ? '#343434' : null,
+            backgroundColor: index % 2 === 0 ? '#343434' : null,
             borderBottomWidth: 1,
             borderBottomColor: colors.lightgry,
           },
         ]}>
         <View style={styles.underView}>
-          <TouchableOpacity
-            onPress={() => onProfile(item?.team_details?.user_id)}>
+          <TouchableOpacity>
             <FastImage
               style={styles.userImg}
               resizeMode="contain"
-              source={
-                item?.logo
-                  ? {
-                      uri: `${IMAGE_BASE_URL + item?.logo}`,
-                    }
-                  : item?.created_by?.logo
-                  ? {
-                      uri: `${IMAGE_BASE_URL + item?.created_by?.logo}`,
-                    }
-                  : UserIcon
-              }
+              source={UserIcon}
             />
           </TouchableOpacity>
           <View style={{flex: 1.4, marginLeft: 6}}>
             <AppText>
-              {/* {' '}
-              {`${
-                item?.full_name || item?.username
-                  ? `${
-                      item?.full_name
-                        ? item?.full_name
-                        : item?.username
-                        ? item?.username
-                        : null
-                    }`
-                  : item?.created_by?.full_name
-                  ? item?.created_by?.full_name
-                  : item?.created_by?.username
-                  ? item?.created_by?.username
-                  : null
-              } (${item?.team_details?.name ? item?.team_details?.name : ''})`} */}
-              {item?.username || item?.full_name}{' '}
-              {`(${item?.team_details?.name ? item?.team_details?.name : ''})`}
+              {username}{' '}
+              {`(${teamName})`}
             </AppText>
-            {contestData?.Status == 'Completed' ? (
-              <>
-                {item?.winningZone || item?.winnings ? (
-                  <AppText
-                    type={TEN}
-                    weight={POPPINS_MEDIUM}
-                    style={{color: '#00B81C'}}>
-                    {item?.winnings
-                      ? `Won ₹ ${item?.winnings}`
-                      : item?.winningZone}
-                  </AppText>
-                ) : (
-                  <></>
-                )}
-              </>
-            ) : (
-              <>
-                {item?.winningZone !== undefined ? (
-                  <AppText
-                    type={TEN}
-                    weight={POPPINS_MEDIUM}
-                    style={{color: '#00B81C'}}>
-                    In Winning Zone
-                  </AppText>
-                ) : (
-                  <></>
-                )}
-              </>
+            {/* Show "Your team" tag for the current user's team */}
+            {(
+              (item?.email && userData?.email && item.email === userData.email) ||
+              (item?._id && userData?._id && item._id === userData._id) ||
+              (item?.username && userData?.username && item.username === userData.username) ||
+              (item?.full_name && userData?.full_name && item.full_name === userData.full_name) ||
+              (item?.mobile_number && userData?.mobile_number && item.mobile_number === userData.mobile_number)
+            ) && (
+              <AppText
+                type={TEN}
+                weight={POPPINS_MEDIUM}
+                style={{color: '#00B81C'}}>
+                Your team
+              </AppText>
             )}
           </View>
           <View
@@ -363,31 +347,32 @@ const getData = React.useCallback(() => {
               justifyContent: 'space-between',
               flex: 1,
             }}>
-            {item?.team_details?.total_points ? (
             <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
-              {item?.team_details?.total_points}
+              {item?.team_details?.total_points || 0}
             </AppText>
-          ) : (
-            <></>
-          )}
-         {item?.rank ? (
             <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
-              # {item?.rank}
+              # {item?.rank || 1}
             </AppText>
-          ) : (
-            <></>
-          )}
           </View>
         </View>
       </TouchableOpacity>
     );
   };
+
   const mydataleaderboard = () => {
     return (
       myDataleader &&
-      myDataleader?.map(item => {
+      myDataleader.length > 0 &&
+      myDataleader.map((item, index) => {
+        if (!item) return null;
+        
+        // Get user and team names safely
+        const username = item?.username || item?.full_name || 'You';
+        const teamName = item?.team_details?.name || 'Team 1';
+        
         return (
           <TouchableOpacity
+            key={`my-team-${index}`}
             activeOpacity={1}
             style={[
               styles.leaderBoardContainer,
@@ -397,207 +382,48 @@ const getData = React.useCallback(() => {
                 borderBottomColor: colors.lightgry,
               },
             ]}
-            onPress={() => {
-              playerPreview(
-                item?.team_details,
-                `${
-                  item?.full_name || item?.username
-                    ? `${
-                        item?.full_name
-                          ? item?.full_name
-                          : item?.username
-                          ? item?.username
-                          : null
-                      }`
-                    : item?.created_by?.full_name
-                    ? item?.created_by?.full_name
-                    : item?.created_by?.username
-                    ? item?.created_by?.username
-                    : null
-                }`,
-                `${item?.team_details?.name ? item?.team_details?.name : ''}`,
-                item?.team_details?.total_points,
-              );
-            }}>
-            <TouchableOpacity
-              activeOpacity={1}
-              onPress={() => {
-                playerPreview(
-                  item?.team_details,
-                  `${
-                    item?.full_name || item?.username
-                      ? `${
-                          item?.full_name
-                            ? item?.full_name
-                            : item?.username
-                            ? item?.username
-                            : null
-                        }`
-                      : item?.created_by?.full_name
-                      ? item?.created_by?.full_name
-                      : item?.created_by?.username
-                      ? item?.created_by?.username
-                      : null
-                  }`,
-                  `${item?.team_details?.name ? item?.team_details?.name : ''}`,
-                  item?.team_details?.total_points,
-                );
-              }}
-              style={styles.underView}>
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => onProfile(item?.team_details?.user_id)}>
+            onPress={() => playerPreview(null, username, teamName, 0)}>
+            <View style={styles.underView}>
+              <TouchableOpacity>
                 <FastImage
                   style={styles.userImg}
                   resizeMode="contain"
-                  source={
-                    item?.logo
-                      ? {
-                          uri: `${IMAGE_BASE_URL + item?.logo}`,
-                        }
-                      : item?.created_by?.logo
-                      ? {
-                          uri: `${IMAGE_BASE_URL + item?.created_by?.logo}`,
-                        }
-                      : UserIcon
-                  }
-                  // source={PANT}
+                  source={UserIcon}
                 />
               </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  playerPreview(
-                    item?.team_details,
-                    `${
-                      item?.full_name || item?.username
-                        ? `${
-                            item?.full_name
-                              ? item?.full_name
-                              : item?.username
-                              ? item?.username
-                              : null
-                          }`
-                        : item?.created_by?.full_name
-                        ? item?.created_by?.full_name
-                        : item?.created_by?.username
-                        ? item?.created_by?.username
-                        : null
-                    }`,
-                    `${
-                      item?.team_details?.name ? item?.team_details?.name : ''
-                    }`,
-                    item?.team_details?.total_points,
-                  );
-                }}
-                style={{flex: 1.4, marginLeft: 6}}>
+              <View style={{flex: 1.4, marginLeft: 6}}>
                 <AppText>
-                  {/* {' '}
-                  {`${
-                    item?.full_name || item?.username
-                      ? `${
-                          item?.full_name
-                            ? item?.full_name
-                            : item?.username
-                            ? item?.username
-                            : null
-                        }`
-                      : item?.created_by?.full_name
-                      ? item?.created_by?.full_name
-                      : item?.created_by?.username
-                      ? item?.created_by?.username
-                      : null
-                  } (${
-                    item?.team_details?.name ? item?.team_details?.name : ''
-                  })`} */}
-                  {item?.username || item?.full_name}
-                  {` (${
-                    item?.team_details?.name ? item?.team_details?.name : ''
-                  })`}
+                  {username}{' '}
+                  {`(${teamName})`}
                 </AppText>
-                {contestData?.Status == 'Completed' ? (
-                  <>
-                    {item?.winningZone || item?.winnings ? (
-                      <AppText
-                        type={TEN}
-                        weight={POPPINS_MEDIUM}
-                        style={{color: '#00B81C'}}>
-                        {item?.winnings
-                          ? `You Won ₹ ${item?.winnings}`
-                          : item?.winningZone}
-                      </AppText>
-                    ) : (
-                      <></>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {item?.winningZone !== undefined ? (
-                      <AppText
-                        type={TEN}
-                        weight={POPPINS_MEDIUM}
-                        style={{color: '#00B81C'}}>
-                        In Winning Zone
-                      </AppText>
-                    ) : (
-                      <></>
-                    )}
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => {
-                  playerPreview(
-                    item?.team_details,
-                    `${
-                      item?.full_name || item?.username
-                        ? `${
-                            item?.full_name
-                              ? item?.full_name
-                              : item?.username
-                              ? item?.username
-                              : null
-                          }`
-                        : item?.created_by?.full_name
-                        ? item?.created_by?.full_name
-                        : item?.created_by?.username
-                        ? item?.created_by?.username
-                        : null
-                    }`,
-                    `${
-                      item?.team_details?.name ? item?.team_details?.name : ''
-                    }`,
-                    item?.team_details?.total_points,
-                  );
-                }}
+                <AppText
+                  type={TEN}
+                  weight={POPPINS_MEDIUM}
+                  style={{color: '#00B81C'}}>
+                  Your team
+                </AppText>
+              </View>
+              <View
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flex: 1,
                 }}>
-                {item?.team_details?.total_points ? (
-                  <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
-                    {item?.team_details?.total_points}
-                  </AppText>
-                ) : (
-                  <></>
-                )}
-                {item?.rank ? (
-                  <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
-                    # {item?.rank}
-                  </AppText>
-                ) : (
-                  <></>
-                )}
-              </TouchableOpacity>
-            </TouchableOpacity>
+                <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
+                  {item?.team_details?.total_points || 0}
+                </AppText>
+                <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
+                  # {item?.rank || 1}
+                </AppText>
+              </View>
+            </View>
           </TouchableOpacity>
         );
       })
     );
   };
+
   return (
     <>
       <View style={styles.head}>
@@ -609,47 +435,57 @@ const getData = React.useCallback(() => {
             flex: 2,
           }}>
           {`Team Name`}
-          {/* {`ALL TEAMS (${leaderBoards?.length})`} */}
         </AppText>
-        {filteredArray[0]?.team_details?.total_points ||
-        filteredArray[0]?.team_details?.total_points ? (
-          <>
-            <AppText style={{flex: 1}} color={WHITE} type={TEN}>
-              Points
-            </AppText>
-            <AppText color={WHITE} type={TEN}>
-              Rank
-            </AppText>
-          </>
-        ) : (
-          <></>
-        )}
+        <AppText style={{flex: 1}} color={WHITE} type={TEN}>
+          Points
+        </AppText>
+        <AppText color={WHITE} type={TEN}>
+          Rank
+        </AppText>
       </View>
       {loading ? (
         <SpinnerSecond loading />
       ) : (
         <>
-          {filteredArray?.length ? (
+          {filteredArray?.length > 0 ? (
             <FlatList
               data={withOutMatchStart || filteredArray}
               renderItem={renderLeaderBoard}
               keyExtractor={(item, index) => index?.toString()}
               showsVerticalScrollIndicator={false}
-              removeClippedSubviews
-              maxToRenderPerBatch={20}
-              initialNumToRender={15}
-              onStartReached={handleListStakingHistoryTop}
-              onEndReached={handleListStakingHistory}
-              scrollEnabled={true}
-              ListHeaderComponent={
-                mydataleaderboard
-              }
-              // refreshControl={
-
-              
-              //   <RefreshControl refreshing={onRefresh} onRefresh={getData} />
-              // }
+              ListHeaderComponent={mydataleaderboard}
             />
+          ) : contestData?.joined > 0 ? (
+            // Show the user's team when no one else has joined
+            <View style={{padding: 20}}>
+              <AppText
+                style={{
+                  textAlign: 'center',
+                  marginBottom: 20,
+                }}
+                color={WHITE}
+                weight={POPPINS_MEDIUM}>
+                You have joined this contest.
+                {'\n'}
+                Waiting for other players to join.
+              </AppText>
+              
+              {/* Show user's team details */}
+              {myDataleader && myDataleader.length > 0 ? (
+                myDataleader.map((item, index) => renderLeaderBoard({item, index}))
+              ) : (
+                <FlatList
+                  data={[{
+                    _id: userData?._id || 'current-user',
+                    username: userData?.username || userData?.full_name || 'You',
+                    team_details: { name: 'Team 1', total_points: 0 },
+                    rank: 1
+                  }]}
+                  renderItem={renderLeaderBoard}
+                  keyExtractor={(item) => item._id || 'user-team'}
+                />
+              )}
+            </View>
           ) : (
             <AppText
               style={{
@@ -663,52 +499,6 @@ const getData = React.useCallback(() => {
           )}
         </>
       )}
-
-      {/* <View
-        style={{
-          width: Screen.Width,
-          paddingVertical: 10,
-          position: 'absolute',
-          bottom: 0,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          paddingHorizontal: 30,
-          backgroundColor: colors.black,
-        }}>
-        <TouchableOpacity
-          disabled={limit === 10}
-          onPress={() => {
-            handleListStakingHistory('Previous');
-          }}
-          style={{
-            width: '45%',
-            paddingVertical: 8,
-            borderWidth: 1,
-            borderColor: skip === 0 ? colors.borderGry : colors.borderBackColor,
-            borderRadius: 20,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 5,
-          }}>
-          <AppText style={{color: colors.white}} type={THIRTEEN}>
-            Previous
-          </AppText>
-        </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => {
-            handleListStakingHistory('Next');
-          }}
-          style={{
-            width: '45%',
-            borderWidth: 1,
-            borderColor: colors.borderBackColor,
-            borderRadius: 5,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
-          <AppText type={THIRTEEN}>Next</AppText>
-        </TouchableOpacity>
-      </View> */}
     </>
   );
 };

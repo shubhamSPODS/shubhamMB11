@@ -44,20 +44,12 @@ const ContestCard = ({ details, totalTeamCount }) => {
     return null;
   }
 
-  // Get full contest details including Rankdata
+
   const contestDetails = details?.contest_category_details?.find(
     cat => cat?._id === details?.contest_category_id
   ) || details;
 
-  // Log contest data for debugging
-  console.log('Contest data received:', {
-    entryFee: details.EntryFee || details.EnteryFee,
-    contestSize: details.ContestSize || details.Contestsize,
-    winningAmount: details.winning_amount,
-    Rankdata: contestDetails?.Rankdata || []
-  });
 
-  // State declarations
   const [saveTeamName, setSaveTeamName] = useState('');
   const [isAdd, setIsAdd] = useState(false);
 
@@ -68,7 +60,6 @@ const ContestCard = ({ details, totalTeamCount }) => {
   const { _id, SeriesId } = contestData ?? '';
   const { contestCategories } = useSelector(state => state.match);
   
-  // Ensure numeric values
   const contestSize = Number(contestDetails?.ContestSize || contestDetails?.Contestsize || 0);
   const joined = Number(details?.joined || 0);
   const percentage = (joined / (contestSize || 1)) * 100;

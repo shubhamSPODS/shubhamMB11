@@ -10,13 +10,25 @@ import { Layer_1 } from '../../helper/image';
 import { Screen } from '../../theme/dimens';
 import { useIsFocused } from '@react-navigation/native';
 
-const Winnings = ({ id, privateis, notLive, rankData, contestDetails = {} }) => {
+// Define the component with optional match_contest_category_id
+const Winnings = ({ id, match_contest_category_id = undefined, privateis, notLive, rankData, contestDetails = {} }) => {
   const [prizeList, setPrizeList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [onRefresh, setOnrefresh] = useState(false);
   
+  // Log the props for debugging
   useEffect(() => {
-    
+    console.log('Winnings component props:', {
+      id,
+      match_contest_category_id,
+      privateis,
+      notLive,
+      rankDataLength: rankData?.length || 0,
+      contestDetails: contestDetails
+    });
+  }, []);
+  
+  useEffect(() => {
     if (rankData && rankData.length > 0) {
       setLoading(false);
     }
@@ -24,7 +36,7 @@ const Winnings = ({ id, privateis, notLive, rankData, contestDetails = {} }) => 
 
   const getPrizeList = async () => {
     try {
-      console.log('Fetching prize list...');
+      console.log('Fetching prize list with id:', id);
       setOnrefresh(true);
       const res = privateis ? await appOperation.customer.getPrizeListPrivate(id, privateis) : await appOperation.customer.getPrizeList(id);
       console.log('Prize list API response:', res);
@@ -115,7 +127,6 @@ const Winnings = ({ id, privateis, notLive, rankData, contestDetails = {} }) => 
     }
   }, [prizeList, rankData]);
   
-  console.log("Final data to display in Winnings:", dataToDisplay);
   
   return (
     <>

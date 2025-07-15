@@ -221,7 +221,7 @@ const MyContestList = ({ item }) => {
                 style={{ color: '#37CC4C', fontSize: 10 }}
                 weight={LATO_BOLD}>
                 {item?.data?.Contestsize - (item?.contest_details?.joined || 0)}{' '}
-                left
+                spots left
               </AppText>
             </View>
           </>

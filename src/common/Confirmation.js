@@ -67,33 +67,44 @@ const Confirmation = ({
   });
   const selectedMatch = useSelector(state => state?.match?.selectedMatch);
   const contestData = useSelector(state => state?.match?.contestData);
-  const { EnteryFee, UsableBonusPercantage, contest_category_id, inner_data_id, total_balance } =
-    selectedMatch ?? '';
+  
+  // Get entry fee and bonus percentage from the appropriate source
+  const entryFee = CreateContestData?.EnteryFee || details?.EntryFee || selectedMatch?.EnteryFee || 0;
+  const usableBonusPercentage = details?.UsableBonusPercantage || selectedMatch?.UsableBonusPercantage || 0;
+  const contest_category_id = details?.contest_category_id || selectedMatch?.contest_category_id;
+  const inner_data_id = details?.inner_data_id || selectedMatch?.inner_data_id;
+  
   const { _id: matchDetails_id } = matchDetails ?? '';
   const { match_id, matchid, _id } = myTeam[0] ?? '';
   const { cash_bonus, totaldeposit } = userData ?? '';
-  const newAmount = totaldeposit + userData?.winning_amount;
-  const sumOfTotal = totaldeposit + userData?.winning_amount + cash_bonus;
-  let usable =
-    (Number(
-      CreateContestData?.EnteryFee ? CreateContestData?.EnteryFee : EnteryFee,
-    ) *
-      Number(UsableBonusPercantage)) /
-    100;
-  let usableBonus = `${CreateContestData?.EnteryFee
-    ? CreateContestData?.EnteryFee
-    : EnteryFee == 0
-      ? 0
-      : cash_bonus >= usable
-        ? usable
-        : cash_bonus
-    }`;
-  let payAmount = `${CreateContestData?.EnteryFee
-    ? CreateContestData?.EnteryFee - Number(usableBonus)
-    : Number(EnteryFee) - Number(usableBonus)
-    }`;
+  const winningAmount = userData?.winning_amount || 0;
+  
+  // Calculate total balance
+  const depositBalance = totaldeposit || 0;
+  const totalBalance = depositBalance + winningAmount + cash_bonus;
+  
+  // Calculate number of teams
+  const numberOfTeams = selectMulty?.length || 1;
+  
+  // Calculate single team entry fee
+  const singleEntryFee = Number(entryFee);
+  
+  // Calculate total entry fee for all teams
+  const totalEntryFee = singleEntryFee * numberOfTeams;
+  
+  // Calculate maximum usable bonus per team
+  const maxBonusPerTeam = (singleEntryFee * Number(usableBonusPercentage)) / 100;
+  
+  // Calculate actual usable bonus per team (limited by available cash bonus)
+  const actualBonusPerTeam = Math.min(maxBonusPerTeam, cash_bonus || 0);
+  
+  // Calculate total usable bonus for all teams (limited by available cash bonus)
+  const totalUsableBonus = Math.min(actualBonusPerTeam * numberOfTeams, cash_bonus || 0);
+  
+  // Calculate amount to pay
+  const payAmount = Math.max(0, totalEntryFee - totalUsableBonus);
+  
   const { _id: contestListId, } = contestData ?? '';
-  const payTotalAmount = selectMulty?.length ? payAmount * selectMulty?.length : payAmount;
 
   const handleClose = () => {
     if (onClose) {
@@ -105,29 +116,37 @@ const Confirmation = ({
   const onSubmit = () => {
     if (CreateContestData?.EnteryFee) {
       dispatch(
-        setcreateContest(CreateContestData, match_id, payTotalAmount, _id, matchid, FilterId?.name, contestListId),
+        setcreateContest(CreateContestData, match_id, payAmount, _id, matchid, FilterId?.name, contestListId),
       );
       handleClose();
     }
-    else if (payTotalAmount <= newAmount) {
+    else if (payAmount <= (depositBalance + winningAmount)) {
       if (JoinWithMULT) {
         if (!selectMulty?.length) {
           toastAlert.showToastError('Please select teams to join the contest');
           return;
         }
 
-        const shadow_contest_id = details?.shadow_contest_id || '';
-        const match_contest_category_id = details?.match_contest_category_id || '';
+        // Extract contest IDs from details or selectedMatch
+        const shadow_contest_id = details?.shadow_contest_id || details?._id || '';
+        // Use _id as match_contest_category_id directly as shown in the API response
+        const match_contest_category_id = details?._id || '';
 
-        console.log('Contest details for join:', {
-          contest_category_id: details?.contest_category_id,
-          details,
-          match_contest_category_id,
-          shadow_contest_id
+        // Log full details object for debugging
+        console.log('Full details object:', JSON.stringify(details, null, 2));
+        
+        console.log('Contest details for join (multiple teams):', {
+          contest_category_id,
+          details_id: details?._id,
+          details_shadow_id: details?.shadow_contest_id,
+          details_match_contest_id: details?.match_contest_category_id,
+          details_inner_id: details?.inner_data_id,
+          shadow_contest_id,
+          match_contest_category_id
         });
 
         if (!shadow_contest_id) {
-          console.error('Missing shadow_contest_id:', { shadow_contest_id });
+          console.error('Missing shadow_contest_id:', { shadow_contest_id, details });
           toastAlert.showToastError('Missing contest ID');
           return;
         }
@@ -154,12 +173,12 @@ const Confirmation = ({
             match_id: teamMatchId,
             matchid: teamMatchIdAlt,
             teams_id: [teamId],
-            contest_category_id: details?.contest_category_id,
+            contest_category_id: contest_category_id,
             shadow_contest_id,
             match_contest_category_id,
             teamName: `T${index + 1}`, 
             method: 'wallet',
-            amount: Number(details?.EnteryFee || 0)
+            amount: singleEntryFee
           };
         }).filter(Boolean);
 
@@ -183,18 +202,26 @@ const Confirmation = ({
           return;
         }
 
-        const shadow_contest_id = details?.shadow_contest_id || '';
-        const match_contest_category_id = details?.match_contest_category_id || '';
+        // Extract contest IDs from details or selectedMatch
+        const shadow_contest_id = details?.shadow_contest_id || details?._id || '';
+        // Use _id as match_contest_category_id directly as shown in the API response
+        const match_contest_category_id = details?._id || '';
 
-        console.log('Contest details for join:', {
-          contest_category_id: details?.contest_category_id,
-          details,
-          match_contest_category_id,
-          shadow_contest_id
+        // Log full details object for debugging
+        console.log('Full details object:', JSON.stringify(details, null, 2));
+        
+        console.log('Contest details for join (single team):', {
+          contest_category_id,
+          details_id: details?._id,
+          details_shadow_id: details?.shadow_contest_id,
+          details_match_contest_id: details?.match_contest_category_id,
+          details_inner_id: details?.inner_data_id,
+          shadow_contest_id,
+          match_contest_category_id
         });
 
         if (!shadow_contest_id) {
-          console.error('Missing shadow_contest_id:', { shadow_contest_id });
+          console.error('Missing shadow_contest_id:', { shadow_contest_id, details });
           toastAlert.showToastError('Missing contest ID');
           return;
         }
@@ -210,12 +237,12 @@ const Confirmation = ({
           match_id: match_id || matchDetails?._id,
           matchid: matchid || matchDetails?.matchid,
           teams_id: [_id],
-          contest_category_id: details?.contest_category_id,
+          contest_category_id: contest_category_id,
           shadow_contest_id,
           match_contest_category_id,
           teamName: 'T1', 
           method: 'wallet',
-          amount: Number(details?.EnteryFee || 0)
+          amount: singleEntryFee
         };
 
         console.log('Joining contest with single team:', joinData);
@@ -276,7 +303,7 @@ const Confirmation = ({
                     type={SIXTEEN}
                     color={WHITE}
                     weight={SEMI_BOLD}>
-                    {CreateContestData?.EnteryFee ? CreateContestData?.EnteryFee : selectMulty?.length ? `${EnteryFee} x ${selectMulty?.length}` : EnteryFee}
+                    {numberOfTeams > 1 ? `${singleEntryFee} x ${numberOfTeams}` : singleEntryFee}
                   </AppText>
                 </AppText>
               </View>
@@ -286,7 +313,7 @@ const Confirmation = ({
                 Usable Balance{'\n'}(Unutilized + Winning + Bonus)
               </AppText>
               <AppText type={FORTEEN} weight={LATO_SEMI_BOLD} >
-                ₹{`${fixedToTwo(sumOfTotal)}`}
+                ₹{`${fixedToTwo(totalBalance)}`}
               </AppText>
             </View>
             <View style={[styles.center, { marginTop: 5 }]}>
@@ -294,7 +321,7 @@ const Confirmation = ({
                 Usable Cash Bonus
               </AppText>
               <AppText type={FORTEEN} color={WHITE} style={{ opacity: 0.5 }} weight={SEMI_BOLD}>
-                -₹{Number(usableBonus)?.toFixed(2)}
+                -₹{fixedToTwo(totalUsableBonus)}
               </AppText>
             </View>
           </View>
@@ -309,7 +336,7 @@ const Confirmation = ({
               style={{ color: '#4DFF7F' }}
               type={FORTEEN}
               weight={LATO_SEMI_BOLD}>
-              ₹{payTotalAmount}
+              ₹{fixedToTwo(payAmount)}
             </AppText>
           </View>
           <View style={styles.detailsStyle}>
@@ -344,7 +371,7 @@ const Confirmation = ({
                   color: 'white',
                 }}
                 weight={POPPINS_BOLD}>
-                {payTotalAmount <= totaldeposit+cash_bonus+userData?.winning_amount ? 'Join contest' : 'Add cash'}
+                {payAmount <= totalBalance ? 'Join contest' : 'Add cash'}
               </AppText>
             </LinearGradient>
           </TouchableOpacityView>

@@ -80,9 +80,6 @@ const FirstRoute = ({ route }) => {
   useEffect(() => {
     const testApiCall = async () => {
       try {
-        console.log('🧪 TESTING API CALL DIRECTLY');
-        console.log('Match ID:', matchId);
-        console.log('Contest Category ID:', contestCategoryId);
         
         if (!matchId || !contestCategoryId) {
           console.log('❌ Missing required IDs for test API call');

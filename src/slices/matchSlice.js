@@ -318,6 +318,10 @@ export const MycreateContest = (data, condition) => async dispatch => {
 export const joinContest = (data, matchDetails) => async dispatch => {
   try {
     const validateData = data?.mutiple ? data?.arofobj?.[0] : data;
+    
+    // Log the full data for debugging
+    console.log('Join contest data:', JSON.stringify(data, null, 2));
+    
     const requiredFields = {
       cid: validateData?.cid,
       match_id: validateData?.match_id,
@@ -426,15 +430,37 @@ export const getContestList = (outputObject, id) => async dispatch => {
   }
 };
 export const getMyMatches = status => async dispatch => {
+  // Set a timeout to ensure loading state is cleared if API call hangs
+  const timeoutPromise = new Promise((_, reject) => 
+    setTimeout(() => reject(new Error('Request timeout')), 8000)
+  );
+  
   try {
     dispatch(setLoading(true));
-    const res = await appOperation.customer.getMyMatchesData(status);
-    if (res.code == 200) {
-      dispatch(setMyMatchesData(res.data));
+    console.log('Fetching my matches data with status:', status || 'all');
+    
+    // Race the API call against the timeout
+    const res = await Promise.race([
+      appOperation.customer.getMyMatchesData(status),
+      timeoutPromise
+    ]);
+    
+    console.log('My matches API response status code:', res?.code);
+    
+    if (res?.code === 200) {
+      console.log('Successfully fetched my matches, count:', res?.data?.length || 0);
+      dispatch(setMyMatchesData(res.data || []));
+    } else {
+      console.error('Failed to fetch my matches:', res?.message || 'Unknown error');
+      // Set empty array to avoid undefined errors
+      dispatch(setMyMatchesData([]));
     }
-    dispatch(setLoading(false));
-  } catch (e) {
+  } catch (error) {
+    console.error('Error in getMyMatches:', error?.message || error);
+    // Set empty array to avoid undefined errors
+    dispatch(setMyMatchesData([]));
   } finally {
+    // Always set loading to false to stop the spinner
     dispatch(setLoading(false));
   }
 };

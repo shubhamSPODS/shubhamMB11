@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {FlatList, View, RefreshControl, ScrollView, StyleSheet} from 'react-native';
 import {TabView, SceneMap, TabBar} from 'react-native-tab-view';
 import FastImage from "@d11/react-native-fast-image";
@@ -10,7 +10,7 @@ import {Screen} from '../../theme/dimens';
 import {TouchableOpacityView} from '../../common/TouchableOpacityView';
 import MatchCard from '../../components/matchCard/MatchCard';
 import {personIcon, combine, notification} from '../../helper/image';
-import {getMyMatches, setSelectedMatch} from '../../slices/matchSlice';
+import {getMyMatches, setSelectedMatch, setLoading} from '../../slices/matchSlice';
 import styles from './styles';
 import {
   AppText,
@@ -186,6 +186,7 @@ const MyMatches = () => {
   const [index, setIndex] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
   const [routes] = useState([
     { key: 'teams', title: 'Teams' },
@@ -198,19 +199,51 @@ const MyMatches = () => {
     { key: 'completed', title: 'Completed' },
   ]);
 
-  // Use the same data source as Cricket.js - upcomingMatches and filter for joined contests
   const upcomingMatches = useSelector(state => state?.match?.upcomingMatches);
   const myMatchesHome = useSelector(state => state?.match?.myMatchesHome);
   const isLoading = useSelector(state => state?.match?.isLoading);
   const contestList = useSelector(state => state?.match?.contestList);
 
-  console.log('MyMatches upcomingMatches:', upcomingMatches?.length);
-  console.log('MyMatches myMatchesHome:', myMatchesHome?.length);
-  console.log('MyMatches isLoading:', isLoading);
-  console.log('Current subIndex:', subIndex);
-  console.log('Current index:', index);
+  console.log('MyMatches component - isLoading state:', isLoading);
+  
+  // Fetch my matches data when the component mounts with timeout protection
+  useEffect(() => {
+    console.log('MyMatches component mounted, fetching data...');
+    
+    // Set a timeout to force loading state to false after 10 seconds
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.log('Loading timeout reached, forcing loading state to false');
+        setLoadingTimeout(true);
+        dispatch(setLoading(false));
+      }
+    }, 10000);
+    
+    // Fetch data
+    dispatch(getMyMatches());
+    
+    // Cleanup timeout
+    return () => clearTimeout(timeoutId);
+  }, [dispatch]);
+  
+  // Reset loading timeout when loading state changes
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingTimeout(false);
+    }
+  }, [isLoading]);
 
-  // Filter matches where user has joined contests
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    // Fetch updated data
+    dispatch(getMyMatches());
+    
+    // Set a timeout to ensure refreshing state is reset
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 3000);
+  }, [dispatch]);
+
   const getMyJoinedMatches = () => {
     if (!upcomingMatches || !Array.isArray(upcomingMatches)) {
       console.log('No upcomingMatches data or not an array:', upcomingMatches);
@@ -218,13 +251,17 @@ const MyMatches = () => {
     }
 
     return upcomingMatches.filter(match => {
-      const hasJoinedContests = match.teams?.some(contest => contest.joined > 0);
+      // Check if the user has joined any contests for this match
+      const hasJoinedContests = match.teams && Array.isArray(match.teams) && 
+        match.teams.some(contest => contest.joined > 0);
 
       const isCompletedMatch = match.Status === 'Completed';
       const hasTeamsData = match.teams && match.teams.length > 0;
 
+      // Include this match if the user has joined contests or if it's a completed match with team data
       const shouldInclude = hasJoinedContests || (isCompletedMatch && hasTeamsData);
       
+      // Log Maharashtra Premier League matches for debugging
       if (match.SeriesName?.includes('Maharashtra') || match.Team1vsTeam2?.includes('Eagle') || match.Team1vsTeam2?.includes('Puneri')) {
         console.log('🏏 Maharashtra Premier League Match Found:', {
           id: match._id,
@@ -242,16 +279,6 @@ const MyMatches = () => {
         });
       }
       
-      console.log('Match check:', {
-        id: match._id,
-        teams: match.Team1vsTeam2,
-        status: match.Status,
-        hasTeams: match.teams?.length,
-        hasJoinedContests,
-        isCompletedMatch,
-        shouldInclude,
-        contestsJoined: match.teams?.filter(contest => contest.joined > 0).length
-      });
       return shouldInclude;
     });
   };
@@ -267,23 +294,28 @@ const MyMatches = () => {
     const currentDate = new Date();
     
     return joinedMatches.filter(match => {
-      const matchDate = new Date(match.StartDateTime);
+      if (!match) return false;
+      
+      // Parse match date safely
+      const matchDate = match.StartDateTime ? new Date(match.StartDateTime) : new Date();
       const isPastTime = matchDate < currentDate;
       
       let shouldInclude = false;
       let reason = '';
       
-      if (subIndex === 0) {
+      // Filter by match status based on current tab
+      if (subIndex === 0) { // Upcoming
         shouldInclude = !isPastTime && match.Status !== 'Completed' && match.Status !== 'Cancelled';
         reason = `Upcoming: !isPastTime(${!isPastTime}) && Status!==Completed(${match.Status !== 'Completed'}) && Status!==Cancelled(${match.Status !== 'Cancelled'})`;
-      } else if (subIndex === 1) {
+      } else if (subIndex === 1) { // Live
         shouldInclude = match.Status === 'Live';
         reason = `Live: Status===Live(${match.Status === 'Live'})`;
-      } else {
+      } else { // Completed
         shouldInclude = isPastTime || match.Status === 'Completed' || match.Status === 'Cancelled';
         reason = `Completed: isPastTime(${isPastTime}) || Status===Completed(${match.Status === 'Completed'}) || Status===Cancelled(${match.Status === 'Cancelled'})`;
       }
       
+      // Log Maharashtra matches for debugging
       if (match.SeriesName?.includes('Maharashtra') || match.Team1vsTeam2?.includes('Eagle') || match.Team1vsTeam2?.includes('Puneri')) {
         console.log('🏏 Maharashtra Match Status Check:', {
           id: match._id,
@@ -306,22 +338,31 @@ const MyMatches = () => {
     
     console.log('🎯 Tab filtering for:', matchType, 'statusFiltered length:', statusFilteredMatches.length);
     
-    if (statusFilteredMatches.length === 0) {
+    if (!statusFilteredMatches || statusFilteredMatches.length === 0) {
       console.log('No status filtered matches, returning empty array');
       return [];
     }
     
+    // Filter matches based on the selected tab (teams or scoreboard)
     const filtered = statusFilteredMatches.filter(match => {
+      if (!match) return false;
+      
       let shouldShow = false;
       let reason = '';
       
       if (matchType === 'teams') {
+        // Always show matches where the user has joined contests
+        const hasJoinedContests = match.teams && Array.isArray(match.teams) && 
+          match.teams.some(contest => contest.joined > 0);
+          
         const hasTeams = match.teams && match.teams.length > 0;
         const hasContestDetails = match.contest_details && match.contest_details.length > 0;
         const isCompleted = match.Status === 'Completed';
-        shouldShow = hasTeams || hasContestDetails || isCompleted;
-        reason = `Teams: hasTeams(${hasTeams}) || hasContestDetails(${hasContestDetails}) || isCompleted(${isCompleted})`;
+        
+        shouldShow = hasJoinedContests || hasTeams || hasContestDetails || isCompleted;
+        reason = `Teams: hasJoinedContests(${hasJoinedContests}) || hasTeams(${hasTeams}) || hasContestDetails(${hasContestDetails}) || isCompleted(${isCompleted})`;
       } else {
+        // For scoreboard tab
         const hasScorecard = match.scorecard && match.scorecard.length > 0;
         const isLive = match.Status === 'Live';
         const isCompleted = match.Status === 'Completed';
@@ -332,31 +373,31 @@ const MyMatches = () => {
       return shouldShow;
     });
     
-
+    // Log Maharashtra matches for debugging
     const maharashtraMatches = filtered.filter(m => 
-      m.SeriesName?.includes('Maharashtra') || 
+      m && (m.SeriesName?.includes('Maharashtra') || 
       m.Team1vsTeam2?.includes('Eagle') || 
-      m.Team1vsTeam2?.includes('Puneri')
+      m.Team1vsTeam2?.includes('Puneri'))
     );
     if (maharashtraMatches.length > 0) {
-      console.log( maharashtraMatches.map(m => ({
-        id: m._id,
-        teams: m.Team1vsTeam2,
-        status: m.Status
-      })));
+      console.log('Maharashtra matches that passed the filter:', 
+        maharashtraMatches.map(m => ({
+          id: m._id,
+          teams: m.Team1vsTeam2,
+          status: m.Status
+        }))
+      );
     }
     
     return filtered;
   };
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
-
   const renderItem = ({item, matchType}) => {
+    if (!item) return null;
+    
+    // Get the number of contests the user has joined for this match
+    const joinedContests = item.teams?.filter(t => t.joined > 0) || [];
+    
     console.log('Rendering MatchCard with item:', {
       id: item._id,
       matchType: matchType,
@@ -368,10 +409,25 @@ const MyMatches = () => {
         winning_amount: t.winning_amount
       })),
       contestDetailsData: item.contest_details?.length,
-      countTeam: item.countTeam,
-      countContest: item.countContest,
+      countTeam: joinedContests.length,
+      countContest: item.teams?.length || 0,
       isFromMyMatch: true,
       tab: subIndex === 0 ? 'Upcoming' : subIndex === 1 ? 'Live' : 'Completed'
+    });
+
+    // Find a contest with joined > 0 to get the contest_category_id
+    const joinedContest = item.teams?.find(t => t.joined > 0);
+    
+    // Get contest_category_id from joined contest or use fallback
+    const contest_category_id = joinedContest?.contest_category_id || "65ddb68ce2ddb20749839785"; // Fallback to hardcoded ID
+    
+    // Use the _id directly as match_contest_category_id - this is the key value we need
+    const match_contest_category_id = joinedContest?._id || "";
+    
+    console.log('Contest IDs for navigation:', {
+      contest_category_id,
+      match_contest_category_id,
+      joinedContestId: joinedContest?._id
     });
 
     return (
@@ -389,6 +445,10 @@ const MyMatches = () => {
             TeamB: item.TeamB,
             isFromMyMatch: true,
             contestId: item.contestId,
+            details: {
+              contest_category_id: contest_category_id,
+              match_contest_category_id: match_contest_category_id
+            }
           });
         }}
       />
@@ -399,6 +459,9 @@ const MyMatches = () => {
     upcoming: () => {
       const filteredMatches = getFilteredMatches(matchType);
       const matchesWithContests = filteredMatches.map(match => {
+        if (!match) return null;
+        
+        // Count joined contests for this match
         const joinedContests = match.teams?.filter(t => t.joined > 0) || [];
         const totalContests = match.teams?.length || 0;
         
@@ -409,7 +472,7 @@ const MyMatches = () => {
           countTeam: joinedContests.length, 
           countContest: totalContests, 
         };
-      });
+      }).filter(Boolean); // Remove any null items
 
       console.log('Upcoming matches with contest data:', matchesWithContests.map(m => ({
         id: m._id,
@@ -429,6 +492,7 @@ const MyMatches = () => {
           style={localStyles.flatlistContainer}
           contentContainerStyle={localStyles.scrollContent}>
           {matchesWithContests?.map((item, idx) => {
+            if (!item) return null;
             return (
               <View key={`${matchType}-upcoming-${item._id || idx}`}>
                 {renderItem({item, matchType})}
@@ -444,6 +508,8 @@ const MyMatches = () => {
     live: () => {
       const filteredMatches = getFilteredMatches(matchType);
       const matchesWithContests = filteredMatches.map(match => {
+        if (!match) return null;
+        
         const joinedContests = match.teams?.filter(t => t.joined > 0) || [];
         const totalContests = match.teams?.length || 0;
         
@@ -454,7 +520,7 @@ const MyMatches = () => {
           countTeam: joinedContests.length, 
           countContest: totalContests, 
         };
-      });
+      }).filter(Boolean); // Remove any null items
 
       console.log('Live matches with contest data:', matchesWithContests.map(m => ({
         id: m._id,
@@ -474,6 +540,7 @@ const MyMatches = () => {
           style={localStyles.flatlistContainer}
           contentContainerStyle={localStyles.scrollContent}>
           {matchesWithContests?.map((item, idx) => {
+            if (!item) return null;
             return (
               <View key={`${matchType}-live-${item._id || idx}`}>
                 {renderItem({item, matchType})}
@@ -489,6 +556,8 @@ const MyMatches = () => {
     completed: () => {
       const filteredMatches = getFilteredMatches(matchType);
       const matchesWithContests = filteredMatches.map(match => {
+        if (!match) return null;
+        
         const joinedContests = match.teams?.filter(t => t.joined > 0) || [];
         const totalContests = match.teams?.length || 0;
         
@@ -499,7 +568,7 @@ const MyMatches = () => {
           countTeam: joinedContests.length,
           countContest: totalContests,
         };
-      });
+      }).filter(Boolean); // Remove any null items
 
       console.log('Completed matches with contest data:', matchesWithContests.map(m => ({
         id: m._id,
@@ -519,6 +588,7 @@ const MyMatches = () => {
           style={localStyles.flatlistContainer}
           contentContainerStyle={localStyles.scrollContent}>
           {matchesWithContests?.map((item, idx) => {
+            if (!item) return null;
             return (
               <View key={`${matchType}-completed-${item._id || idx}`}>
                 {renderItem({item, matchType})}
@@ -532,6 +602,11 @@ const MyMatches = () => {
       );
     },
   });
+
+  // Fetch my matches data when the component mounts
+  useEffect(() => {
+    dispatch(getMyMatches());
+  }, []);
 
   const renderScene = SceneMap({
     teams: () => (
@@ -571,7 +646,8 @@ const MyMatches = () => {
           style={localStyles.tabView}
         />
       </CommonImageBackground>
-      <SpinnerSecond loading={isLoading} />
+      {/* Only show spinner when isLoading is true and timeout hasn't occurred */}
+      {isLoading && !loadingTimeout && <SpinnerSecond loading={true} />}
     </AppSafeAreaView>
   );
 };
