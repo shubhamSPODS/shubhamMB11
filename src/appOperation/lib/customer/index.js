@@ -36,6 +36,55 @@ export default appOperation => ({
       CUSTOMER_TYPE,
     );
   },
+  getContestDetailsWithRankData: (matchId, contestCategoryId) => {
+    console.log(`Fetching contest details for match ${matchId} and contest category ${contestCategoryId}`);
+    return appOperation.get(
+      `match/contests/${matchId}/${contestCategoryId}`,
+      undefined,
+      undefined,
+      CUSTOMER_TYPE,
+    ).then(response => {
+      console.log('=== CONTEST DETAILS API RESPONSE ===');
+      console.log('Request params:', { matchId, contestCategoryId });
+      console.log('Response success:', response?.success);
+      console.log('Response code:', response?.code);
+      console.log('Response message:', response?.message);
+      console.log('Data array length:', response?.data?.length);
+      
+      if (response?.data?.length > 0) {
+        const contestDetails = response.data.find(
+          contest => contest.contest_category_id === contestCategoryId || contest._id === contestCategoryId
+        );
+        
+        if (contestDetails) {
+          console.log('Found contest details:', {
+            id: contestDetails._id,
+            name: contestDetails.categoryName,
+            winningAmount: contestDetails.WinningAmount,
+            rankDataCount: contestDetails.Rankdata?.length
+          });
+          
+          if (contestDetails.Rankdata?.length > 0) {
+            console.log('Sample rank data (first 3 entries):', 
+              contestDetails.Rankdata.slice(0, 3).map(rank => ({
+                startRank: rank.StartRank,
+                endRank: rank.EndRank,
+                price: rank.Price
+              }))
+            );
+          }
+        } else {
+          console.log('Contest not found in response for ID:', contestCategoryId);
+        }
+      }
+      
+      console.log('=== END CONTEST DETAILS API RESPONSE ===');
+      return response;
+    }).catch(error => {
+      console.error('Error in getContestDetailsWithRankData:', error);
+      throw error;
+    });
+  },
   editProfile: (data, id) =>
     appOperation.put(`user/update-profile?user=${id}`, data, CUSTOMER_TYPE),
   alltransactions: (type) =>

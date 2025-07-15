@@ -38,19 +38,17 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   const myMatchesHome = useSelector(state => state.match.myMatchesHome);
   const contestList = useSelector(state => state.match.contestList);
   
-  // Add logging for matches
   useEffect(() => {
     console.log('=== My Matches ===', myMatchesHome);
     console.log('=== Upcoming Matches ===', upcomingMatches);
     
-    // Special logging for Maharashtra Premier League matches
     const maharashtraMatches = upcomingMatches?.filter(match => 
       match.SeriesName?.includes('Maharashtra') || 
       match.Team1vsTeam2?.includes('Eagle') || 
       match.Team1vsTeam2?.includes('Puneri')
     );
     if (maharashtraMatches?.length > 0) {
-      console.log('🏏 Cricket.js - Maharashtra matches found:', maharashtraMatches.map(m => ({
+      console.log( maharashtraMatches.map(m => ({
         id: m._id,
         series: m.SeriesName,
         teams: m.Team1vsTeam2,
@@ -62,7 +60,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       })));
     }
     
-    // Add logging for filtered matches
     const teamsMatches = upcomingMatches.filter(match => match.teams && match.teams.length > 0);
     const scoreboardMatches = upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
     console.log('=== Teams Tab Matches ===', teamsMatches.length);
@@ -85,13 +82,10 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     {key: 'scoreboard', title: 'Scoreboard'},
   ]);
 
-  // Filter matches based on type (will be updated when API provides separate arrays)
   const getFilteredMatches = () => {
     if (index === 0) {
-      // For Teams tab, return matches that have a 'teams' array with items
       return upcomingMatches.filter(match => match.teams && match.teams.length > 0);
     } else {
-      // For Scoreboard tab, return matches that have a 'scorecard' array with items
       return upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
     }
   };
@@ -131,7 +125,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         const parseData = JSON.parse(e?.data);
         let temp = parseData?.upcoming;
         
-        // Log contest data before dispatch
         if (temp && temp.length > 0) {
           temp.forEach(match => {
             console.log('Match contests:', {
@@ -146,7 +139,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         dispatch(setUpComingMatches(temp));
         dispatch(setMyMatchesHome(parseData?.mymatches));
         
-        // Extract and dispatch contest data for each match
         if (temp && temp.length > 0) {
           temp.forEach(match => {
             if (match.teams && match.teams.length > 0) {
@@ -182,7 +174,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     const filteredMatches = getFilteredMatches();
     console.log(`Rendering ${route.key} tab with ${filteredMatches?.length} matches`);
     
-    // Add contest_details array if it doesn't exist
     const matchesWithContests = filteredMatches.map(match => ({
       ...match,
       contest_details: contestList?.data?.filter(contest => contest.matchid === match._id) || [],
@@ -196,11 +187,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         style={styles.flatlistContainer}
         contentContainerStyle={styles.scrollContent}>
         {matchesWithContests?.map((item, idx) => {
-          console.log(`Rendering match ${idx}:`, {
-            id: item._id,
-            teams: item.Team1vsTeam2,
-            hasContests: item.contest_details?.length > 0
-          });
           return (
             <MatchCard 
               key={`${route.key}-${item._id || idx}`}

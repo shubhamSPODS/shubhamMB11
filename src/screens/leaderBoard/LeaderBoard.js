@@ -11,6 +11,7 @@ import {
   Alert,
   Text,
 } from 'react-native';
+import { appOperation } from '../../appOperation';
 import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
@@ -64,23 +65,120 @@ const FirstRoute = ({ route }) => {
   const details = route?.route?.params?.details?.details;
   console.log('FirstRoute details:', details);
   
-  // Ensure rankData is properly formatted
-  const rankData = Array.isArray(details?.Rankdata) ? details.Rankdata.map(rank => ({
-    ...rank,
-    Price: Number(rank?.Price || 0),
-    StartRank: Number(rank?.StartRank || 0),
-    EndRank: Number(rank?.EndRank || 0)
-  })) : [];
+  // Add state variables to handle API response and loading
+  const [contestDetails, setContestDetails] = useState(null);
+  const [rankData, setRankData] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  console.log('Formatted rankData:', rankData);
+  // Get relevant IDs from the route params
+  const matchId = route?.route?.params?.matchDetails?.MatchId;
+  const contestCategoryId = details?.contest_category_id;
+  const shadowContestId = details?.shadow_contest_id;
+  const winningAmount = Number(details?.winning_amount || 0);
+  
+  // Test API call directly
+  useEffect(() => {
+    const testApiCall = async () => {
+      try {
+        console.log('🧪 TESTING API CALL DIRECTLY');
+        console.log('Match ID:', matchId);
+        console.log('Contest Category ID:', contestCategoryId);
+        
+        if (!matchId || !contestCategoryId) {
+          console.log('❌ Missing required IDs for test API call');
+          return;
+        }
+        
+        // Call the API directly
+        const response = await appOperation.customer.getContestDetailsWithRankData(matchId, contestCategoryId);
+        console.log('Test API call completed');
+      } catch (error) {
+        console.error('❌ Error in test API call:', error);
+      }
+    };
+    
+    // Run the test API call
+    testApiCall();
+  }, [matchId, contestCategoryId]);
+  
+  // Fetch contest details with rank data using the new API endpoint
+  useEffect(() => {
+    const fetchContestDetails = async () => {
+      try {
+        setLoading(true);
+        console.log('⭐️ Fetching contest details with rank data...');
+        console.log('Match ID:', matchId);
+        console.log('Contest Category ID:', contestCategoryId);
+        
+        if (!matchId || !contestCategoryId) {
+          console.log('❌ Missing required IDs for fetching contest details');
+          setLoading(false);
+          return;
+        }
+        
+        const response = await appOperation.customer.getContestDetailsWithRankData(matchId, contestCategoryId);
+        console.log('Full API Response:', response);
+        
+        if (response?.success && response?.data?.length > 0) {
+          // Find the contest with matching contest_category_id
+          const contestDetails = response.data.find(
+            contest => contest.contest_category_id === contestCategoryId || contest._id === contestCategoryId
+          );
+          
+          console.log('Found contest details:', contestDetails);
+          
+          if (contestDetails && Array.isArray(contestDetails.Rankdata)) {
+            // Format rank data
+            const formattedRankData = contestDetails.Rankdata.map(rank => ({
+              ...rank,
+              Price: Number(rank?.Price || 0),
+              StartRank: Number(rank?.StartRank || 0),
+              EndRank: Number(rank?.EndRank || 0),
+            }));
+            
+            console.log(`✅ Successfully got ${formattedRankData.length} rank entries from API`);
+            setRankData(formattedRankData);
+            setContestDetails(contestDetails);
+          } else {
+            console.log('⚠️ No rank data found in API response');
+            setRankData([]);
+          }
+        } else {
+          console.log('⚠️ Invalid API response');
+          setRankData([]);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching contest details:', error);
+        setRankData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchContestDetails();
+  }, [matchId, contestCategoryId, winningAmount]);
+  
+  // Show loading indicator while fetching data
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <SpinnerSecond size="large" color={NewColor.brownYellow} />
+      </View>
+    );
+  }
+  
+  console.log('Final rankData to render:', rankData);
   
   return (
-    <Winnings
-      id={details?.contest_details?.shadow_contest_id}
-      privateis={route?.route?.params?.privateis}
-      notLive={route?.route?.params?.notLive}
-      rankData={rankData}
-    />
+    <View style={{flex: 1}}>
+      <Winnings
+        id={shadowContestId}
+        privateis={route?.route?.params?.privateis}
+        notLive={route?.route?.params?.notLive}
+        rankData={rankData}
+        contestDetails={contestDetails}
+      />
+    </View>
   );
 };
 

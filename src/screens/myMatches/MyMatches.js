@@ -218,17 +218,13 @@ const MyMatches = () => {
     }
 
     return upcomingMatches.filter(match => {
-      // Check if user has joined any contests for this match
       const hasJoinedContests = match.teams?.some(contest => contest.joined > 0);
-      
-      // For completed matches, also check if user has any teams created (even if not explicitly marked as joined)
+
       const isCompletedMatch = match.Status === 'Completed';
       const hasTeamsData = match.teams && match.teams.length > 0;
-      
-      // Include completed matches if they have teams data (user likely participated)
+
       const shouldInclude = hasJoinedContests || (isCompletedMatch && hasTeamsData);
       
-      // Special logging for Maharashtra Premier League matches
       if (match.SeriesName?.includes('Maharashtra') || match.Team1vsTeam2?.includes('Eagle') || match.Team1vsTeam2?.includes('Puneri')) {
         console.log('🏏 Maharashtra Premier League Match Found:', {
           id: match._id,
@@ -260,13 +256,9 @@ const MyMatches = () => {
     });
   };
 
-  // Filter matches based on status for sub-tabs
   const getMatchesByStatus = () => {
     const joinedMatches = getMyJoinedMatches();
-    
-    console.log('📊 Status filtering - Joined matches:', joinedMatches.length);
-    console.log('📊 Current subIndex:', subIndex, '(0=Upcoming, 1=Live, 2=Completed)');
-    
+  
     if (!joinedMatches.length) {
       console.log('No joined matches found');
       return [];
@@ -282,20 +274,16 @@ const MyMatches = () => {
       let reason = '';
       
       if (subIndex === 0) {
-        // Upcoming: future matches or matches that haven't started
         shouldInclude = !isPastTime && match.Status !== 'Completed' && match.Status !== 'Cancelled';
         reason = `Upcoming: !isPastTime(${!isPastTime}) && Status!==Completed(${match.Status !== 'Completed'}) && Status!==Cancelled(${match.Status !== 'Cancelled'})`;
       } else if (subIndex === 1) {
-        // Live: matches that are currently live
         shouldInclude = match.Status === 'Live';
         reason = `Live: Status===Live(${match.Status === 'Live'})`;
       } else {
-        // Completed: past matches or completed/cancelled matches
         shouldInclude = isPastTime || match.Status === 'Completed' || match.Status === 'Cancelled';
         reason = `Completed: isPastTime(${isPastTime}) || Status===Completed(${match.Status === 'Completed'}) || Status===Cancelled(${match.Status === 'Cancelled'})`;
       }
       
-      // Special logging for Maharashtra Premier League matches
       if (match.SeriesName?.includes('Maharashtra') || match.Team1vsTeam2?.includes('Eagle') || match.Team1vsTeam2?.includes('Puneri')) {
         console.log('🏏 Maharashtra Match Status Check:', {
           id: match._id,
@@ -313,7 +301,6 @@ const MyMatches = () => {
     });
   };
 
-  // Filter matches based on main tab type (teams vs scoreboard)
   const getFilteredMatches = (matchType) => {
     const statusFilteredMatches = getMatchesByStatus();
     
@@ -325,19 +312,16 @@ const MyMatches = () => {
     }
     
     const filtered = statusFilteredMatches.filter(match => {
-      // Filter by match type (teams vs scoreboard)
       let shouldShow = false;
       let reason = '';
       
       if (matchType === 'teams') {
-        // Teams tab: show matches that have teams/contest data OR are completed matches
         const hasTeams = match.teams && match.teams.length > 0;
         const hasContestDetails = match.contest_details && match.contest_details.length > 0;
         const isCompleted = match.Status === 'Completed';
         shouldShow = hasTeams || hasContestDetails || isCompleted;
         reason = `Teams: hasTeams(${hasTeams}) || hasContestDetails(${hasContestDetails}) || isCompleted(${isCompleted})`;
       } else {
-        // Scoreboard tab: show matches that have scorecard data or are Live/Completed
         const hasScorecard = match.scorecard && match.scorecard.length > 0;
         const isLive = match.Status === 'Live';
         const isCompleted = match.Status === 'Completed';
@@ -349,7 +333,6 @@ const MyMatches = () => {
     });
     
 
-    // Special summary for Maharashtra matches
     const maharashtraMatches = filtered.filter(m => 
       m.SeriesName?.includes('Maharashtra') || 
       m.Team1vsTeam2?.includes('Eagle') || 
