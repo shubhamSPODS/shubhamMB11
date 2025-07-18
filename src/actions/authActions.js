@@ -24,6 +24,7 @@ export const userLogin = data => async dispatch => {
       appOperation.setCustomerToken(response?.data?.accessToken);
       dispatch(getUserProfile(false, false));
       await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.accessToken);
+      console.log('🔑 User logged in - Auth token:', response?.data?.accessToken);
       dispatch(setUserData(response?.data));
       // dispatch(updateDeviceToken());
       // NavigationService.navigate(BOTTOM_NAVIGATION_STACK);
@@ -71,6 +72,7 @@ export const otpVerification =
         appOperation.setCustomerToken(response?.data?.accessToken);
         
         await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.accessToken);
+        console.log('🔑 OTP verified - Auth token:', response?.data?.accessToken);
         dispatch(updateDeviceToken());
         await dispatch(getUserProfile(true, false));
         dispatch(setUserData(response?.data?._id));
@@ -134,7 +136,7 @@ export const otpVerification =
 //   }
 // };
 
-export const resetSignUpOtp = id => async (dispatch: any) => {
+export const resetSignUpOtp = id => async (dispatch) => {
   try {
     dispatch(setLoading(true));
     const response = await appOperation.guest.resend_otp(id);
@@ -158,6 +160,7 @@ export const refreshToken = () => async () => {
     if (response?.success) {
       appOperation.setCustomerToken(response?.data?.accessToken);
       await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.accessToken);
+      console.log('🔑 Token refreshed - Auth token:', response?.data?.accessToken);
     }
   } catch (e) {
     logError(e);

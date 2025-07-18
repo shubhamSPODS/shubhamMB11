@@ -11,7 +11,7 @@ import {
   Alert,
   Text,
 } from 'react-native';
-import { appOperation } from '../../appOperation';
+
 import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
@@ -39,6 +39,7 @@ import NavigationService from '../../navigation/NavigationService';
 import styles from './styles';
 import { useDispatch, useSelector } from 'react-redux';
 import { SELECT_PLAYER, UPLOAD_AADHAR, VERIFY_ADHAAR_SCREEN } from '../../navigation/routes';
+import SelectScoreboard from '../../components/selectScoreboard/SelectScoreboard';
 import {
   getAllPlayerList,
   getMyTeam,
@@ -73,89 +74,83 @@ const FirstRoute = ({ route }) => {
   // Get relevant IDs from the route params
   const matchId = route?.route?.params?.matchDetails?.MatchId;
   const contestCategoryId = details?.contest_category_id;
-  const shadowContestId = details?.shadow_contest_id;
-  const winningAmount = Number(details?.winning_amount || 0);
+  const shadowContestId = details?.shadow_contest_id || details?.data?._id || details?.contest_details?.shadow_contest_id;
   
-  // Test API call directly
-  useEffect(() => {
-    const testApiCall = async () => {
-      try {
-        
-        if (!matchId || !contestCategoryId) {
-          console.log('❌ Missing required IDs for test API call');
-          return;
-        }
-        
-        // Call the API directly
-        const response = await appOperation.customer.getContestDetailsWithRankData(matchId, contestCategoryId);
-        console.log('Test API call completed');
-      } catch (error) {
-        console.error('❌ Error in test API call:', error);
-      }
-    };
-    
-    // Run the test API call
-    testApiCall();
-  }, [matchId, contestCategoryId]);
+  // Extract winning amount from multiple possible sources
+  const winningAmount = Number(
+    details?.winning_amount || 
+    details?.contest_details?.winning_amount || 
+    details?.data?.WinningAmount || 
+    0
+  );
   
-  // Fetch contest details with rank data using the new API endpoint
+  // Debug logging for ID extraction
+  console.log('🎯 FirstRoute ID extraction:', {
+    matchId,
+    contestCategoryId,
+    shadowContestId,
+    winningAmount,
+    detailsShadowContestId: details?.shadow_contest_id,
+    detailsDataId: details?.data?._id,
+    detailsContestDetailsShadowId: details?.contest_details?.shadow_contest_id,
+    fullDetails: details
+  });
+  
+
+  
+  // Use existing contest details from the route params instead of making API call
   useEffect(() => {
-    const fetchContestDetails = async () => {
+    const processContestDetails = () => {
       try {
         setLoading(true);
-        console.log('⭐️ Fetching contest details with rank data...');
-        console.log('Match ID:', matchId);
-        console.log('Contest Category ID:', contestCategoryId);
-        
-        if (!matchId || !contestCategoryId) {
-          console.log('❌ Missing required IDs for fetching contest details');
-          setLoading(false);
-          return;
-        }
-        
-        const response = await appOperation.customer.getContestDetailsWithRankData(matchId, contestCategoryId);
-        console.log('Full API Response:', response);
-        
-        if (response?.success && response?.data?.length > 0) {
-          // Find the contest with matching contest_category_id
-          const contestDetails = response.data.find(
-            contest => contest.contest_category_id === contestCategoryId || contest._id === contestCategoryId
-          );
-          
-          console.log('Found contest details:', contestDetails);
-          
-          if (contestDetails && Array.isArray(contestDetails.Rankdata)) {
-            // Format rank data
-            const formattedRankData = contestDetails.Rankdata.map(rank => ({
-              ...rank,
-              Price: Number(rank?.Price || 0),
-              StartRank: Number(rank?.StartRank || 0),
-              EndRank: Number(rank?.EndRank || 0),
-            }));
-            
-            console.log(`✅ Successfully got ${formattedRankData.length} rank entries from API`);
-            setRankData(formattedRankData);
-            setContestDetails(contestDetails);
-          } else {
-            console.log('⚠️ No rank data found in API response');
-            setRankData([]);
-          }
+        if (details?.data && Array.isArray(details.data.Rankdata)) {
+          const formattedRankData = details.data.Rankdata.map(rank => ({
+            ...rank,
+            Price: Number(rank?.Price || 0),
+            StartRank: Number(rank?.StartRank || 0),
+            EndRank: Number(rank?.EndRank || 0),
+          }));
+          setRankData(formattedRankData);
+          setContestDetails(details.data);
+        } else if (details?.Rankdata && Array.isArray(details.Rankdata)) {
+          const formattedRankData = details.Rankdata.map(rank => ({
+            ...rank,
+            Price: Number(rank?.Price || 0),
+            StartRank: Number(rank?.StartRank || 0),
+            EndRank: Number(rank?.EndRank || 0),
+          }));
+          setRankData(formattedRankData);
+          setContestDetails(details);
+        } else if (details?.contest_details?.winning_amount) {
+          const fallbackRankData = [{
+            Price: Number(details.contest_details.winning_amount),
+            StartRank: 1,
+            EndRank: 1,
+            PercentageEach: 100,
+            TotalPercentage: 100,
+            TotalPrice: Number(details.contest_details.winning_amount),
+            _id: 'fallback_rank'
+          }];
+          setRankData(fallbackRankData);
+          setContestDetails({
+            WinningAmount: Number(details.contest_details.winning_amount),
+            Contestsize: details.Contestsize || 0,
+            EnteryFee: details.EnteryFee || 0,
+            Rankdata: fallbackRankData
+          });
         } else {
-          console.log('⚠️ Invalid API response');
           setRankData([]);
         }
       } catch (error) {
-        console.error('❌ Error fetching contest details:', error);
         setRankData([]);
       } finally {
         setLoading(false);
       }
     };
     
-    fetchContestDetails();
-  }, [matchId, contestCategoryId, winningAmount]);
+    processContestDetails();
+  }, [details]);
   
-  // Show loading indicator while fetching data
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -169,7 +164,7 @@ const FirstRoute = ({ route }) => {
   return (
     <View style={{flex: 1}}>
       <Winnings
-        id={shadowContestId}
+        id={shadowContestId || contestDetails?._id}
         privateis={route?.route?.params?.privateis}
         notLive={route?.route?.params?.notLive}
         rankData={rankData}
@@ -199,6 +194,40 @@ const LeaderBoard = () => {
   const wsRefTwo = useRef(null);
   const dispatch = useDispatch();
   const details = route?.params?.details?.details ?? {};
+  
+  const contestDetails = {
+    winning_amount: Number(
+      details?.winning_amount || 
+      details?.contest_details?.winning_amount || 
+      details?.data?.WinningAmount || 
+      0
+    ),
+    Contestsize: Number(
+      details?.Contestsize || 
+      details?.contest_details?.Contestsize || 
+      details?.data?.Contestsize || 
+      0
+    ),
+    joined: Number(
+      details?.joined || 
+      details?.contest_details?.joined || 
+      0
+    ),
+    EnteryFee: Number(
+      details?.EnteryFee || 
+      details?.data?.EnteryFee || 
+      0
+    ),
+    JoinWithMULT: details?.JoinWithMULT || details?.data?.JoinWithMULT || false,
+    Winning_percent: Number(details?.Winning_percent || 0),
+    Rankdata: details?.Rankdata || details?.data?.Rankdata || [],
+    teams: Number(details?.teams || details?.data?.teams || 0),
+    contest_type: details?.contest_type || details?.data?.contest_type || '',
+    ContestType: details?.ContestType || details?.data?.ContestType || '',
+    ...details 
+  };
+  
+
   const totalTeamCount = route?.params?.totalTeamCount ?? 0;
   const matchDetails = useSelector(state => state?.match?.contestData) ?? {};
   const myTeam = useSelector(state => state?.match?.myTeams) ?? [];
@@ -216,6 +245,7 @@ const LeaderBoard = () => {
   const [modalRemove, setModalRemove] = useState(false);
   const [random, setRandom] = useState(10);
   const selectTeam = useRef();
+  const selectScoreboard = useRef();
   const [saveTeamName, setSaveTeamName] = useState('');
   const { _id = '', SeriesId = '' } = matchDetails ?? {};
   const userData = useSelector(state => {
@@ -224,7 +254,6 @@ const LeaderBoard = () => {
 
   let url = `ws://app.mybattle11.com/leader-board?limit=10&skip=0&matchid=${route?.params?.matchDetails?.MatchId || ''}&contest_category_id=${route?.params?.details?.contest_category_id || ''}&user_id=${userData?._id || ''}`;
   let urlTwo = `ws://app.mybattle11.com/mainleaderboard?limit=10&skip=0&matchid=${route?.params?.matchDetails?.MatchId || ''}&contest_category_id=${route?.params?.details?.contest_category_id || ''}&user_id=${userData?._id || ''}`;
-  // console.log(url  ,'====URL===='  , urlTwo  );
   useEffect(() => {
     if (
       route?.params?.matchDetails?.MatchId &&
@@ -308,6 +337,26 @@ const LeaderBoard = () => {
 
   const isPastTime = inputDate < currentDate;
   const onJoinContest = async () => {
+    console.log('🔍 LeaderBoard onJoinContest called with:', {
+      details,
+      totalTeamCount,
+      kycVerified: kycDetails?.adhar_verified,
+      matchDetails
+    });
+    
+    // Check if this is a scoreboard contest
+    const isScoreboardContest = details?.ContestType === 'ScoreCard' || 
+                                details?.contest_type === 'ScoreCard' ||
+                                details?.ContestType === 'Scoreboard' ||
+                                details?.contest_type === 'Scoreboard';
+                                
+    console.log('🎯 Checking if scoreboard contest in LeaderBoard:', {
+      detailsContestType: details?.ContestType,
+      detailsContestTypeLower: details?.contest_type,
+      isScoreboardContest,
+      fullDetails: details
+    });
+    
     if (kycDetails?.adhar_verified == 0) {
       // NavigationService.navigate(VERIFY_ADHAAR_SCREEN);
       NavigationService.navigate(UPLOAD_AADHAR);
@@ -318,7 +367,20 @@ const LeaderBoard = () => {
         'Your aadhaar verification is pending please wait',
       );
     } else {
+      
+      // Handle scoreboard contests differently
+      if (isScoreboardContest) {
+        console.log('🎯 This is a scoreboard contest - opening SelectScoreboard sheet');
+        dispatch(setSelectedMatch(details ? { ...details } : {}));
+        selectScoreboard?.current?.open();
+        return;
+      }
+      
+      // Original team-based contest logic
+      console.log('🚀 Proceeding with team-based contest logic in LeaderBoard');
+      
       if (totalTeamCount === 0) {
+        console.log('📍 LeaderBoard Path: totalTeamCount === 0 - navigating to SELECT_PLAYER');
         dispatch(setAllPlayers([]));
         let data = { cid: matchDetails?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));
@@ -433,7 +495,7 @@ const LeaderBoard = () => {
                   <AppText type={TEN} color={BLACKOPACITY}>
                     PRIZE POOL
                   </AppText>
-                  {details?.JoinWithMULT && (
+                  {contestDetails?.JoinWithMULT && (
                     <AppText type={TEN} color={BLACKOPACITY}>
                       Multiple Entries
                     </AppText>
@@ -447,13 +509,13 @@ const LeaderBoard = () => {
                     marginVertical: 6,
                   }}>
                   <AppText type={FIFTEEN} weight={LATO_SEMI_BOLD}>
-                    ₹{numberWithCommas(details?.winning_amount || 0)}
+                    ₹{numberWithCommas(contestDetails?.winning_amount || 0)}
                   </AppText>
                 </View>
                 <View style={styles.progressBar}>
                   <LinearGradient
                     style={{
-                      width: `${Math.min(details?.progressBarWidth || 0, 100)}%`,
+                      width: `${Math.min(route?.params?.progressBarWidth || 0, 100)}%`,
                       height: '100%',
                       borderRadius: 4,
                     }}
@@ -468,16 +530,16 @@ const LeaderBoard = () => {
                     alignItems: 'center',
                   }}>
                   <AppText color={BLACKOPACITY} type={TEN}>
-                    {numberWithCommas(details?.Contestsize || 0)} spots
+                    {numberWithCommas(contestDetails?.Contestsize || 0)} spots
                   </AppText>
                   <AppText type={TEN} color={GREEN}>
-                    {numberWithCommas(Math.max(0, (details?.Contestsize || 0) - (details?.joined || 0)))} spots left
+                    {numberWithCommas(Math.max(0, (contestDetails?.Contestsize || 0) - (contestDetails?.joined || 0)))} spots left
                   </AppText>
                 </View>
               </View>
               {isPastTime ? (
                 <></>
-              ) : details?.myContestIN ? (
+              ) : contestDetails?.myContestIN ? (
                 <></>
               ) : (
                 <PrimaryButton
@@ -499,9 +561,9 @@ const LeaderBoard = () => {
                       type={TEN}
                       weight={LATO_SEMI_BOLD}
                       style={styles.commonTextStyle}>
-                      {details?.EnteryType !== 'Paid'
+                      {contestDetails?.EnteryType !== 'Paid'
                         ? 'Glory awaits!'
-                        : `₹${numberWithCommas(details?.Rankdata?.[0]?.Price || details?.winning_amount || 0)}`}
+                        : `₹${numberWithCommas(contestDetails?.Rankdata?.[0]?.Price || contestDetails?.winning_amount || 0)}`}
                     </AppText>
                   </View>
                   <View style={styles.commonViewStyle}>
@@ -514,13 +576,13 @@ const LeaderBoard = () => {
                       color={BLACKOPACITY}
                       type={TEN}
                       style={styles.commonTextStyle}>
-                      {details?.Winning_percent ? details?.Winning_percent : 0}% Winners
+                      {contestDetails?.Winning_percent ? contestDetails?.Winning_percent : 0}% Winners
                     </AppText>
                   </View>
                   <View style={styles.commonViewStyle}>
                     <FastImage
                       tintColor={'#DBA63D'}
-                      source={details?.JoinWithMULT ? m : SINGLE}
+                      source={contestDetails?.JoinWithMULT ? m : SINGLE}
                       resizeMode="contain"
                       style={styles.gloryIcon}
                     />
@@ -528,8 +590,8 @@ const LeaderBoard = () => {
                       color={BLACKOPACITY}
                       type={TEN}
                       style={styles.commonTextStyle}>
-                      {details?.JoinWithMULT
-                        ? `Upto ${details?.teams}`
+                      {contestDetails?.JoinWithMULT
+                        ? `Upto ${contestDetails?.teams}`
                         : 'Single'}
                     </AppText>
                   </View>
@@ -671,6 +733,29 @@ const LeaderBoard = () => {
           JoinWithMULT={details?.JoinWithMULT}
         />
       </RBSheet>
+      
+      <RBSheet
+        ref={selectScoreboard}
+        closeOnDragDown={false}
+        openDuration={100}
+        height={Dimensions.get('window').height}
+        customStyles={{
+          container: {
+            backgroundColor: NewColor.linerWhite,
+          },
+          draggableIcon: {
+            backgroundColor: 'transparent',
+            display: 'none',
+          },
+        }}>
+        <SelectScoreboard
+          contestDetails={details}
+          matchDetails={matchDetails}
+          onClose={() => selectScoreboard?.current?.close()}
+          selectScoreboard={selectScoreboard}
+        />
+      </RBSheet>
+      
       <Confirmation
         isModalVisible={isAdd}
         details={details}

@@ -22,6 +22,7 @@ import {
   getMyJoinedContest,
   getMyTeam,
   joinContest,
+  joinScoreboardContest,
   setContestData,
   setcreateContest,
 } from '../slices/matchSlice';
@@ -53,6 +54,8 @@ const Confirmation = ({
   JoinWithMULT,
   privateContest,
   onClose,
+  isScoreboardContest = false,
+  selectedScoreboard,
 }) => {
   const dispatch = useDispatch();
   const myTeam = useSelector(state => state?.match?.myTeams);
@@ -114,6 +117,25 @@ const Confirmation = ({
   };
 
   const onSubmit = () => {
+    // Handle scoreboard contest joining
+    if (isScoreboardContest && selectedScoreboard) {
+      if (payAmount > (depositBalance + winningAmount)) {
+        NavigationService.navigate(ADD_MONEY_SCREEN);
+        handleClose();
+        return;
+      }
+
+      console.log('🎯 Joining scoreboard contest via new API:', {
+        scoreboard: selectedScoreboard._id,
+        contest: details._id,
+        match: matchDetails._id,
+        payAmount
+      });
+      dispatch(joinScoreboardContest(selectedScoreboard._id, matchDetails, details));
+      handleClose();
+      return;
+    }
+
     if (CreateContestData?.EnteryFee) {
       dispatch(
         setcreateContest(CreateContestData, match_id, payAmount, _id, matchid, FilterId?.name, contestListId),
@@ -127,13 +149,8 @@ const Confirmation = ({
           return;
         }
 
-        // Extract contest IDs from details or selectedMatch
         const shadow_contest_id = details?.shadow_contest_id || details?._id || '';
-        // Use _id as match_contest_category_id directly as shown in the API response
         const match_contest_category_id = details?._id || '';
-
-        // Log full details object for debugging
-        console.log('Full details object:', JSON.stringify(details, null, 2));
         
         console.log('Contest details for join (multiple teams):', {
           contest_category_id,
@@ -202,13 +219,9 @@ const Confirmation = ({
           return;
         }
 
-        // Extract contest IDs from details or selectedMatch
         const shadow_contest_id = details?.shadow_contest_id || details?._id || '';
-        // Use _id as match_contest_category_id directly as shown in the API response
         const match_contest_category_id = details?._id || '';
 
-        // Log full details object for debugging
-        console.log('Full details object:', JSON.stringify(details, null, 2));
         
         console.log('Contest details for join (single team):', {
           contest_category_id,

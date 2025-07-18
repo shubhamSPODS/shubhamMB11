@@ -241,17 +241,23 @@ export const createContestData = data => async dispatch => {
 export const getMyJoinedContest = data => async dispatch => {
   try {
     const res = await appOperation.customer.getMyJoinedContest(data);
+    
     if (res.code == 200) {
       const updatedData = res.data.map(dataItem => {
         const arrayfilter = res.arr.filter(
           e => e?.contest_category_id === dataItem?.contest_category_id,
         );
-        return {...dataItem, teamDetails: arrayfilter};
+        const processedItem = {...dataItem, teamDetails: arrayfilter};
+        return processedItem;
       });
       res.data = updatedData;
+      console.log('🎯 Final my contests data:', JSON.stringify(res.data, null, 2));
       dispatch(setMyContest(res?.data));
+    } else {
+      console.error('❌ Failed to fetch my joined contests:', res);
     }
-  } catch (e) {}
+  } catch (e) {
+  }
 };
 export const setcreateContest =
   (data, matchid, payAmount, _id, _matchid, teamName, contestListId) =>
@@ -318,9 +324,7 @@ export const MycreateContest = (data, condition) => async dispatch => {
 export const joinContest = (data, matchDetails) => async dispatch => {
   try {
     const validateData = data?.mutiple ? data?.arofobj?.[0] : data;
-    
-    // Log the full data for debugging
-    console.log('Join contest data:', JSON.stringify(data, null, 2));
+
     
     const requiredFields = {
       cid: validateData?.cid,
@@ -367,6 +371,68 @@ export const joinContest = (data, matchDetails) => async dispatch => {
     dispatch(setLoading(false));
   }
 };
+
+export const joinScoreboardContest = (scoreboardId, matchDetails, contestDetails) => async dispatch => {
+  try {
+
+    if (!scoreboardId) {
+      toastAlert.showToastError('Scoreboard ID is required');
+      return;
+    }
+
+    if (!contestDetails?._id) {
+      toastAlert.showToastError('Contest details are required');
+      return;
+    }
+
+    dispatch(setLoading(true));
+    
+    const data = {
+      predictions_id: [scoreboardId],
+      match_contest_category_id: contestDetails._id
+    };
+    
+    const res = await appOperation.customer.joinScoreboardContest(data);
+
+    if (res?.code === 200 || res?.success === true) {
+      toastAlert.showToastSuccess(res?.message || 'Scoreboard contest joined successfully');
+      dispatch(getMyJoinedContest(matchDetails?._id));
+      dispatch(getContestList(matchDetails?.object, matchDetails?._id));
+      dispatch(getUserProfile(false, false));
+      
+      NavigationService.goBack();
+    } else {
+      toastAlert.showToastError(res?.message || 'Failed to join scoreboard contest');
+    }
+  } catch (error) {
+    console.error('Join scoreboard contest error:', error);
+    toastAlert.showToastError(error?.message || 'Failed to join scoreboard contest');
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
+export const getMyScoreboardContests = (matchId) => async dispatch => {
+  try {
+
+    if (!matchId) {
+      console.error('Match ID is required for fetching scoreboard contests');
+      return;
+    }
+
+    const res = await appOperation.customer.getMyScoreboardContests(matchId);
+
+    if (res?.code === 200 || res?.success === true) {
+      return res?.data || [];
+    } else {
+      console.error('Failed to fetch my scoreboard contests:', res?.message);
+      return [];
+    }
+  } catch (error) {
+    console.error('Get my scoreboard contests error:', error);
+    return [];
+  }
+};
 export const savekey = data => async dispatch => {
   try {
     dispatch(setsavekey(data));
@@ -384,11 +450,12 @@ export const getContestList = (outputObject, id) => async dispatch => {
   try {
     dispatch(setLoading(true));
     const res = await appOperation.customer.getContestList(data);
-    // console.log('Raw contest list response:', res?.data[0]);
     
     if (res?.code === 200 || res?.success === true) {
       const contestData = res?.data || [];
+      
       const newData = contestData.map(category => {
+        
         if (!category?.data || !category?.contest_category_details) {
           return { ...category, data: [] };
         }
@@ -400,17 +467,20 @@ export const getContestList = (outputObject, id) => async dispatch => {
 
         const transformedData = category.data.map(contestItem => {
           const details = detailsMap[contestItem.contest_category_id];
-          return {
+          const transformedItem = {
             ...contestItem,
             ...(details || {}),
-            _id: contestItem._id, // Preserve original contest ID
+            _id: contestItem._id, 
           };
+          return transformedItem;
         });
 
         return { ...category, data: transformedData };
       });
+      
       dispatch(setContestList({ data: newData }));
       dispatch(setContestListTeam(res?.getuserjounedcont || []));
+      
       const finalArray = {
         data: newData.reduce((acc, category) => {
           if (category?.data) {
@@ -421,16 +491,15 @@ export const getContestList = (outputObject, id) => async dispatch => {
       };
       dispatch(getFilterSortby(finalArray));
     }
-    return res; // Return the response
+    return res; 
   } catch (e) {
-    console.error('Error in getContestList:', e);
-    throw e; // Re-throw the error to be caught by the caller
+    console.error('❌ Error in getContestList:', e);
+    throw e;
   } finally {
     dispatch(setLoading(false));
   }
 };
 export const getMyMatches = status => async dispatch => {
-  // Set a timeout to ensure loading state is cleared if API call hangs
   const timeoutPromise = new Promise((_, reject) => 
     setTimeout(() => reject(new Error('Request timeout')), 8000)
   );
@@ -439,7 +508,6 @@ export const getMyMatches = status => async dispatch => {
     dispatch(setLoading(true));
     console.log('Fetching my matches data with status:', status || 'all');
     
-    // Race the API call against the timeout
     const res = await Promise.race([
       appOperation.customer.getMyMatchesData(status),
       timeoutPromise
@@ -452,15 +520,12 @@ export const getMyMatches = status => async dispatch => {
       dispatch(setMyMatchesData(res.data || []));
     } else {
       console.error('Failed to fetch my matches:', res?.message || 'Unknown error');
-      // Set empty array to avoid undefined errors
       dispatch(setMyMatchesData([]));
     }
   } catch (error) {
     console.error('Error in getMyMatches:', error?.message || error);
-    // Set empty array to avoid undefined errors
     dispatch(setMyMatchesData([]));
   } finally {
-    // Always set loading to false to stop the spinner
     dispatch(setLoading(false));
   }
 };

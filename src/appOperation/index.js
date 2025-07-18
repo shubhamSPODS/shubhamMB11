@@ -119,7 +119,7 @@ export class AppOperation {
               })
               .catch(errorResponse => {
                 console.log('API Response Error:', errorResponse);
-                Promise.reject({ code: status, data: errorResponse });
+                reject({ code: status, data: errorResponse });
               });
           }
           // Possible 401 or other network error
@@ -127,7 +127,7 @@ export class AppOperation {
             .text()
             .then(errorResponse => {
               // console.log('API Error Response:', errorResponse);
-              Promise.reject({ code: status, data: errorResponse });
+              reject({ code: status, data: errorResponse });
             });
         })
         .catch(error => {

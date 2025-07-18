@@ -194,7 +194,7 @@ const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
 
-const CricketWrapper = () => {
+const CricketWrapper = React.memo(() => {
   const [refreshingTwo, setRefreshingTwo] = React.useState(false);
   const [random, setRandom] = React.useState(0);
   const navigation = useNavigation();
@@ -206,6 +206,16 @@ const CricketWrapper = () => {
     });
 
     return () => backHandler.remove();
+  }, [navigation]);
+
+  // Use callback to prevent recreation on each render
+  const handleRefresh = React.useCallback(() => {
+    setRandom(prev => prev + 1);
+  }, []);
+
+  // Use callback for consistent reference
+  const handleBack = React.useCallback(() => {
+    navigation.getParent()?.goBack();
   }, [navigation]);
 
   return (
@@ -220,19 +230,19 @@ const CricketWrapper = () => {
       />
       <HomeTopHeader
         showBack={true}
-        personClick={() => navigation.getParent()?.goBack()}
+        personClick={handleBack}
         walletIcon={true}
       />
       <KeyBoardAware
         refreshControl={
-          <RefreshControl refreshing={refreshingTwo} onRefresh={() => setRandom(prev => prev + 1)} />
+          <RefreshControl refreshing={refreshingTwo} onRefresh={handleRefresh} />
         }
         style={{ flex: 1, backgroundColor: colors.darkBlue }}>
         <Cricket random={random} setRefreshingTwo={setRefreshingTwo} />
       </KeyBoardAware>
     </AppSafeAreaView>
   );
-};
+});
 
 const CricketTab = () => {
   return (
@@ -792,6 +802,11 @@ const RootStackScreen = () => (
     <Stack.Screen
       name={SCOREBOARD_DETAILS}
       component={Details}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={SCOREBOARD_MATCH}
+      component={MyContest}
       options={{headerShown: false}}
     />
   </Stack.Navigator>

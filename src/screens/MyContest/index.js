@@ -34,6 +34,7 @@ import {
   getContestList,
   getFilterSortby,
   getMyJoinedContest,
+  getMyScoreboardContests,
   getMyTeam,
   getTab,
   setAllContest,
@@ -42,6 +43,7 @@ import {
   setLoading,
   setContestCategories,
 } from '../../slices/matchSlice';
+import ScoreboardList from '../Scoreboard/List';
 import styles from './styles';
 import Contest from '../../components/matchCard/contest.js/Contest';
 import {Screen, flexOne} from '../../theme/dimens';
@@ -118,15 +120,25 @@ const MyContest = () => {
   const {matchType = 'teams', matchId} = route.params || {};
   const layout = useWindowDimensions();
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     let outputObject = {};
-    dispatch(getContestList(outputObject, _id));
-    dispatch(getMyTeam(_id));
-    dispatch(getMyJoinedContest(_id));
-    dispatch(MycreateContest(_id));
+    dispatch(getContestList(outputObject, effectiveMatchId));
+    dispatch(getMyTeam(effectiveMatchId));
+    dispatch(getMyJoinedContest(effectiveMatchId));
+    dispatch(MycreateContest(effectiveMatchId));
     let data = {cid: SeriesId};
-    dispatch(getAllPlayerList(_id, data));
-  }, [_id, SeriesId, dispatch]);
+    dispatch(getAllPlayerList(effectiveMatchId, data));
+    
+    // Fetch scoreboard contests if matchType is scoreboard
+    if (matchType === 'scoreboard' && effectiveMatchId) {
+      try {
+        const scoreboardContests = await dispatch(getMyScoreboardContests(effectiveMatchId));
+        setMyScoreboardContests(scoreboardContests || []);
+      } catch (error) {
+        console.error('Error fetching scoreboard contests:', error);
+      }
+    }
+  }, [effectiveMatchId, SeriesId, dispatch, matchType]);
   
   const DATA = [
     {
@@ -162,16 +174,40 @@ const MyContest = () => {
     );
   }, [activeTab, matchType]);
   const {_id, isFromMyMatch, match_id, isHome, SeriesId} = contestData ?? '';
+  const matchIdFromParams = route.params?.matchId;
+  const effectiveMatchId = _id || matchIdFromParams;
+  
+  console.log('🎯 Match ID Debug:', {
+    contestDataId: _id,
+    matchIdFromParams,
+    effectiveMatchId,
+    contestData: contestData,
+    routeParams: route.params
+  });
   useFocusEffect(
     useCallback(() => {
-      let outputObject = {};
-      dispatch(getContestList(outputObject, _id));
-      dispatch(getMyTeam(_id));
-      dispatch(getMyJoinedContest(_id));
-      dispatch(MycreateContest(_id));
-      let data = {cid: SeriesId};
-      dispatch(getAllPlayerList(_id, data));
-    }, []),
+      const fetchData = async () => {
+        let outputObject = {};
+        dispatch(getContestList(outputObject, effectiveMatchId));
+        dispatch(getMyTeam(effectiveMatchId));
+        dispatch(getMyJoinedContest(effectiveMatchId));
+        dispatch(MycreateContest(effectiveMatchId));
+        let data = {cid: SeriesId};
+        dispatch(getAllPlayerList(effectiveMatchId, data));
+        
+        // Fetch scoreboard contests if matchType is scoreboard
+        if (matchType === 'scoreboard' && effectiveMatchId) {
+          try {
+            const scoreboardContests = await dispatch(getMyScoreboardContests(effectiveMatchId));
+            setMyScoreboardContests(scoreboardContests || []);
+          } catch (error) {
+            console.error('Error fetching scoreboard contests:', error);
+          }
+        }
+      };
+      
+      fetchData();
+    }, [effectiveMatchId, SeriesId, dispatch, matchType]),
   );
   useEffect(() => {
     dispatch(getKycDetails());
@@ -185,6 +221,7 @@ const MyContest = () => {
           contest_category_details: item.contest_category_details || []
         }}
         totalTeamCount={myTeam?.length}
+        matchType={matchType}
       />
     );
   };
@@ -210,6 +247,7 @@ const MyContest = () => {
   }, [dispatch, isHome, match_id, _id]);
 
   const renderMyContest = ({item}) => {
+    console.log('🎯 renderMyContest called with item:', item);
     return <MyContestList item={item} matchDetails={route?.params} />;
   };
 
@@ -221,6 +259,7 @@ const MyContest = () => {
           contest_category_details: contestList?.contest_category_details || []
         }}
         totalTeamCount={myTeam?.length}
+        matchType={matchType}
         matchDetails={contestData}
         onPress={() => {
           dispatch(setIsContestEntry(true));
@@ -288,69 +327,49 @@ const MyContest = () => {
   const timeDifference = Math.floor(
     (inputDate - currentDate) / (24 * 60 * 60 * 1000),
   );
-  const [index, setIndex] = React.useState(0);
-  useEffect(() => {
-    if (myContest) {
-      const initializedRoutes = [
-        {
-          key: 'first',
-          title:
-            route?.params?.isFromMyMatch == true
-              ? 'Contest'
-              : 'Contest',
-        },
-        {
-          key: 'second',
-          title:
-            route?.params?.isFromMyMatch == true
-              ? matchType === 'teams' ? `My Team` : 'My Contest'
-              : 'My Contest',
-        },
-        {
-          key: 'third',
-          title:
-            route?.params?.isFromMyMatch == true && matchType === 'scoreboard'
-              ? 'My Scoreboard' 
-              : matchType === 'teams' 
-                ? `My Team (${myTeam?.length})` 
-                : 'My Scoreboard',
-        },
-      ];
-      setRoutes(initializedRoutes);
-    }
-  }, [myContest, myTeam, matchType]);
+  const [index, setIndex] = React.useState(route.params?.initialTabIndex || 0);
+  
+  // Memoize routes to prevent unnecessary re-renders
+  const routes = React.useMemo(() => {
+    console.log('🔄 Computing routes with:', { matchType, myTeam: myTeam?.length, isFromMyMatch: route?.params?.isFromMyMatch });
+    
+    return [
+      {
+        key: 'first',
+        title: 'Contest',
+      },
+      {
+        key: 'second',
+        title: route?.params?.isFromMyMatch == true
+          ? (matchType === 'teams' ? 'My Team' : 'My Contest')
+          : 'My Contest',
+      },
+      {
+        key: 'third',
+        title: route?.params?.isFromMyMatch == true && matchType === 'scoreboard'
+          ? 'My Scoreboard' 
+          : matchType === 'teams' 
+            ? `My Team (${myTeam?.length || 0})` 
+            : 'My Scoreboard',
+      },
+    ];
+  }, [matchType, myTeam?.length, route?.params?.isFromMyMatch]);
 
-  const [routes, setRoutes] = React.useState([
-    {
-      key: 'first',
-      title: route?.params?.isFromMyMatch == true ? `Contest` : 'Contest',
-    },
-    {
-      key: 'second',
-      title: route?.params?.isFromMyMatch == true ? matchType === 'teams' ? `My Team (${0})` :  'My Contest' : 'My Contest',
-    },
-    {
-      key: 'third',
-      title: route?.params?.isFromMyMatch == true ? 'Player Stats' : matchType === 'teams' ? `My Team (${0})` : 'My Contest',
-    },
-  ]);
   const [removeTabs, setRemoveTabs] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [myScoreboardContests, setMyScoreboardContests] = useState([]);
 
   useEffect(() => {
     if (matchId) {
       const fetchContestData = async () => {
         try {
-          const response = await dispatch(getContestList({}, matchId));
-          console.log('Full API Response:', JSON.stringify(response, null, 2));
+          const response =  dispatch(getContestList({}, matchId));
           
-          // Update contest categories
           const categories = response?.payload?.data
             ?.filter(c => c.contest_category_details)
             ?.map(c => c.contest_category_details);
           dispatch(setContestCategories(categories || []));
           
-          console.log('Stored contest categories:', categories?.length);
         } catch (error) {
           console.error('Error fetching contest list:', error);
         }
@@ -373,7 +392,7 @@ const MyContest = () => {
     };
   }, [handleRefresh, route?.params?.isFromMyMatch]);
 
-  const FirstRoute = () => {
+  const FirstRoute = React.useCallback(() => {
     const contestDataForList = useMemo(() => {
       if (matchType === 'teams') {
         return contestData?.teams;
@@ -417,9 +436,126 @@ const MyContest = () => {
         />
       </View>
     );
-  };
+  }, [matchType, contestData, allContestList, contestList, transformedData, MyCreateContestData, renderContest, renderMyCreateContest, isLoading, onRefresh]);
 
-  const SecondRoute = () => {
+  const SecondRoute = React.useCallback(() => {
+    console.log('🎯 SecondRoute rendering - matchType:', matchType);
+    
+    if (matchType === 'scoreboard') {
+      console.log('📋 My scoreboard contests data:', myScoreboardContests);
+      
+      const transformScoreboardContests = () => {
+        const contestGroups = {};
+        myScoreboardContests.forEach((scoreboard, index) => {
+          const contestId = scoreboard.contest_id;
+          if (!contestGroups[contestId]) {
+            const matchingContest = contestData?.scorecard?.find(c => 
+              c.shadow_contest_id === contestId || 
+              c._id === contestId ||
+              c.contest_category_id === contestId
+            );
+            console.log('🔍 Looking for contest with ID:', contestId);
+            console.log('🔍 Available scorecard contests:', contestData?.scorecard?.map(c => ({
+              _id: c._id,
+              shadow_contest_id: c.shadow_contest_id,
+              contest_category_id: c.contest_category_id
+            })));
+            console.log('🔍 Found matching contest:', matchingContest);
+            
+            contestGroups[contestId] = {
+              _id: matchingContest?._id || contestId,
+              contest_category_id: matchingContest?.contest_category_id || scoreboard.contest_category_id,
+              shadow_contest_id: matchingContest?.shadow_contest_id || contestId,
+              scoreboardDetails: [],
+              data: {
+                WinningAmount: matchingContest?.winning_amount || 100,
+                EnteryFee: matchingContest?.EntryFee || 1,
+                Contestsize: matchingContest?.ContestSize || 100,
+                Rankdata: [{Price: matchingContest?.winning_amount || 100}],
+                JoinWithMULT: false,
+                teams: [], 
+                joined: 0 
+              },
+              contest_details: {
+                joined: 0,
+                winning_amount: matchingContest?.winning_amount || 100,
+                shadow_contest_id: matchingContest?.shadow_contest_id || contestId,
+                contest_category_id: matchingContest?.contest_category_id || scoreboard.contest_category_id
+              },
+              Winning_percent: 10, 
+              JoinWithMULT: false,
+              contest_type: matchingContest?.contest_type || 'ScoreCard',
+              ContestType: matchingContest?.ContestType || 'ScoreCard',
+              EntryFee: matchingContest?.EntryFee || 1,
+              ContestSize: matchingContest?.ContestSize || 100,
+              winning_amount: matchingContest?.winning_amount || 100,
+              ...matchingContest
+            };
+          }
+          
+          if (scoreboard.joined) {
+            contestGroups[contestId].contest_details.joined += 1;
+            contestGroups[contestId].scoreboardDetails.push({
+              _id: scoreboard._id,
+              name: `S${contestGroups[contestId].scoreboardDetails.length + 1}`,
+              scoreboardData: scoreboard,
+              teamid: scoreboard._id,
+              rank: scoreboard.ranks || 0,
+              totalpoints: scoreboard.total_points || 0
+            });
+            
+            contestGroups[contestId].data.joined = contestGroups[contestId].contest_details.joined;
+          }
+        });
+        
+        return Object.values(contestGroups).filter(contest => contest.contest_details.joined > 0).map(contest => {
+          contest.teamDetails = contest.scoreboardDetails;
+          return contest;
+        });
+      };
+
+      const transformedContests = transformScoreboardContests();
+
+      return (
+        <View
+          style={{
+            width: Screen.Width - 10,
+            alignSelf: 'center',
+            marginTop: 5,
+          }}>
+          <FlatList
+            data={transformedContests}
+            showsVerticalScrollIndicator={false}
+            renderItem={({item}) => <MyContestList item={item} matchDetails={route?.params} isScoreboard={true} />}
+            ListEmptyComponent={() => {
+              return (
+                <View style={{ marginTop: 30, alignItems: 'center' }}>
+                  <AppText
+                    weight={POPPINS_MEDIUM}
+                    style={{ textAlign: 'center' }}>
+                    You haven't joined any scoreboard contests yet!{'\n'}
+                    Join a contest to start predicting scores
+                  </AppText>
+                  <PrimaryButton
+                    onPress={() => setIndex(0)} 
+                    smallBtn={styles.joinButtonMyContest}
+                    title="JOIN A CONTEST"
+                  />
+                </View>
+              );
+            }}
+            keyExtractor={(item, index) => item._id || index.toString()}
+            refreshControl={
+              <RefreshControl
+                refreshing={isLoading}
+                onRefresh={onRefresh}
+              />
+            }
+          />
+        </View>
+      );
+    }
+
     return (
       <>
         {route?.params?.isFromMyMatch == true ? (
@@ -481,29 +617,23 @@ const MyContest = () => {
         )}
       </>
     );
-  };
+  }, [matchType, myContest, renderMyContest, renderMyCreateContest, route?.params?.isFromMyMatch, handleRefresh, myScoreboardContests, contestData, isLoading, onRefresh]);
 
-  const ThirdRoute = () => {
-    if (matchType === 'teams' && myTeam?.length === 0) {
+  const ThirdRoute = React.useCallback(() => {
+    console.log('🎯 ThirdRoute rendering - matchType:', matchType);
+    
+    if (matchType === 'teams') {
+      if (myTeam?.length === 0) {
+        return (
+          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+            <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
+              You haven't created any team for this match
+            </AppText>
+          </View>
+        );
+      }
       return (
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-          <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
-            You haven't created any team for this match
-          </AppText>
-        </View>
-      );
-    } else if (matchType === 'scoreboard' && myContest?.length === 0) {
-      return (
-        <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-          <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
-            You haven't created any Scoreboard for this match
-          </AppText>
-        </View>
-      );
-    }
-    return (
-      <View style={{ flex: 1 }}>
-        {matchType === 'teams' ? (
+        <View style={{ flex: 1 }}>
           <FlatList
             data={myTeam}
             renderItem={renderMyTeam}
@@ -517,30 +647,21 @@ const MyContest = () => {
               />
             }
           />
-        ) : (
-          <FlatList
-            data={myContest}
-            renderItem={renderItem}
-            showsVerticalScrollIndicator={false}
-            keyExtractor={(item, index) => index.toString()}
-            contentContainerStyle={{paddingBottom: 50}}
-            refreshControl={
-              <RefreshControl
-                refreshing={isLoading}
-                onRefresh={() => handleRefresh('my scoreboard')}
-              />
-            }
-          />
-        )}
-      </View>
-    );
-  };
+        </View>
+      );
+    } else {
+      
+      return React.useMemo(() => (
+        <ScoreboardList key={`scoreboard-${_id}`} matchIdProp={_id} />
+      ), [_id]);
+    }
+  }, [matchType, myTeam, renderMyTeam, keyExtractor, handleRefresh, isLoading]);
 
-  const renderScene = SceneMap({
+  const renderScene = React.useMemo(() => SceneMap({
     first: FirstRoute,
     second: SecondRoute,
     third: ThirdRoute,
-  });
+  }), [FirstRoute, SecondRoute, ThirdRoute]);
 
   const handleCreatePress = () => {
     if (matchType === 'scoreboard') {
@@ -564,7 +685,7 @@ const MyContest = () => {
       routeParams: route.params,
       isPastTime
     });
-    return true; // Temporarily always show for debugging
+    return true; 
   };
 
   return (
@@ -705,6 +826,7 @@ const MyContest = () => {
         </ImageBackground>
 
         <TabView
+          key={`tabview-${matchType}-${_id}`}
           navigationState={{index, routes}}
           renderScene={renderScene}
           onIndexChange={setIndex}

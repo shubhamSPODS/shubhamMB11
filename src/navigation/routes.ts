@@ -97,6 +97,7 @@ export const CRICKET_TAB = 'CRICKET_TAB';
 export const SCOREBOARD_CREATE = 'Scoreboard/Create';
 export const SCOREBOARD_LIST = 'Scoreboard/List';
 export const SCOREBOARD_DETAILS = 'Scoreboard/Details';
+export const SCOREBOARD_MATCH = 'Scoreboard/Match';
 
 
 

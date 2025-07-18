@@ -27,7 +27,7 @@ import { PENCIL, arrow, downArrow } from '../../../helper/image';
 import FastImage from "@d11/react-native-fast-image";
 import { getAllPlayerList, getTab, setAllPlayers } from '../../../slices/matchSlice';
 import { universalPaddingHorizontal } from '../../../theme/dimens';
-const MyContestList = ({ item }) => {
+const MyContestList = ({ item, isScoreboard = false }) => {
   const dispatch = useDispatch();
   const matchDetails = useSelector(state => state?.match?.contestData);
   const myContest = useSelector(state => state?.match?.myContest);
@@ -36,39 +36,100 @@ const MyContestList = ({ item }) => {
   const currentDate = new Date();
   const inputDate = new Date(matchDetails?.StartDateTime);
   const isPastTime = inputDate < currentDate;
-  const userData = useSelector(state => {
-    return state.profile.userData;
-  });
+  
+  // Use Redux matchDetails instead of props for time calculation
+  const reduxMatchDetails = useSelector(state => state?.match?.contestData);
+  const reduxInputDate = new Date(reduxMatchDetails?.StartDateTime);
+  const reduxIsPastTime = reduxInputDate < currentDate;
+  
   const [visible, setVisible] = useState(false);
   const [listShow, setListShow] = useState(false)
   const { Status, _id, SeriesId } = contestData ?? '';
-  let myTeamsData = item?.teamDetails?.map((e) => {
-    return myTeams?.filter((i) => i?._id === e?.teamid);
-  }).reduce((acc, val) => acc.concat(val), []);
-  const percentage =
-    (item?.contest_details?.joined / (item?.data?.Contestsize || 0)) * 100;
+  
+  
+  let myTeamsData = isScoreboard ? 
+    item?.scoreboardDetails || [] :
+    item?.teamDetails?.map((e) => {
+      return myTeams?.filter((i) => i?._id === e?.teamid);
+    }).reduce((acc, val) => acc.concat(val), []);
+  
+  // Helper function to get contest data with fallbacks
+  const getContestData = (field) => {
+    // Try multiple data sources in order of preference
+    const sources = [
+      item?.data?.[field],
+      item?.contest_details?.[field],
+      item?.[field],
+      item?.data?.[field.toLowerCase()],
+      item?.contest_details?.[field.toLowerCase()],
+      item?.[field.toLowerCase()]
+    ];
+    
+    for (const source of sources) {
+      if (source !== undefined && source !== null) {
+        return source;
+      }
+    }
+    return 0; // Default fallback
+  };
+  
+  const winningAmount = getContestData('WinningAmount') || getContestData('winning_amount');
+  const entryFee = getContestData('EnteryFee') || getContestData('EntryFee') || getContestData('entry_fee');
+  const contestSize = getContestData('Contestsize') || getContestData('ContestSize') || getContestData('contest_size');
+  const joined = getContestData('joined') || item?.contest_details?.joined || 0;
+  const rankData = item?.data?.Rankdata || item?.Rankdata || [{ Price: winningAmount }];
+  
+  const percentage = contestSize > 0 ? (joined / contestSize) * 100 : 0;
+  
+  console.log('🎯 Extracted contest data:', {
+    winningAmount,
+    entryFee,
+    contestSize,
+    joined,
+    percentage,
+    rankData
+  });
+  
+  // Debug logging for UI display values
+  console.log('🎯 UI Display values:', {
+    winningAmountDisplay: winningAmount ? numberWithCommas(winningAmount) : 0,
+    contestSizeDisplay: numberWithCommas(contestSize),
+    entryFeeDisplay: entryFee ? entryFee : 0,
+    winningAmountType: typeof winningAmount,
+    contestSizeType: typeof contestSize,
+    entryFeeType: typeof entryFee
+  });
   const onNavigate = () => {
+
     NavigationService.navigate(LEADERBOARD, {
       details: {
         details: item,
-        winning_amount: item?.contest_details?.winning_amount,
-        JoinWithMULT: item?.data?.JoinWithMULT,
-        EnteryFee: item?.data?.EnteryFee,
-        Contestsize: item?.data?.Contestsize,
-        joined: item?.contest_details?.joined,
+        winning_amount: winningAmount,
+        JoinWithMULT: item?.data?.JoinWithMULT || item?.JoinWithMULT,
+        EnteryFee: entryFee,
+        Contestsize: contestSize,
+        joined: joined,
         contest_category_id: item?.contest_category_id,
+        shadow_contest_id: item?.contest_details?.shadow_contest_id || item?.shadow_contest_id,
         myContestIN: true,
         Winning_percent: item?.Winning_percent,
         teams: item?.data?.teams,
-
+        contest_type: item?.contest_type,
+        ContestType: item?.ContestType,
+        _id: item?._id,
+        ...item 
       },
       firstTeamName: matchDetails?.TeamA,
       secondTeamName: matchDetails?.TeamB,
       progressBarWidth: percentage,
-      matchDetails: matchDetails,
-      Rankdata:item?.data?.Rankdata,
-      shadow_contest_id: item?.contest_details?.shadow_contest_id,
-
+      matchDetails: {
+        ...matchDetails,
+        MatchId: matchDetails?.MatchId || matchDetails?._id 
+      },
+      Rankdata: rankData,
+      shadow_contest_id: item?.contest_details?.shadow_contest_id || item?.shadow_contest_id,
+      isScoreboard: isScoreboard,
+      totalTeamCount: isScoreboard ? item?.scoreboardDetails?.length || 0 : item?.teamDetails?.length || 0
     });
   };
   let teamArray = Array(Number(item?.joined_with ?? 0)).fill(0);
@@ -142,7 +203,7 @@ const MyContestList = ({ item }) => {
       total_points: item?.total_points
     });
   };
-  let sortedData = item?.teamDetails && item?.teamDetails.sort((a, b) => a.rank - b.rank);
+  let sortedData = item?.teamDetails && item?.teamDetails.sort((a, b) => a.rank - b.rank); 
   return (
     <TouchableOpacityView
       style={[
@@ -172,7 +233,7 @@ const MyContestList = ({ item }) => {
           <AppText style={{
             marginTop: 2
           }} type={FIFTEEN} weight={LATO_BOLD} color={WHITE}>
-            ₹{item?.data?.WinningAmount ? numberWithCommas(item?.data?.WinningAmount) : 0}
+            ₹{winningAmount ? numberWithCommas(winningAmount) : 0}
           </AppText>
           <AppText
             color={WHITE}
@@ -184,8 +245,8 @@ const MyContestList = ({ item }) => {
               marginTop: 2
             }}>
             {item?.Winning_percent ? Number(item?.Winning_percent)?.toFixed(2) :
-              0}% Winners l 1st ₹{item?.data?.Rankdata[0]?.Price ?
-                item?.data?.Rankdata[0]?.Price : 0}
+              0}% Winners l 1st ₹{rankData[0]?.Price ?
+                rankData[0]?.Price : 0}
           </AppText>
           <AppText
             style={{
@@ -194,10 +255,10 @@ const MyContestList = ({ item }) => {
             color={WHITE}
             weight={LATO_BOLD}
             type={THIRTEEN}>
-            ₹{item?.data?.EnteryFee ? item?.data?.EnteryFee : 0}
+            ₹{entryFee ? entryFee : 0}
           </AppText>
         </View>
-        {!isPastTime && (
+        {!reduxIsPastTime && (
           <>
             <View style={styles.progressBar}>
               <LinearGradient
@@ -215,12 +276,12 @@ const MyContestList = ({ item }) => {
             </View>
             <View style={styles.flex}>
               <AppText color={BLACKOPACITY} weight={LATO_BOLD} type={TEN}>
-                {numberWithCommas(item?.data?.Contestsize)} spots
+                {numberWithCommas(contestSize)} spots
               </AppText>
               <AppText
                 style={{ color: '#37CC4C', fontSize: 10 }}
                 weight={LATO_BOLD}>
-                {item?.data?.Contestsize - (item?.contest_details?.joined || 0)}{' '}
+                {contestSize - joined}{' '}
                 spots left
               </AppText>
             </View>
@@ -285,7 +346,10 @@ const MyContestList = ({ item }) => {
             marginTop: -10
           }}>
             <AppText color={WHITE} type={TEN} weight={LATO_BOLD}>
-              JOINED WITH {item?.teamDetails?.length} TEAM
+              {isScoreboard ? 
+                `JOINED WITH ${item?.scoreboardDetails?.length || 0} SCOREBOARD` :
+                `JOINED WITH ${item?.teamDetails?.length} TEAM`
+              }
             </AppText>
             <TouchableOpacityView
               onPress={() => setVisible(!visible)}
@@ -302,95 +366,160 @@ const MyContestList = ({ item }) => {
             </TouchableOpacityView>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {item?.teamDetails?.map((item, index) => {
-              return (
-                <View style={styles.grayContainer}>
-                  <AppText style={{ marginTop: 1 }} color={WHITE} type={TEN}>
-                    {item.name}
-                  </AppText>
-                </View>
-              );
-            })}
+            {isScoreboard ? 
+              item?.scoreboardDetails?.map((scoreboard, index) => {
+                return (
+                  <View key={index} style={styles.grayContainer}>
+                    <AppText style={{ marginTop: 1 }} color={WHITE} type={TEN}>
+                      {scoreboard.name}
+                    </AppText>
+                  </View>
+                );
+              }) :
+              item?.teamDetails?.map((item, index) => {
+                return (
+                  <View key={index} style={styles.grayContainer}>
+                    <AppText style={{ marginTop: 1 }} color={WHITE} type={TEN}>
+                      {item.name}
+                    </AppText>
+                  </View>
+                );
+              })
+            }
           </View>
           {visible ?
             <>
-              {myTeamsData?.map((item) => {
-                const match = item?.name.match(/\d+/);
-                const teamNumber = match ? match[0] : '';
-                const captain = item?.players?.find(item => item.caption);
-                const viceCaptain = item?.players?.find(item => item?.vice_caption);
-                return (
-                  <TouchableOpacityView
-                    onPress={() => onCardClick(item)}
-                    style={{
-                      paddingVertical: 10,
-                      backgroundColor: '#343434',
-                      borderRadius: 10,
-                      paddingHorizontal: 10,
-                      marginTop: 10
-                    }}>
-                    <View style={{
-                      flexDirection: 'row', alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }} >
-                      <AppText
-                        weight={POPPINS_SEMI_BOLD}
-                        color={WHITE}>
-                        Team {teamNumber}
-                      </AppText>
-                      <TouchableOpacityView
-                        style={{ padding: 5 }}
-                        onPress={() => onEdit(item)}>
-                        <FastImage
-                          resizeMode='contain'
-                          style={{
-                            height: 14,
-                            width: 14
-                          }}
-                          tintColor={colors.white}
-                          source={PENCIL} />
-                      </TouchableOpacityView>
-                    </View>
-                    <View style={{
-                      justifyContent: 'space-around',
-                      flexDirection: 'row',
-                    }} >
+              {isScoreboard ?
+                // Scoreboard expanded view
+                item?.scoreboardDetails?.map((scoreboard, index) => {
+                  return (
+                    <TouchableOpacityView
+                      key={index}
+                      style={{
+                        paddingVertical: 10,
+                        backgroundColor: '#343434',
+                        borderRadius: 10,
+                        paddingHorizontal: 10,
+                        marginTop: 10
+                      }}>
                       <View style={{
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        flexDirection: 'row', alignItems: 'center',
+                        justifyContent: 'space-between'
                       }} >
-                        <AppText
-                          style={{ opacity: 0.5 }}
-                          weight={POPPINS_MEDIUM}
-                          color={WHITE}>
-                          Captain
-                        </AppText>
+                        <View>
+                          <AppText
+                            weight={POPPINS_SEMI_BOLD}
+                            color={WHITE}>
+                            {scoreboard.name}
+                          </AppText>
+                          <AppText
+                            type={TEN}
+                            color="#999"
+                            style={{ marginTop: 2 }}>
+                            Points: {scoreboard.scoreboardData?.total_points || 0}
+                          </AppText>
+                          <AppText
+                            type={TEN}
+                            color="#999">
+                            Accuracy: {scoreboard.scoreboardData?.accuracy_percentage || 0}%
+                          </AppText>
+                        </View>
+                        <View style={{ alignItems: 'flex-end' }}>
+                          <AppText
+                            type={TEN}
+                            color="#999">
+                            Predictions: {scoreboard.scoreboardData?.predictions?.length || 0}
+                          </AppText>
+                          <AppText
+                            type={TEN}
+                            color="#999">
+                            Rank: #{scoreboard.scoreboardData?.ranks || 'N/A'}
+                          </AppText>
+                        </View>
+                      </View>
+                    </TouchableOpacityView>
+                  );
+                }) :
+                // Team expanded view (existing)
+                myTeamsData?.map((item) => {
+                  const match = item?.name.match(/\d+/);
+                  const teamNumber = match ? match[0] : '';
+                  const captain = item?.players?.find(item => item.caption);
+                  const viceCaptain = item?.players?.find(item => item?.vice_caption);
+                  return (
+                    <TouchableOpacityView
+                      key={item._id}
+                      onPress={() => onCardClick(item)}
+                      style={{
+                        paddingVertical: 10,
+                        backgroundColor: '#343434',
+                        borderRadius: 10,
+                        paddingHorizontal: 10,
+                        marginTop: 10
+                      }}>
+                      <View style={{
+                        flexDirection: 'row', alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }} >
                         <AppText
                           weight={POPPINS_SEMI_BOLD}
                           color={WHITE}>
-                          {captain?.first_name && modifyName(captain?.first_name)}
+                          Team {teamNumber}
                         </AppText>
+                        <TouchableOpacityView
+                          style={{ padding: 5 }}
+                          onPress={() => onEdit(item)}>
+                          <FastImage
+                            resizeMode='contain'
+                            style={{
+                              height: 14,
+                              width: 14
+                            }}
+                            tintColor={colors.white}
+                            source={PENCIL} />
+                        </TouchableOpacityView>
                       </View>
                       <View style={{
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'space-around',
+                        flexDirection: 'row',
                       }} >
-                        <AppText
-                          style={{ opacity: 0.5 }}
-                          weight={POPPINS_MEDIUM}
-                          color={WHITE}>
-                          Vice Captain
-                        </AppText>
-                        <AppText
-                          weight={POPPINS_SEMI_BOLD}
-                          color={WHITE}>
-                          {viceCaptain?.first_name && modifyName(viceCaptain?.first_name)}
-                        </AppText>
+                        <View style={{
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }} >
+                          <AppText
+                            style={{ opacity: 0.5 }}
+                            weight={POPPINS_MEDIUM}
+                            color={WHITE}>
+                            Captain
+                          </AppText>
+                          <AppText
+                            weight={POPPINS_SEMI_BOLD}
+                            color={WHITE}>
+                            {captain?.first_name && modifyName(captain?.first_name)}
+                          </AppText>
+                        </View>
+                        <View style={{
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }} >
+                          <AppText
+                            style={{ opacity: 0.5 }}
+                            weight={POPPINS_MEDIUM}
+                            color={WHITE}>
+                            Vice Captain
+                          </AppText>
+                          <AppText
+                            weight={POPPINS_SEMI_BOLD}
+                            color={WHITE}>
+                            {viceCaptain?.first_name && modifyName(viceCaptain?.first_name)}
+                          </AppText>
+                        </View>
                       </View>
-                    </View>
-                  </TouchableOpacityView>
-                )
-              })}
+                    </TouchableOpacityView>
+                  )
+                })
+              }
             </> : <></>}
         </View>
       }

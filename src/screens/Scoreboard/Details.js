@@ -32,18 +32,18 @@ const Details = ({route}) => {
   const matchType = scoreboardData?.match_details?.Type || 'T20';
   const totalRuns = allPredictions?.reduce((sum, over) => sum + over.runs, 0) || 0;
   
-  // Extract winnings data from details.details.winningsData
-  const winningsData = details?.details?.winningsData || {};
-  const totalWinnings = winningsData.totalWinnings || 0;
-  const winningPercent = winningsData.winningPercent || 0;
-  const rankWinnings = winningsData.rankWinnings || [];
 
-  const renderOver = (prediction) => (
-    <View key={prediction.over_number} style={styles.overContainer}>
-      <View style={styles.overHeader}>
-        <AppText weight={POPPINS_SEMI_BOLD} color={WHITE} style={styles.overNumber}>
-          Over {prediction.over_number}
-        </AppText>
+  const renderOver = (prediction, index) => (
+    <View key={prediction.over_number} style={[
+      styles.overContainer,
+      index % 2 === 0 ? styles.evenOver : styles.oddOver
+    ]}>
+      <View style={styles.overContent}>
+        <View style={styles.overNumberContainer}>
+          <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.overNumber}>
+            Over {prediction.over_number}
+          </AppText>
+        </View>
         <View style={styles.runsContainer}>
           <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.runs}>
             {prediction.runs}
@@ -56,59 +56,6 @@ const Details = ({route}) => {
     </View>
   );
 
-  const renderWinningsSection = () => (
-    <View style={styles.winningsContainer}>
-      <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.sectionTitle}>
-        Winnings Breakdown
-      </AppText>
-      
-      <View style={styles.winningsSummary}>
-        <View style={styles.winningsRow}>
-          <AppText weight={POPPINS_MEDIUM} color={WHITE}>
-            Total Winnings:
-          </AppText>
-          <AppText weight={POPPINS_BOLD} color={WHITE}>
-            ₹{numberWithCommas(totalWinnings)}
-          </AppText>
-        </View>
-        
-        <View style={styles.winningsRow}>
-          <AppText weight={POPPINS_MEDIUM} color={WHITE}>
-            Winning Percentage:
-          </AppText>
-          <AppText weight={POPPINS_BOLD} color={WHITE}>
-            {winningPercent.toFixed(2)}%
-          </AppText>
-        </View>
-      </View>
-      
-      {rankWinnings.length > 0 && (
-        <View style={styles.rankTable}>
-          <View style={styles.tableHeader}>
-            <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.headerCell}>
-              Rank
-            </AppText>
-            <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.headerCell}>
-              Prize
-            </AppText>
-          </View>
-          
-          {rankWinnings.map((rank, index) => (
-            <View key={index} style={styles.tableRow}>
-              <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.tableCell}>
-                {rank.StartRank === rank.EndRank 
-                  ? `#${rank.StartRank}` 
-                  : `#${rank.StartRank}-${rank.EndRank}`}
-              </AppText>
-              <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.tableCell}>
-                ₹{numberWithCommas(rank.Price)}
-              </AppText>
-            </View>
-          ))}
-        </View>
-      )}
-    </View>
-  );
 
   return (
     <AppSafeAreaView hidden={false}>
@@ -133,9 +80,6 @@ const Details = ({route}) => {
           style={styles.scrollView}
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}>
-          
-          {renderWinningsSection()}
-          
           <View style={styles.matchInfoContainer}>
             <View style={styles.matchTypeBadge}>
               <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
@@ -152,7 +96,7 @@ const Details = ({route}) => {
             </View>
           </View>
 
-          {allPredictions?.map(prediction => renderOver(prediction))}
+          {allPredictions?.map((prediction, index) => renderOver(prediction, index))}
         </ScrollView>
       </CommonImageBackground>
     </AppSafeAreaView>
@@ -189,80 +133,113 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 15,
+    marginTop: 10,
     marginHorizontal: 15,
-    padding: 15,
-    backgroundColor: colors.darkBlue,
-    borderRadius: 12,
+    padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    marginBottom: 12
   },
   matchTypeBadge: {
     backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 8,
   },
   matchTypeText: {
-    fontSize: 20,
+    fontSize: 16,
+    letterSpacing: 1,
   },
   totalRunsContainer: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: 10,
-    borderRadius: 10,
-    minWidth: 80,
+    backgroundColor: 'rgba(46, 204, 113, 0.2)',
+    padding: 15,
+    borderRadius: 15,
+    minWidth: 90,
+    borderWidth: 2,
+    borderColor: 'rgba(46, 204, 113, 0.3)',
   },
   totalRunsText: {
-    fontSize: 24,
-    marginBottom: 2,
+    fontSize: 28,
+    marginBottom: 4,
+    color: '#2ecc71',
   },
   totalRunsLabel: {
-    fontSize: 10,
-    opacity: 0.7,
+    fontSize: 12,
+    opacity: 0.8,
+    letterSpacing: 0.5,
   },
   scrollView: {
     flex: 1,
   },
   scrollViewContent: {
     padding: 15,
+    paddingBottom: 30,
   },
   overContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 16,
     padding: 15,
-    marginBottom: 10,
+    marginBottom: 12,
+    marginHorizontal: 0,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 3,
     },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
-  overHeader: {
+  evenOver: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#3498db',
+  },
+  oddOver: {
+    borderLeftWidth: 3,
+    borderLeftColor: '#e74c3c',
+  },
+  overContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  overNumberContainer: {
+    flex: 1,
+  },
   overNumber: {
     fontSize: 16,
+    fontWeight: 'bold',
   },
   runsContainer: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     paddingVertical: 8,
     paddingHorizontal: 15,
-    borderRadius: 8,
+    borderRadius: 12,
+    minWidth: 60,
   },
   runs: {
-    fontSize: 24,
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 2,
   },
   runsLabel: {
-    fontSize: 12,
-    opacity: 0.8,
+    fontSize: 10,
+    opacity: 0.7,
+    letterSpacing: 0.5,
   },
   winningsContainer: {
     backgroundColor: colors.darkBlue,

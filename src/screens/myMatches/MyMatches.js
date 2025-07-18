@@ -1,6 +1,7 @@
 import React, {useEffect, useState, useCallback} from 'react';
 import {FlatList, View, RefreshControl, ScrollView, StyleSheet} from 'react-native';
 import {TabView, SceneMap, TabBar} from 'react-native-tab-view';
+import {useNavigation} from '@react-navigation/native';
 import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
 import {useDispatch, useSelector} from 'react-redux';
@@ -10,7 +11,7 @@ import {Screen} from '../../theme/dimens';
 import {TouchableOpacityView} from '../../common/TouchableOpacityView';
 import MatchCard from '../../components/matchCard/MatchCard';
 import {personIcon, combine, notification} from '../../helper/image';
-import {getMyMatches, setSelectedMatch, setLoading} from '../../slices/matchSlice';
+import {getMyMatches, setSelectedMatch, setLoading, setContestData} from '../../slices/matchSlice';
 import styles from './styles';
 import {
   AppText,
@@ -37,6 +38,7 @@ import {
   BOTTOM_TAB_HOMESCREEN,
   BOTTOM_TAB_PROFILE_SCREEN,
   Notification__SCREEN,
+  MY_CONTEST,
 } from '../../navigation/routes';
 import PrimaryButton from '../../common/primaryButton';
 import {HomeTopHeader} from '../../common/HomeTopHeader';
@@ -183,6 +185,7 @@ export const ListEmptyComponent = ({title, activeTab}) => {
 
 const MyMatches = () => {
   const dispatch = useDispatch();
+  const navigation = useNavigation();
   const [index, setIndex] = useState(0);
   const [subIndex, setSubIndex] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -305,8 +308,13 @@ const MyMatches = () => {
       
       // Filter by match status based on current tab
       if (subIndex === 0) { // Upcoming
-        shouldInclude = !isPastTime && match.Status !== 'Completed' && match.Status !== 'Cancelled';
-        reason = `Upcoming: !isPastTime(${!isPastTime}) && Status!==Completed(${match.Status !== 'Completed'}) && Status!==Cancelled(${match.Status !== 'Cancelled'})`;
+        // For upcoming tab, include matches that are not past time and not completed/cancelled
+        // But also include matches where user has joined contests, regardless of status
+        const hasJoinedContests = match.teams && Array.isArray(match.teams) && 
+          match.teams.some(contest => contest.joined > 0);
+        
+        shouldInclude = (!isPastTime && match.Status !== 'Completed' && match.Status !== 'Cancelled') || hasJoinedContests;
+        reason = `Upcoming: (!isPastTime(${!isPastTime}) && Status!==Completed(${match.Status !== 'Completed'}) && Status!==Cancelled(${match.Status !== 'Cancelled'})) || hasJoinedContests(${hasJoinedContests})`;
       } else if (subIndex === 1) { // Live
         shouldInclude = match.Status === 'Live';
         reason = `Live: Status===Live(${match.Status === 'Live'})`;
@@ -395,33 +403,14 @@ const MyMatches = () => {
   const renderItem = ({item, matchType}) => {
     if (!item) return null;
     
-    // Get the number of contests the user has joined for this match
+
     const joinedContests = item.teams?.filter(t => t.joined > 0) || [];
     
-    console.log('Rendering MatchCard with item:', {
-      id: item._id,
-      matchType: matchType,
-      teamsData: item.teams?.map(t => ({
-        id: t._id,
-        EntryFee: t.EntryFee,
-        joined: t.joined,
-        ContestSize: t.ContestSize,
-        winning_amount: t.winning_amount
-      })),
-      contestDetailsData: item.contest_details?.length,
-      countTeam: joinedContests.length,
-      countContest: item.teams?.length || 0,
-      isFromMyMatch: true,
-      tab: subIndex === 0 ? 'Upcoming' : subIndex === 1 ? 'Live' : 'Completed'
-    });
 
-    // Find a contest with joined > 0 to get the contest_category_id
     const joinedContest = item.teams?.find(t => t.joined > 0);
     
-    // Get contest_category_id from joined contest or use fallback
-    const contest_category_id = joinedContest?.contest_category_id || "65ddb68ce2ddb20749839785"; // Fallback to hardcoded ID
+    const contest_category_id = joinedContest?.contest_category_id || "65ddb68ce2ddb20749839785"; 
     
-    // Use the _id directly as match_contest_category_id - this is the key value we need
     const match_contest_category_id = joinedContest?._id || "";
     
     console.log('Contest IDs for navigation:', {
@@ -437,19 +426,40 @@ const MyMatches = () => {
         isFromMyMatch={true}
         tab={subIndex === 0 ? 'Upcoming' : subIndex === 1 ? 'Live' : 'Completed'}
         onPressScoreboard={() => {
-          dispatch(setSelectedMatch(item));
-          NavigationService.navigate('MY_CONTEST', {
-            matchId: item._id,
-            matchType: 'scoreboard',
-            TeamA: item.TeamA,
-            TeamB: item.TeamB,
-            isFromMyMatch: true,
-            contestId: item.contestId,
-            details: {
-              contest_category_id: contest_category_id,
-              match_contest_category_id: match_contest_category_id
-            }
-          });
+          
+          try {
+            dispatch(setSelectedMatch(item));
+            dispatch(setContestData({...item, isFromMyMatch: true, tab: subIndex === 0 ? 'Upcoming' : subIndex === 1 ? 'Live' : 'Completed', isHome: false}));
+            
+            console.log('🎯 Attempting navigation to MY_CONTEST with params:', {
+              matchId: item._id,
+              matchType: 'scoreboard',
+              TeamA: item.TeamA,
+              TeamB: item.TeamB,
+              isFromMyMatch: true,
+              contestId: item.contestId,
+              details: {
+                contest_category_id: contest_category_id,
+                match_contest_category_id: match_contest_category_id
+              }
+            });
+            
+            navigation.navigate(MY_CONTEST, {
+              matchId: item._id,
+              matchType: 'scoreboard',
+              TeamA: item.TeamA,
+              TeamB: item.TeamB,
+              isFromMyMatch: true,
+              contestId: item.contestId,
+              details: {
+                contest_category_id: contest_category_id,
+                match_contest_category_id: match_contest_category_id
+              }
+            });
+            
+          } catch (error) {
+            console.error('🎯 Navigation error:', error);
+          }
         }}
       />
     );
@@ -472,8 +482,7 @@ const MyMatches = () => {
           countTeam: joinedContests.length, 
           countContest: totalContests, 
         };
-      }).filter(Boolean); // Remove any null items
-
+      }).filter(Boolean); 
       console.log('Upcoming matches with contest data:', matchesWithContests.map(m => ({
         id: m._id,
         teamsCount: m.teams?.length,
@@ -520,7 +529,7 @@ const MyMatches = () => {
           countTeam: joinedContests.length, 
           countContest: totalContests, 
         };
-      }).filter(Boolean); // Remove any null items
+      }).filter(Boolean); 
 
       console.log('Live matches with contest data:', matchesWithContests.map(m => ({
         id: m._id,
@@ -568,7 +577,7 @@ const MyMatches = () => {
           countTeam: joinedContests.length,
           countContest: totalContests,
         };
-      }).filter(Boolean); // Remove any null items
+      }).filter(Boolean); 
 
       console.log('Completed matches with contest data:', matchesWithContests.map(m => ({
         id: m._id,
@@ -603,7 +612,6 @@ const MyMatches = () => {
     },
   });
 
-  // Fetch my matches data when the component mounts
   useEffect(() => {
     dispatch(getMyMatches());
   }, []);
@@ -646,7 +654,6 @@ const MyMatches = () => {
           style={localStyles.tabView}
         />
       </CommonImageBackground>
-      {/* Only show spinner when isLoading is true and timeout hasn't occurred */}
       {isLoading && !loadingTimeout && <SpinnerSecond loading={true} />}
     </AppSafeAreaView>
   );

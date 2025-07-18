@@ -192,6 +192,12 @@ export default appOperation => ({
   joinContest: data =>
     appOperation.post(`match/join-contest`, data, CUSTOMER_TYPE),
 
+  joinScoreboardContest: data =>
+    appOperation.post(`match/scoreboard-join`, data, CUSTOMER_TYPE),
+
+  getMyScoreboardContests: matchId =>
+    appOperation.get(`match/userScoreCard/${matchId}`, undefined, undefined, CUSTOMER_TYPE),
+
   getMyMatchesData: status =>
     appOperation.get(
       `match/list?status=${status}&limit=100&skip=0`,
@@ -260,4 +266,10 @@ export default appOperation => ({
       `payment/withdraw`, data, CUSTOMER_TYPE),
     getBannerList: () => appOperation.get(`ViewBanner`, undefined, undefined, CUSTOMER_TYPE),
     getrefferalList: () => appOperation.get(`users/referals`, undefined, undefined, CUSTOMER_TYPE),
+    createUserScoreCard: data =>
+      appOperation.post(`match/createUserScoreCard`, data, CUSTOMER_TYPE),
+    updateUserScoreCard: data =>
+      appOperation.put(`match/updateUserScoreCard`, data, CUSTOMER_TYPE),
+    getUserScoreCard: matchId =>
+      appOperation.get(`match/userScoreCard/${matchId}`, undefined, undefined, CUSTOMER_TYPE),
 });

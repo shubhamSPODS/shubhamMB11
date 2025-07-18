@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -20,10 +20,10 @@ import {
 import MatchCard from '../../components/matchCard/MatchCard';
 import ViewAll from '../../components/matchCard/viewAll/ViewAll';
 import Matchsection, { getDate } from './Matchsection';
-import { BOTTOM_TAB_CONTEST_SCREEN } from '../../navigation/routes';
+import { BOTTOM_TAB_CONTEST_SCREEN, MY_CONTEST } from '../../navigation/routes';
 import NavigationService from '../../navigation/NavigationService';
 import { universalPaddingHorizontal } from '../../theme/dimens';
-import { setMyMatchesHome, setUpComingMatches, getContestList, setSelectedMatch } from '../../slices/matchSlice';
+import { setMyMatchesHome, setUpComingMatches, getContestList, setSelectedMatch, setContestData } from '../../slices/matchSlice';
 import { KeyBoardAware } from '../../common/KeyboardAware';
 import { BASE_URL } from '../../helper/utility';
 import { TabView, TabBar } from 'react-native-tab-view';
@@ -31,6 +31,55 @@ import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../../theme/color';
 
 const search = element => getDate(element).hour < 0;
+
+const MemoizedMatchCard = React.memo(({ item, route, onPressScoreboard }) => (
+  <MatchCard 
+    key={`${route.key}-${item._id}`}
+    details={item} 
+    matchType={route.key}
+    isFromMyMatch={false}
+    isHome={true}
+    onPressScoreboard={() => onPressScoreboard(item)}
+  />
+));
+
+const TabContent = React.memo(({ 
+  route, 
+  matchesWithContests, 
+  refershing, 
+  onRefresh, 
+  onPressScoreboard 
+}) => {
+  return (
+    <ScrollView
+      refreshControl={
+        <RefreshControl refreshing={refershing} onRefresh={onRefresh} />
+      }
+      style={styles.flatlistContainer}
+      contentContainerStyle={styles.scrollContent}
+      removeClippedSubviews={true}
+      maxToRenderPerBatch={10}
+    >
+      {matchesWithContests?.length > 0 ? (
+        matchesWithContests.map((item) => (
+          <MemoizedMatchCard 
+            key={`${route.key}-${item._id}`}
+            item={item}
+            route={route}
+            onPressScoreboard={onPressScoreboard}
+          />
+        ))
+      ) : (
+        <View style={styles.noMatchesContainer}>
+          <AppText type={EIGHTEEN} weight={POPPINS_MEDIUM} color={WHITE}>
+            No matches available
+          </AppText>
+        </View>
+      )}
+    </ScrollView>
+  );
+});
+
 const Cricket = ({ random, setRefreshingTwo }) => {
   const dispatch = useDispatch();
   const wsRef = useRef(null);
@@ -38,43 +87,10 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   const myMatchesHome = useSelector(state => state.match.myMatchesHome);
   const contestList = useSelector(state => state.match.contestList);
   
-  useEffect(() => {
-    console.log('=== My Matches ===', myMatchesHome);
-    console.log('=== Upcoming Matches ===', upcomingMatches);
-    
-    const maharashtraMatches = upcomingMatches?.filter(match => 
-      match.SeriesName?.includes('Maharashtra') || 
-      match.Team1vsTeam2?.includes('Eagle') || 
-      match.Team1vsTeam2?.includes('Puneri')
-    );
-    if (maharashtraMatches?.length > 0) {
-      console.log( maharashtraMatches.map(m => ({
-        id: m._id,
-        series: m.SeriesName,
-        teams: m.Team1vsTeam2,
-        status: m.Status,
-        hasTeams: m.teams?.length,
-        hasScorecard: m.scorecard?.length,
-        contestsWithJoined: m.teams?.filter(t => t.joined > 0).length,
-        startDateTime: m.StartDateTime
-      })));
-    }
-    
-    const teamsMatches = upcomingMatches.filter(match => match.teams && match.teams.length > 0);
-    const scoreboardMatches = upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
-    console.log('=== Teams Tab Matches ===', teamsMatches.length);
-    console.log('=== Scoreboard Tab Matches ===', scoreboardMatches.length);
-  }, [myMatchesHome, upcomingMatches]);
-
-  const userData = useSelector(state => {
-    return state.profile.userData;
-  });
+  const userData = useSelector(state => state.profile.userData);
   const layout = useWindowDimensions();
   
   const { _id } = userData ?? '';
-  const [isMoadlVisible, setIsModalVisible] = useState(false);
-  const [intro, setIntro] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(0);
   const [refershing, setRefreshing] = useState(false);
   const [index, setIndex] = useState(0);
   const [routes] = useState([
@@ -82,83 +98,98 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     {key: 'scoreboard', title: 'Scoreboard'},
   ]);
 
-  const getFilteredMatches = () => {
-    if (index === 0) {
+  const teamsMatches = useMemo(() => {
       return upcomingMatches.filter(match => match.teams && match.teams.length > 0);
-    } else {
+  }, [upcomingMatches]);
+  
+  const scoreboardMatches = useMemo(() => {
       return upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
-    }
-  };
+  }, [upcomingMatches]);
+
+  const getFilteredMatches = useCallback(() => {
+    return index === 0 ? teamsMatches : scoreboardMatches;
+  }, [index, teamsMatches, scoreboardMatches]);
 
   useEffect(() => {
     if (_id) {
-      onRefresh();
+      fetchData(false); 
     }
   }, [random, _id]);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const itemIndex = upcomingMatches.findIndex(search);
-      let tempArray = [...upcomingMatches];
       if (itemIndex !== -1 && upcomingMatches?.length !== 0) {
+        const tempArray = [...upcomingMatches];
         tempArray?.splice(itemIndex, 1);
         dispatch(setUpComingMatches(tempArray));
       }
     }, 1000);
     return () => clearInterval(interval);
-  });
+  }, [upcomingMatches, dispatch]);
 
-  const onRefresh = React.useCallback(() => {
+  const fetchData = useCallback((showLoader = true) => {
     const URL = `wss://app.mybattle11.com/upcoming-matches?limit=20&skip=0&userid=${_id}`;
+    
+    if (showLoader) {
     setRefreshing(true);
     setRefreshingTwo(true);
+    }
+    
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.close();
     }
+    
     try {
       wsRef.current = new WebSocket(URL);
+      
       wsRef.current.onopen = () => {
-        console.log('WebSocket connection established to:', URL);
+        console.log('WebSocket connection established');
       };
+      
       wsRef.current.onmessage = e => {
-        console.log('Full WebSocket response:', JSON.parse(e.data));
+        try {
         const parseData = JSON.parse(e?.data);
-        let temp = parseData?.upcoming;
-        
-        if (temp && temp.length > 0) {
-          temp.forEach(match => {
-            console.log('Match contests:', {
-              matchId: match._id,
-              contests: match.teams,
-              entryFees: match.teams?.map(t => t.EntryFee),
-              contestSizes: match.teams?.map(t => t.ContestSize)
-            });
-          });
-        }
-        
-        dispatch(setUpComingMatches(temp));
-        dispatch(setMyMatchesHome(parseData?.mymatches));
-        
-        if (temp && temp.length > 0) {
-          temp.forEach(match => {
+          
+          if (parseData?.upcoming) {
+            dispatch(setUpComingMatches(parseData.upcoming));
+            
+            const contestUpdates = [];
+            parseData.upcoming.forEach(match => {
             if (match.teams && match.teams.length > 0) {
               const contests = match.teams.map(contest => ({
                 ...contest,
                 matchId: match._id,
                 matchName: match.Team1vsTeam2
               }));
-              dispatch(getContestList(contests, match._id));
+                contestUpdates.push({ contests, matchId: match._id });
+              }
+            });
+            
+            if (contestUpdates.length > 0) {
+              contestUpdates.forEach(update => {
+                dispatch(getContestList(update.contests, update.matchId));
+              });
             }
-          });
+          }
+          
+          if (parseData?.mymatches) {
+            dispatch(setMyMatchesHome(parseData.mymatches));
         }
+        } catch (error) {
+          console.log('Error parsing WebSocket data:', error);
+        } finally {
         setRefreshing(false);
         setRefreshingTwo(false);
+        }
       };
+      
       wsRef.current.onerror = e => {
         console.log('WebSocket error:', e);
         setRefreshing(false);
         setRefreshingTwo(false);
       };
+      
       wsRef.current.onclose = e => {
         setRefreshing(false);
         setRefreshingTwo(false);
@@ -168,36 +199,27 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       setRefreshing(false);
       setRefreshingTwo(false);
     }
-  }, [_id]);
+  }, [_id, dispatch, setRefreshingTwo]);
 
-  const renderScene = ({route}) => {
-    const filteredMatches = getFilteredMatches();
-    console.log(`Rendering ${route.key} tab with ${filteredMatches?.length} matches`);
-    
-    const matchesWithContests = filteredMatches.map(match => ({
-      ...match,
-      contest_details: contestList?.data?.filter(contest => contest.matchid === match._id) || [],
-    }));
+  const onRefresh = useCallback(() => {
+    fetchData(true); 
+  }, [fetchData]);
 
-    return (
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refershing} onRefresh={onRefresh} />
-        }
-        style={styles.flatlistContainer}
-        contentContainerStyle={styles.scrollContent}>
-        {matchesWithContests?.map((item, idx) => {
-          return (
-            <MatchCard 
-              key={`${route.key}-${item._id || idx}`}
-              details={item} 
-              matchType={route.key}
-              isFromMyMatch={false}
-              isHome={true}
-              onPressScoreboard={() => {
-                const onPressScoreboard = item => {
+  const onPressScoreboard = useCallback((item) => {
+                  console.log('🎯 Cricket.js onPressScoreboard called with item:', {
+                    id: item._id,
+                    TeamA: item.TeamA,
+                    TeamB: item.TeamB,
+                    matchType: 'scoreboard',
+                    hasScorecard: !!item.scorecard,
+                    scorecard: item.scorecard
+                  });
+                  
                   dispatch(setSelectedMatch(item));
-                  NavigationService.navigate('MY_CONTEST', {
+                  dispatch(setContestData(item));
+                  
+                  console.log('🎯 Navigating to MY_CONTEST from Cricket.js');
+                  NavigationService.navigate(MY_CONTEST, {
                     matchId: item._id,
                     matchType: 'scoreboard',
                     TeamA: item.TeamA,
@@ -205,24 +227,29 @@ const Cricket = ({ random, setRefreshingTwo }) => {
                     isFromMyMatch: false,
                     contestId: item.contestId,
                   });
-                };
-                onPressScoreboard(item);
-              }}
-            />
-          );
-        })}
-        {matchesWithContests?.length === 0 && (
-          <View style={styles.noMatchesContainer}>
-            <AppText type={EIGHTEEN} weight={POPPINS_MEDIUM} color={WHITE}>
-              No matches available
-            </AppText>
-          </View>
-        )}
-      </ScrollView>
-    );
-  };
+  }, [dispatch]);
 
-  const renderTabBar = props => (
+  const currentMatchesWithContests = useMemo(() => {
+    const filteredMatches = getFilteredMatches();
+    return filteredMatches.map(match => ({
+      ...match,
+      contest_details: contestList?.data?.filter(contest => contest.matchid === match._id) || [],
+    }));
+  }, [getFilteredMatches, contestList?.data]);
+
+  const renderScene = useCallback(({route}) => {
+    return (
+      <TabContent
+        route={route}
+        matchesWithContests={currentMatchesWithContests}
+        refershing={refershing}
+        onRefresh={onRefresh}
+        onPressScoreboard={onPressScoreboard}
+      />
+    );
+  }, [currentMatchesWithContests, refershing, onRefresh, onPressScoreboard]);
+
+  const renderTabBar = useCallback(props => (
     <TabBar
       {...props}
       indicatorStyle={{
@@ -237,8 +264,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         height: 45,
         marginVertical: 10,
       }}
-      renderLabel={({route, focused}) => {
-        return (
+      renderLabel={({route, focused}) => (
           <View style={{width: '100%', alignItems: 'center'}}>
             <AppText
               type={EIGHTEEN}
@@ -248,16 +274,16 @@ const Cricket = ({ random, setRefreshingTwo }) => {
               {route.title}
             </AppText>
           </View>
-        );
-      }}
+      )}
       pressColor="transparent"
       tabStyle={{borderRadius: 0}}
     />
-  );
+  ), []);
+
+  const myMatchesSection = useMemo(() => {
+    if (myMatchesHome?.length === 0) return null;
 
   return (
-    <View style={styles.container}>
-      {myMatchesHome?.length !== 0 && (
         <View>
           <View style={styles.one}>
             <AppText type={EIGHTEEN} weight={POPPINS_MEDIUM} color={WHITE}>
@@ -272,7 +298,8 @@ const Cricket = ({ random, setRefreshingTwo }) => {
           <View style={styles.two}>
             <ScrollView
               showsHorizontalScrollIndicator={false}
-              horizontal={true}>
+            horizontal={true}
+            removeClippedSubviews={true}>
               {myMatchesHome?.map((data, index) => (
                 <Matchsection
                   key={`my-match-${data._id || index}`}
@@ -286,7 +313,29 @@ const Cricket = ({ random, setRefreshingTwo }) => {
             </ScrollView>
           </View>
         </View>
-      )}
+    );
+  }, [myMatchesHome]);
+
+  const handleIndexChange = useCallback((newIndex) => {
+    setIndex(newIndex);
+  }, []);
+
+  const tabViewConfig = useMemo(() => ({
+    navigationState: { index, routes },
+    renderScene,
+    onIndexChange: handleIndexChange,
+    initialLayout: { width: layout.width },
+    renderTabBar,
+    lazy: true,
+    lazyPreloadDistance: 1,
+    swipeEnabled: true,
+    style: styles.tabView
+  }), [index, routes, renderScene, handleIndexChange, layout.width, renderTabBar]);
+
+  return (
+    <View style={styles.container}>
+      {myMatchesSection}
+      
       <AppText
         style={{
           marginTop: myMatchesHome?.length !== 0 ? 5 : 20,
@@ -296,14 +345,8 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         weight={POPPINS_SEMI_BOLD} color={WHITE}>
         Upcoming Matches
       </AppText>
-      <TabView
-        navigationState={{index, routes}}
-        renderScene={renderScene}
-        onIndexChange={setIndex}
-        initialLayout={{width: layout.width}}
-        renderTabBar={renderTabBar}
-        style={styles.tabView}
-      />
+      
+      <TabView {...tabViewConfig} />
     </View>
   );
 };
@@ -349,4 +392,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Cricket;
+export default React.memo(Cricket);

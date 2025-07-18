@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   StyleSheet,
@@ -8,6 +8,8 @@ import {
   RefreshControl,
   Platform,
 } from 'react-native';
+import { useSelector } from 'react-redux';
+import { useRoute } from '@react-navigation/native';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import { AppText, POPPINS_BOLD, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, WHITE } from '../../common/AppText';
 import NavigationService from '../../navigation/NavigationService';
@@ -15,14 +17,59 @@ import { colors } from '../../theme/color';
 import CommonImageBackground from '../../common/commonImageBackground';
 import FastImage from "@d11/react-native-fast-image";
 import { backIconMain } from '../../helper/image';
-import { GET_WITH_TOKEN } from '../../Backend/Backend';
+import { appOperation } from '../../appOperation';
 import { toastAlert } from '../../helper/utility';
 import { Screen } from '../../theme/dimens';
+import { SpinnerSecond } from '../../common/SpinnerSecond';
+
+// Global error tracking to persist across component remounts
+const globalErrorState = {
+  lastErrorTime: 0,
+  lastErrorMatchId: null,
+  hasShownErrorForMatch: new Set(),
+  
+  // Clean up old error states (older than 5 minutes)
+  cleanup: () => {
+    const now = Date.now();
+    if (now - globalErrorState.lastErrorTime > 300000) { // 5 minutes
+      globalErrorState.hasShownErrorForMatch.clear();
+      globalErrorState.lastErrorTime = 0;
+      globalErrorState.lastErrorMatchId = null;
+      console.log('🧹 Cleaned up global error state');
+    }
+  }
+};
 
 const ScoreboardCard = ({ item, onPress }) => {
-  // Display first 5 overs as preview
-  const previewOvers = item.predictions.slice(0, 5);
-  const totalRuns = item.predictions.reduce((sum, over) => sum + over.runs, 0);
+  const predictions = item.predictions || item.data?.predictions || [];
+  
+  if (!predictions || predictions.length === 0) {
+    return (
+      <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
+        <View style={styles.cardTopSection}>
+          <AppText weight={POPPINS_MEDIUM} color={WHITE}>
+            Invalid scoreboard data
+          </AppText>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+  
+  const previewOvers = predictions.slice(0, 5);
+  const totalRuns = predictions.reduce((sum, over) => sum + (over.runs || 0), 0);
+  
+  const matchType = item.match_details?.Type || 
+                   item.matchDetails?.Type || 
+                   item.Type || 
+                   'T20';
+  
+  console.log('ScoreboardCard item:', {
+    id: item._id,
+    predictionsLength: predictions.length,
+    totalRuns,
+    matchType,
+    samplePrediction: predictions[0]
+  });
   
   return (
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
@@ -30,9 +77,14 @@ const ScoreboardCard = ({ item, onPress }) => {
         <View style={styles.matchInfoSection}>
           <View style={styles.matchTypeBadge}>
             <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
-              {item.match_details?.Type || 'T20'}
+              {matchType}
             </AppText>
           </View>
+          {item.createdAt && (
+            <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.dateText}>
+              {new Date(item.createdAt).toLocaleDateString()}
+            </AppText>
+          )}
         </View>
         <View style={styles.totalRunsContainer}>
           <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.totalRunsText}>
@@ -49,23 +101,23 @@ const ScoreboardCard = ({ item, onPress }) => {
       <View style={styles.oversContainer}>
         <View style={styles.oversHeader}>
           <AppText weight={POPPINS_SEMI_BOLD} color={WHITE} style={styles.oversTitle}>
-            Over by Over
+            Over by Over ({predictions.length} overs)
           </AppText>
-          {item.predictions.length > 5 && (
+          {predictions.length > 5 && (
             <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.moreOversText}>
-              +{item.predictions.length - 5} more overs
+              +{predictions.length - 5} more
             </AppText>
           )}
         </View>
         <View style={styles.oversGrid}>
           {previewOvers.map((over, index) => (
-            <View key={index} style={styles.overItem}>
+            <View key={over.over_number || index} style={styles.overItem}>
               <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.overLabel}>
-                Over {over.over_number}
+                Over {over.over_number || (index + 1)}
               </AppText>
               <View style={styles.runsBox}>
                 <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.runsText}>
-                  {over.runs}
+                  {over.runs || 0}
                 </AppText>
               </View>
             </View>
@@ -76,68 +128,158 @@ const ScoreboardCard = ({ item, onPress }) => {
   );
 };
 
-const List = () => {
+const List = ({ matchIdProp }) => {
+  const route = useRoute();
+  const contestData = useSelector(state => state?.match?.contestData);
+  
   const [scoreboards, setScoreboards] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(false);
+
+  const matchId = matchIdProp || 
+                 route.params?.matchId || 
+                 route.params?.matchDetails?.MatchId || 
+                 contestData?._id || 
+                 contestData?.MatchId ||
+                 contestData?.match_id;
+
+  console.log('=== SCOREBOARD LIST DEBUG ===');
+  console.log('Route params:', JSON.stringify(route.params, null, 2));
+  console.log('Contest data:', JSON.stringify(contestData, null, 2));
+  console.log('Extracted matchId:', matchId);
+  console.log('Current isFetching state:', isFetchingRef.current);
+  console.log('Component mounted:', isMountedRef.current);
+  console.log('Global error state:', {
+    lastErrorTime: globalErrorState.lastErrorTime,
+    lastErrorMatchId: globalErrorState.lastErrorMatchId,
+    hasShownErrorForMatch: Array.from(globalErrorState.hasShownErrorForMatch)
+  });
+
+  // Set mounted flag on component mount
+  useEffect(() => {
+    isMountedRef.current = true;
+    console.log('🎯 ScoreboardList component mounted');
+    
+    return () => {
+      isMountedRef.current = false;
+      console.log('🎯 ScoreboardList component unmounted');
+    };
+  }, []);
+
+  const showErrorToast = (message) => {
+    // Clean up old error states first
+    globalErrorState.cleanup();
+    
+    const now = Date.now();
+    const timeSinceLastError = now - globalErrorState.lastErrorTime;
+    const hasShownForThisMatch = globalErrorState.hasShownErrorForMatch.has(matchId);
+    
+    // Only show error if:
+    // 1. It's been more than 3 seconds since the last error, OR
+    // 2. This is a different match ID, OR
+    // 3. We haven't shown an error for this specific match yet
+    if (timeSinceLastError > 3000 || globalErrorState.lastErrorMatchId !== matchId || !hasShownForThisMatch) {
+      console.log('🚨 Showing error toast:', message);
+      console.log('🚨 Error conditions:', {
+        timeSinceLastError,
+        lastErrorMatchId: globalErrorState.lastErrorMatchId,
+        currentMatchId: matchId,
+        hasShownForThisMatch
+      });
+      
+      toastAlert.showToastError(message);
+      globalErrorState.lastErrorTime = now;
+      globalErrorState.lastErrorMatchId = matchId;
+      globalErrorState.hasShownErrorForMatch.add(matchId);
+    } else {
+      console.log('🚨 Skipping error toast - already shown recently for this match');
+    }
+  };
+
+  const clearErrorForMatch = () => {
+    globalErrorState.hasShownErrorForMatch.delete(matchId);
+    console.log('✅ Cleared error state for match:', matchId);
+  };
 
   const fetchScoreboards = async () => {
+    // Prevent multiple simultaneous API calls
+    if (isFetchingRef.current) {
+      console.log('⚠️ API call already in progress, skipping...');
+      return;
+    }
+
+    // Check if component is still mounted
+    if (!isMountedRef.current) {
+      console.log('⚠️ Component not mounted, skipping API call');
+      return;
+    }
+
     try {
-      // Comment out actual API call
-      // const response = await GET_WITH_TOKEN('match/getUserScoreCards');
-      // if (response?.success) {
-      //   setScoreboards(response.data);
-      // } else {
-      //   toastAlert.showToastError(response?.message || 'Failed to fetch scoreboards');
-      // }
-
-      // Mock data for testing
-      const mockScoreboards = [
-        {
-          _id: 'mock-1',
-          match_details: { Type: 'T20' },
-                      predictions: [
-              { over_number: 1, runs: 8 },
-              { over_number: 2, runs: 12 },
-              { over_number: 3, runs: 6 },
-              { over_number: 4, runs: 15 },
-              { over_number: 5, runs: 9 },
-              { over_number: 6, runs: 11 },
-              { over_number: 7, runs: 7 },
-              { over_number: 8, runs: 14 },
-              { over_number: 9, runs: 10 },
-              { over_number: 10, runs: 8 },
-              { over_number: 11, runs: 13 },
-              { over_number: 12, runs: 9 },
-              { over_number: 13, runs: 11 },
-              { over_number: 14, runs: 7 },
-              { over_number: 15, runs: 16 },
-              { over_number: 16, runs: 12 },
-              { over_number: 17, runs: 15 },
-              { over_number: 18, runs: 18 },
-              { over_number: 19, runs: 14 },
-              { over_number: 20, runs: 19 }
-          ],
-          createdAt: new Date().toISOString()
+      isFetchingRef.current = true;
+      if (!matchId) {
+        showErrorToast('Match information is missing');
+        if (isMountedRef.current) {
+          setLoading(false);
+          setRefreshing(false);
         }
-      ];
+        return;
+      }
 
-      setScoreboards(mockScoreboards);
+      const response = await appOperation.customer.getUserScoreCard(matchId);
+
+      if (!isMountedRef.current) {
+        console.log('⚠️ Component unmounted during API call, skipping state update');
+        return;
+      }
+
+      if (response?.success === true) {
+        const scoreBoardData = Array.isArray(response.data) ? response.data : [response.data];
+        setScoreboards(scoreBoardData);
+        clearErrorForMatch(); 
+      } else {
+        showErrorToast(response?.message || 'Failed to fetch scoreboards');
+        setScoreboards([]);
+      }
     } catch (error) {
-      console.error('Error fetching scoreboards:', error);
-      // toastAlert.showToastError('Something went wrong while fetching scoreboards');
+      
+      let errorMessage = 'Something went wrong while fetching scoreboards';
+      if (error?.data) {
+        try {
+          const parsedError = JSON.parse(error.data);
+          errorMessage = parsedError?.message || errorMessage;
+        } catch (parseError) {
+        }
+      }
+
+      showErrorToast(errorMessage);
+      
+      if (isMountedRef.current) {
+        setScoreboards([]);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      isFetchingRef.current = false;
+      if (isMountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchScoreboards();
-  }, []);
+    console.log('🔄 useEffect triggered with matchId:', matchId);
+    if (matchId) {
+      fetchScoreboards();
+    } else {
+      console.log('⚠️ No matchId available, skipping fetch');
+      setLoading(false);
+    }
+  }, [matchId]);
 
   const onRefresh = () => {
     setRefreshing(true);
+    clearErrorForMatch(); 
     fetchScoreboards();
   };
 
@@ -152,33 +294,45 @@ const List = () => {
     <AppSafeAreaView hidden={false}>
       <StatusBar backgroundColor={'transparent'} translucent={true} />
       <CommonImageBackground common>
-        <FlatList
-          data={scoreboards}
-          renderItem={({ item }) => (
-            <ScoreboardCard
-              item={item}
-              onPress={() => handleScoreboardPress(item)}
-            />
-          )}
-          keyExtractor={item => item._id}
-          contentContainerStyle={styles.listContainer}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colors.white}
-            />
-          }
-          ListEmptyComponent={
-            !loading && (
-              <View style={styles.emptyContainer}>
-                <AppText weight={POPPINS_MEDIUM} color={WHITE}>
-                  No scoreboards created yet
-                </AppText>
-              </View>
-            )
-          }
-        />
+        {loading && !refreshing ? (
+          <View style={styles.loadingContainer}>
+            <SpinnerSecond loading={true} />
+          </View>
+        ) : (
+          <FlatList
+            data={scoreboards}
+            renderItem={({ item }) => (
+              <ScoreboardCard
+                item={item}
+                onPress={() => handleScoreboardPress(item)}
+              />
+            )}
+            keyExtractor={item => item._id || item.id || Math.random().toString()}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.white}
+              />
+            }
+            ListEmptyComponent={
+              !loading && !refreshing && (
+                <View style={styles.emptyContainer}>
+                  <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptyText}>
+                    {matchId ? 'No scoreboards created yet' : 'Match information not available'}
+                  </AppText>
+                  {matchId && (
+                    <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptySubText}>
+                      Create your first prediction!
+                    </AppText>
+                  )}
+                </View>
+              )
+            }
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </CommonImageBackground>
     </AppSafeAreaView>
   );
@@ -288,6 +442,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
+  },
+  emptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  emptySubText: {
+    fontSize: 14,
+    textAlign: 'center',
+    opacity: 0.7,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateText: {
+    fontSize: 12,
+    opacity: 0.7,
+    marginTop: 4,
   },
 });
 

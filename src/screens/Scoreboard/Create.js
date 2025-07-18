@@ -15,18 +15,33 @@ import {useSelector} from 'react-redux';
 import {AppSafeAreaView} from '../../common/AppSafeAreaView';
 import {AppText, BLACK, POPPINS_BOLD, POPPINS_MEDIUM, POPPINS_SEMI_BOLD, TEN, TWELVE, WHITE} from '../../common/AppText';
 import NavigationService from '../../navigation/NavigationService';
+import {MY_CONTEST} from '../../navigation/routes';
 import {colors} from '../../theme/color';
 import CommonImageBackground from '../../common/commonImageBackground';
 import FastImage from "@d11/react-native-fast-image";
 import {backIconMain} from '../../helper/image';
-import {POST_WITH_TOKEN, PUT_WITH_TOKEN} from '../../Backend/Backend';
+import {appOperation} from '../../appOperation';
 import {toastAlert} from '../../helper/utility';
 import PrimaryButton from '../../common/primaryButton';
 import {Screen} from '../../theme/dimens';
 
 const Create = ({route}) => {
-  const {predictionId, predictionsData, isEdit} = route?.params || {};
-  const contestData = useSelector(state => state?.match?.contestData);
+  const {predictionId, predictionsData, isEdit, isFromMyMatch, ...routeContestData} = route?.params || {};
+  const reduxContestData = useSelector(state => state?.match?.contestData);
+  
+  // Use route params contestData first, then fall back to Redux state
+  const contestData = Object.keys(routeContestData || {}).length > 0 ? routeContestData : reduxContestData;
+  
+  // Add debugging logs for component initialization
+  console.log('=== CREATE COMPONENT INITIALIZATION ===');
+  console.log('Route params:', JSON.stringify(route?.params, null, 2));
+  console.log('Route contestData:', JSON.stringify(routeContestData, null, 2));
+  console.log('Redux contestData:', JSON.stringify(reduxContestData, null, 2));
+  console.log('Final contestData used:', JSON.stringify(contestData, null, 2));
+  console.log('predictionId:', predictionId);
+  console.log('predictionsData:', JSON.stringify(predictionsData, null, 2));
+  console.log('isEdit:', isEdit);
+  console.log('isFromMyMatch:', isFromMyMatch);
   
   const matchType = contestData?.contestAllInfo?.Type || contestData?.Type || 'T20';
 
@@ -48,14 +63,54 @@ const Create = ({route}) => {
   const totalOvers = getTotalOvers();
   const overs = Array.from({length: totalOvers}, (_, i) => `Over ${i + 1}`);
   const [predictions, setPredictions] = React.useState(Array(totalOvers).fill('0'));
+  const [isLoading, setIsLoading] = React.useState(false);
   const inputRefs = React.useRef([]);
   const scrollViewRef = React.useRef(null);
 
-  const matchId = contestData?.contestAllInfo?._id || contestData?._id;
-  const contestId = contestData?.contestAllInfo?.contest_details?.data?.[0]?.shadow_contest_id || 
-                   contestData?.contest_details?.data?.[0]?.shadow_contest_id;
+  const matchId = contestData?.contestAllInfo?._id || 
+                   contestData?._id || 
+                   contestData?.matchId ||
+                   contestData?.match_id;
+                   
+  // For ScoreCard, prioritize scorecard array, then teams array
+  const contestId = contestData?.scorecard?.[0]?.shadow_contest_id ||
+                   contestData?.scorecard?.[0]?._id ||
+                   contestData?.teams?.[0]?.shadow_contest_id ||
+                   contestData?.teams?.[0]?._id ||
+                   contestData?.contestAllInfo?.contest_details?.data?.[0]?.shadow_contest_id || 
+                   contestData?.contest_details?.data?.[0]?.shadow_contest_id ||
+                   contestData?.contestId ||
+                   contestData?.contest_id ||
+                   contestData?.shadow_contest_id;
   
   const matchTypeFormat = (matchType || '').split(' ').pop();
+  
+  // Additional debugging for ID extraction
+  console.log('=== ID EXTRACTION PATHS ===');
+  console.log('contestData?.contestAllInfo?._id:', contestData?.contestAllInfo?._id);
+  console.log('contestData?._id:', contestData?._id);
+  console.log('contestData?.matchId:', contestData?.matchId);
+  console.log('contestData?.match_id:', contestData?.match_id);
+  console.log('contestData?.scorecard?.[0]?.shadow_contest_id:', contestData?.scorecard?.[0]?.shadow_contest_id);
+  console.log('contestData?.scorecard?.[0]?._id:', contestData?.scorecard?.[0]?._id);
+  console.log('contestData?.teams?.[0]?.shadow_contest_id:', contestData?.teams?.[0]?.shadow_contest_id);
+  console.log('contestData?.teams?.[0]?._id:', contestData?.teams?.[0]?._id);
+  console.log('contestData?.contestAllInfo?.contest_details?.data?.[0]?.shadow_contest_id:', 
+    contestData?.contestAllInfo?.contest_details?.data?.[0]?.shadow_contest_id);
+  console.log('contestData?.contest_details?.data?.[0]?.shadow_contest_id:', 
+    contestData?.contest_details?.data?.[0]?.shadow_contest_id);
+  console.log('contestData?.contestId:', contestData?.contestId);
+  console.log('contestData?.contest_id:', contestData?.contest_id);
+  console.log('contestData?.shadow_contest_id:', contestData?.shadow_contest_id);
+  console.log('Final matchId:', matchId);
+  console.log('Final contestId:', contestId);
+  
+  // Debug arrays structure
+  console.log('=== ARRAYS DEBUG ===');
+  console.log('contestData.scorecard:', contestData?.scorecard);
+  console.log('contestData.teams:', contestData?.teams);
+  console.log('scorecard length:', contestData?.scorecard?.length);
+  console.log('teams length:', contestData?.teams?.length);
 
   useEffect(() => {
     if (isEdit && predictionsData?.predictions) {
@@ -66,6 +121,17 @@ const Create = ({route}) => {
       setPredictions(initialPredictions);
     }
   }, [isEdit, predictionsData, totalOvers]);
+
+  // Monitor contestData changes for debugging
+  useEffect(() => {
+    console.log('=== CONTEST DATA CHANGED ===');
+    console.log('Updated contestData:', JSON.stringify(contestData, null, 2));
+    console.log('Updated matchId:', contestData?.contestAllInfo?._id || contestData?._id);
+    console.log('Updated contestId:', contestData?.scorecard?.[0]?.shadow_contest_id ||
+                contestData?.scorecard?.[0]?._id ||
+                contestData?.teams?.[0]?.shadow_contest_id ||
+                contestData?.teams?.[0]?._id);
+  }, [contestData]);
 
   const updatePrediction = (index, value) => {
     const newPredictions = [...predictions];
@@ -125,81 +191,123 @@ const Create = ({route}) => {
   );
 
   const handleSubmit = async () => {
+    if (isLoading) return;
+    
     try {
-      // Commenting out validation temporarily for testing
-      // if (!matchId || !contestId) {
-      //   toastAlert.showToastError('Match or contest information is missing');
-      //   return;
-      // }
+      setIsLoading(true);
+      
+      // Log the entire contestData for debugging
+      console.log('=== CONTEST DATA DEBUG ===');
+      console.log('Full contestData:', JSON.stringify(contestData, null, 2));
+      console.log('contestData?.contestAllInfo:', JSON.stringify(contestData?.contestAllInfo, null, 2));
+      console.log('contestData?.contest_details:', JSON.stringify(contestData?.contest_details, null, 2));
+      
+      // Log the extracted IDs
+      console.log('=== EXTRACTED IDs ===');
+      console.log('matchId:', matchId);
+      console.log('contestId:', contestId);
+      console.log('matchType:', matchType);
+      
+      if (!matchId || !contestId) {
+        console.log('=== ERROR: Missing Information ===');
+        console.log('matchId is missing:', !matchId);
+        console.log('contestId is missing:', !contestId);
+        console.log('contestData structure:', Object.keys(contestData || {}));
+        
+        toastAlert.showToastError('Match or contest information is missing');
+        return;
+      }
 
-      const hasEmptyOrZeroPredictions = predictions?.every(prediction => prediction === '0');
+      const hasEmptyOrZeroPredictions = predictions?.every(prediction => prediction === '0' || prediction === '');
       if (hasEmptyOrZeroPredictions) {
         toastAlert.showToastError(`Please predict scores for at least one over`);
         return;
       }
 
+      // Create predictions array with over_number and runs
       const predictionsData = predictions?.map((runs, idx) => ({
         over_number: idx + 1,
-        runs: parseInt(runs, 10),
+        runs: parseInt(runs || '0', 10),
       }));
 
-      // For testing - using mock data instead of API call
-      const mockResponse = {
-        success: true,
-        data: {
-          _id: 'mock-id-' + Date.now(),
-          match_details: {
-            Type: matchType
-          },
+      if (isEdit) {
+        // Update existing scoreboard
+        const updateData = {
           predictions: predictionsData,
-          createdAt: new Date().toISOString()
-        }
-      };
+          predictions_id: predictionId,
+        };
 
-      // Comment out actual API calls
-      // if (isEdit) {
-      //   const updateData = {
-      //     predictions: predictionsData,
-      //     predictions_id: predictionId,
-      //   };
+        console.log('=== UPDATE PAYLOAD ===');
+        console.log('updateData:', JSON.stringify(updateData, null, 2));
 
-      //   const response = await PUT_WITH_TOKEN('match/updateUserScoreCard', updateData);
-      //   if (response?.success === true) {
-      //     toastAlert.showToastSuccess(response?.message || 'Scoreboard updated successfully');
-      //     NavigationService.navigate('Scoreboard/Details', {
-      //       scoreboardData: {
-      //         ...response.data,
-      //         _id: predictionId,
-      //       },
-      //       allPredictions: predictionsData,
-      //       isUpdated: true,
-      //     });
-      //   } else {
-      //     toastAlert.showToastError(response?.message || 'Failed to update scoreboard');
-      //   }
-      // } else {
-      //   const createData = {
-      //     predictions: predictionsData,
-      //     match_id: matchId,
-      //     contest_id: contestId,
-      //   };
+        const response = await appOperation.customer.updateUserScoreCard(updateData);
         
-      //   const response = await POST_WITH_TOKEN('match/createUserScoreCard', createData);
-      //   if (response?.success === true) {
-      //     toastAlert.showToastSuccess(response?.message);
-      //     NavigationService.navigate('Scoreboard/List');
-      //   } else {
-      //     toastAlert.showToastError(response?.message);
-      //   }
-      // }
-
-      // For testing - simulate successful creation
-      toastAlert.showToastSuccess('Scoreboard created successfully');
-      NavigationService.navigate('Scoreboard/List');
+        console.log('=== UPDATE RESPONSE ===');
+        console.log('Update response:', JSON.stringify(response, null, 2));
+        
+        if (response?.success === true) {
+          toastAlert.showToastSuccess(response?.message || 'Scoreboard updated successfully');
+          NavigationService.navigate('Scoreboard/Details', {
+            scoreboardData: {
+              ...response.data,
+              _id: predictionId,
+            },
+            allPredictions: predictionsData,
+            isUpdated: true,
+          });
+        } else {
+          console.log('=== UPDATE ERROR ===');
+          console.log('Update failed with response:', response);
+          toastAlert.showToastError(response?.message || 'Failed to update scoreboard');
+        }
+      } else {
+        // Create new scoreboard
+        const createData = {
+          predictions: predictionsData,
+          match_id: matchId,
+          contest_id: contestId,
+        };
+        
+        console.log('=== CREATE PAYLOAD ===');
+        console.log('createData:', JSON.stringify(createData, null, 2));
+        console.log('Predictions count:', predictionsData?.length);
+        console.log('Sample predictions:', predictionsData?.slice(0, 3));
+        
+        const response = await appOperation.customer.createUserScoreCard(createData);
+        
+        console.log('=== CREATE RESPONSE ===');
+        console.log('Create response:', JSON.stringify(response, null, 2));
+        console.log('Response success:', response?.success);
+        console.log('Response message:', response?.message);
+        console.log('Response data:', response?.data);
+        
+        if (response?.success === true) {
+          toastAlert.showToastSuccess(response?.message || 'Scoreboard created successfully');
+          
+          // Navigate to My Scoreboard tab in MyContest screen
+          NavigationService.navigate(MY_CONTEST, {
+            ...contestData,
+            matchType: 'scoreboard',
+            initialTabIndex: 2, // Third tab (My Scoreboard)
+            isFromMyMatch: true,
+          });
+        } else {
+          console.log('=== CREATE ERROR ===');
+          console.log('Create failed with response:', response);
+          console.log('Error message:', response?.message);
+          console.log('Error code:', response?.code);
+          toastAlert.showToastError(response?.message || 'Failed to create scoreboard');
+        }
+      }
 
     } catch (error) {
+      console.log('=== EXCEPTION ERROR ===');
       console.error('Error submitting predictions:', error);
-      toastAlert.showToastError('Something went wrong');
+      console.log('Error message:', error?.message);
+      console.log('Error stack:', error?.stack);
+      toastAlert.showToastError(error?.message || 'Something went wrong');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -260,6 +368,8 @@ const Create = ({route}) => {
             <PrimaryButton
               onPress={handleSubmit}
               title={isEdit ? "Update" : "Create"}
+              loading={isLoading}
+              disabled={isLoading}
             />
           </View>
         </View>

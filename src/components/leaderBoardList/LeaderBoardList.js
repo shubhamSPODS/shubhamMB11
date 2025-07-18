@@ -57,23 +57,15 @@ const LeaderBoardList = ({
   const [timeoutOccurred, setTimeoutOccurred] = useState(false);
   const [wsConnectAttempted, setWsConnectAttempted] = useState(false);
 
-  // Get the contest category ID from multiple possible sources
-  // 1. From props (id)
-  // 2. From contestData.contest_category_id
-  // 3. From FirstRoute details that appear in logs
   const contestCategoryId = id || 
     (contestData && contestData.contest_category_id) || 
-    "65ddb68ce2ddb20749839785"; // Hardcoded from logs as fallback
+    "65ddb68ce2ddb20749839785"; 
 
-  // Get the match contest category ID from multiple possible sources
-  // 1. From props (match_contest_category_id)
-  // 2. From contestData.match_contest_category_id
-  // 3. Use contestCategoryId as fallback
+  
   const validMatchContestCategoryId = match_contest_category_id ||
     (contestData && contestData.match_contest_category_id) ||
     contestCategoryId;
 
-  // Ensure we have a matchId
   const validMatchId = matchId || contestData?.MatchId;
 
   console.log("LeaderBoardList Component Params:", {
@@ -87,17 +79,13 @@ const LeaderBoardList = ({
     contestData: contestData
   });
 
-  // Create WebSocket URLs with the correct parameter
   const url = contestCategoryId && validMatchId && userData?._id ? 
     `wss://app.mybattle11.com/leader-board?limit=${limit}&skip=${skip}&matchid=${validMatchId}&contest_category_id=${contestCategoryId}&user_id=${userData?._id}` : null;
   
-  // Create fallback data for when WebSocket fails to return anything
   const createFallbackData = () => {
     console.log('Creating fallback data since WebSocket data is empty');
     
-    // Check if user has joined this contest
     if (contestData?.joined > 0) {
-      // Create a fallback entry for the current user
       const fallbackPlayer = {
         _id: userData?._id || 'current-user',
         username: userData?.username || userData?.full_name || 'You',
@@ -112,21 +100,17 @@ const LeaderBoardList = ({
       
       console.log('Using fallback data for leaderboard:', fallbackPlayer);
       
-      // Set the leaderboard data with just this player
       setLeaderBoards([fallbackPlayer]);
       setMyDataleader([fallbackPlayer]);
       
-      // Set status to false for not live
       setStatus('false');
       if (setForStatus) setForStatus('false');
     }
     
-    // Set loading to false to display the UI
     setLoading(false);
   };
   
   useEffect(() => {
-    // Set a timeout to ensure we don't wait forever for WebSocket data
     const timer = setTimeout(() => {
       if (loading) {
         console.log('Timeout occurred after 3 seconds - showing fallback data');
@@ -143,7 +127,7 @@ const LeaderBoardList = ({
       setWsConnectAttempted(true);
       
       if (!url) {
-        console.log('Cannot create WebSocket URL - missing required parameters');
+
         createFallbackData();
         return;
       }
@@ -162,11 +146,8 @@ const LeaderBoardList = ({
             console.log('📩 WebSocket data received:', e?.data);
             const parseData = JSON.parse(e?.data);
             
-            // Check if we have valid data
             if (parseData?.data && Array.isArray(parseData?.data) && parseData.data.length > 0) {
-              console.log('✅ Valid leaderboard data received, count:', parseData.data.length);
               
-              // When match is not live, set default rank 1 for all players
               if (parseData?.live !== 'true') {
                 const playersWithDefaultRank = parseData.data.map(player => ({
                   ...player,
@@ -177,7 +158,6 @@ const LeaderBoardList = ({
                 setLeaderBoards(parseData.data);
               }
               
-              // Set status and forStatus
               setStatus(parseData?.live);
               if (setForStatus) setForStatus(parseData?.live);
             } else {
@@ -215,12 +195,10 @@ const LeaderBoardList = ({
           }
         };
       } catch (error) {
-        console.log('❌ Error setting up WebSocket:', error);
         createFallbackData();
         setLoading(false);
       }
     } else {
-      // If no matchId or contestCategoryId, create fallback data directly
       if (!validMatchId || !contestCategoryId) {
         console.log('⚠️ Missing matchId or contestCategoryId - creating fallback data directly');
         createFallbackData();
@@ -230,7 +208,6 @@ const LeaderBoardList = ({
 
   useEffect(() => {
     let Mydata = leaderBoards?.map(item => {
-      // Check for a match with the current user
       if (
         (item?.email && userData?.email && item.email === userData.email) ||
         (item?._id && userData?._id && item._id === userData._id) ||
@@ -244,7 +221,6 @@ const LeaderBoardList = ({
     });
     const filteredData = Mydata.filter(item => Object.keys(item).length !== 0);
     
-    // If no user data was found in the leaderboards but user has joined, add a fallback entry
     if (filteredData.length === 0 && contestData?.joined > 0) {
       const fallbackUserData = {
         _id: userData?._id || 'current-user',
@@ -263,12 +239,10 @@ const LeaderBoardList = ({
     setMyDataleader(filteredData);
   }, [leaderBoards, contestData?.joined]);
   
-  // Filter out any array items from the leaderboard data
   const filteredArray = leaderBoards.filter(item => !Array.isArray(item));
 
   useEffect(() => {
     try {
-      // Filter out the current user from the leaderboard
       const filteredData = filteredArray.filter(item => {
         return !(
           (item?.email && userData?.email && item.email === userData.email) ||
@@ -286,7 +260,6 @@ const LeaderBoardList = ({
   }, [leaderBoards, userData]);
   
   const playerPreview = (teamPlayer, full_name, teamname, total_points) => {
-    // For matches not started yet, just show a message
     toastAlert.showToastError(
       'Team details will be available once the match starts'
     );
@@ -324,7 +297,6 @@ const LeaderBoardList = ({
               {username}{' '}
               {`(${teamName})`}
             </AppText>
-            {/* Show "Your team" tag for the current user's team */}
             {(
               (item?.email && userData?.email && item.email === userData.email) ||
               (item?._id && userData?._id && item._id === userData._id) ||
@@ -456,7 +428,6 @@ const LeaderBoardList = ({
               ListHeaderComponent={mydataleaderboard}
             />
           ) : contestData?.joined > 0 ? (
-            // Show the user's team when no one else has joined
             <View style={{padding: 20}}>
               <AppText
                 style={{

@@ -20,6 +20,7 @@ import {
   WHITE,
 } from '../../../common/AppText';
 import SelectTeam from '../../selectTeam/SelectTeam';
+import SelectScoreboard from '../../selectScoreboard/SelectScoreboard';
 import { GLORY, GURANTEE, SINGLE, WINNER, m } from '../../../helper/image';
 import NavigationService from '../../../navigation/NavigationService';
 import { ADDCASH_VERIFICATION, LEADERBOARD, MY_BALANCE, SELECT_PLAYER, VERIFY_ADHAAR_SCREEN } from '../../../navigation/routes';
@@ -38,7 +39,7 @@ import { numberWithCommas, toastAlert } from '../../../helper/utility';
 import Confirmation from '../../../common/Confirmation';
 import { NewColor, colors } from '../../../theme/color';
 
-const ContestCard = ({ details, totalTeamCount }) => {
+const ContestCard = ({ details, totalTeamCount, matchType }) => {
   if (!details) {
     console.log('Contest details:', details);
     return null;
@@ -55,6 +56,7 @@ const ContestCard = ({ details, totalTeamCount }) => {
 
   const dispatch = useDispatch();
   const selectTeam = useRef();
+  const selectScoreboard = useRef();
   const myTeam = useSelector(state => state?.match?.myTeams);
   const contestData = useSelector(state => state?.match?.contestData);
   const { _id, SeriesId } = contestData ?? '';
@@ -133,13 +135,49 @@ const ContestCard = ({ details, totalTeamCount }) => {
   };
 
   const onJoinContest = async () => {
+    console.log('🔍 ContestCard onJoinContest called with:', {
+      matchType,
+      contestDetails: details,
+      totalTeamCount,
+      kycVerified: contestData?.kycDetails?.adhar_verified
+    });
+    
     if (contestData?.kycDetails?.adhar_verified == 0) {
       NavigationService.navigate(VERIFY_ADHAAR_SCREEN)
     } else 
     if (contestData?.kycDetails?.adhar_verified == 2) {
       toastAlert.showToastError('Your aadhaar verification is pending please wait')
     } else {
+      
+      // Handle scoreboard contests differently
+      const isScoreboardContest = matchType === 'scoreboard' || 
+                                  details?.ContestType === 'ScoreCard' || 
+                                  details?.contest_type === 'ScoreCard' ||
+                                  contestDetails?.ContestType === 'ScoreCard' ||
+                                  contestDetails?.contest_type === 'ScoreCard';
+                                  
+      console.log('🎯 Checking if scoreboard contest:', {
+        matchType,
+        detailsContestType: details?.ContestType,
+        detailsContestTypeLower: details?.contest_type,
+        contestDetailsContestType: contestDetails?.ContestType,
+        contestDetailsContestTypeLower: contestDetails?.contest_type,
+        isScoreboardContest,
+        selectScoreboardRef: !!selectScoreboard?.current
+      });
+      
+      if (isScoreboardContest) {
+        console.log('🎯 Joining scoreboard contest - opening SelectScoreboard sheet');
+        dispatch(setSelectedMatch(details ? { ...details } : {}));
+        selectScoreboard?.current?.open();
+        return;
+      }
+      
+      // Original team-based contest logic
+      console.log('🚀 Proceeding with team-based contest logic');
+      
       if (totalTeamCount === 0) {
+        console.log('📍 Path: totalTeamCount === 0 - navigating to SELECT_PLAYER');
         dispatch(setAllPlayers([]))
         let data = { cid: contestData?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));
@@ -151,7 +189,9 @@ const ContestCard = ({ details, totalTeamCount }) => {
         dispatch(setSelectedMatch(details ? { ...details } : {}));
 
       } else if (totalTeamCount === 1) {
+        console.log('📍 Path: totalTeamCount === 1');
         if (details?.teamDetails?.length) {
+          console.log('📍 Sub-path: has teamDetails - navigating to SELECT_PLAYER');
           dispatch(setAllPlayers([]))
           let data = { cid: contestData?.SeriesId };
           let isNavigate = true
@@ -163,12 +203,14 @@ const ContestCard = ({ details, totalTeamCount }) => {
             isEditMode: false,
           });
         } else {
+          console.log('📍 Sub-path: no teamDetails - showing confirmation');
           setIsAdd(true);
           dispatch(setSelectedMatch(details ? { ...details } : {}));
           setSaveTeamName(myTeam?.[0]?.name || '')
         }
       }
       if (details?.teamDetails?.length == myTeam?.length) {
+        console.log('📍 Path: teamDetails.length == myTeam.length - navigating to SELECT_PLAYER');
         dispatch(setAllPlayers([]))
         let data = { cid: contestData?.SeriesId };
         let isNavigate = true
@@ -180,6 +222,7 @@ const ContestCard = ({ details, totalTeamCount }) => {
           isEditMode: false,
         });
       } else {
+        console.log('📍 Path: default else - opening selectTeam sheet');
         dispatch(setSelectedMatch(details ? { ...details } : {}));
         selectTeam?.current?.open();
       }
@@ -343,6 +386,29 @@ const ContestCard = ({ details, totalTeamCount }) => {
           JoinWithMULT={details?.JoinWithMULT}
         />
       </RBSheet>
+      
+      <RBSheet
+        ref={selectScoreboard}
+        closeOnDragDown={false}
+        openDuration={100}
+        height={Dimensions.get('window').height}
+        customStyles={{
+          container: {
+            backgroundColor: NewColor.linerWhite,
+          },
+          draggableIcon: {
+            backgroundColor: 'transparent',
+            display: 'none',
+          },
+        }}>
+        <SelectScoreboard
+          contestDetails={details}
+          matchDetails={contestData}
+          onClose={() => selectScoreboard?.current?.close()}
+          selectScoreboard={selectScoreboard}
+        />
+      </RBSheet>
+      
       <Confirmation
         isModalVisible={isAdd}
         details={details}

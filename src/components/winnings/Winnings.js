@@ -10,13 +10,11 @@ import { Layer_1 } from '../../helper/image';
 import { Screen } from '../../theme/dimens';
 import { useIsFocused } from '@react-navigation/native';
 
-// Define the component with optional match_contest_category_id
 const Winnings = ({ id, match_contest_category_id = undefined, privateis, notLive, rankData, contestDetails = {} }) => {
   const [prizeList, setPrizeList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [onRefresh, setOnrefresh] = useState(false);
   
-  // Log the props for debugging
   useEffect(() => {
     console.log('Winnings component props:', {
       id,
@@ -138,7 +136,6 @@ const Winnings = ({ id, match_contest_category_id = undefined, privateis, notLiv
         {loading ? (
           <SpinnerSecond loading={true} />
         ) : dataToDisplay && dataToDisplay.length > 0 ? (
-          // When we have data to display
           <FlatList
             showsVerticalScrollIndicator={false}
             data={dataToDisplay}
