@@ -29,7 +29,7 @@ import { toastAlert } from '../helper/utility';
 import { TouchableOpacityView } from '../common/TouchableOpacityView';
 import { KeyBoardAware } from '../common/KeyboardAware';
 import { NewColor, colors } from '../theme/color';
-// import { getHash, startOtpListener } from 'react-native-otp-verify';
+import { getHash, startOtpListener, removeListener } from 'react-native-otp-verify';
 import { AppSafeAreaView } from '../common/AppSafeAreaView';
 const OTP = ({ route }) => {
   const dispatch = useDispatch();
@@ -41,21 +41,49 @@ const OTP = ({ route }) => {
     return state.auth.isLoading;
   });
   const [code, setCode] = useState('123456');
-  // React.useEffect(() => {
-  //   getHash().then(setHashFromMethod).catch(console.log);
-  //   startOtpListener(setOtpFromMethod);
-  // }, []);
-  // React.useEffect(() => {
-  //   if (otpFromMethod && otpFromMethod?.length) {
-  //     const newotp = /(\d{6})/g.exec(otpFromMethod)[1];
-  //     // setNewOtp(permissionSave ? newotp : '');
-  //     // let _data = {
-  //     //   mobile_number: mobile_number,
-  //     //   otp: newotp,
-  //     // };
-  //     // dispatch(otpVerification(_data));
-  //   }
-  // }, [otpFromMethod]);
+  const [isListening, setIsListening] = useState(false);
+  const [error, setError] = useState('');
+
+  React.useEffect(() => {
+    const initializeOtpListener = async () => {
+      try {
+        const hashArray = await getHash();
+        setHashFromMethod(hashArray);
+        
+        await startOtpListener((receivedMessage) => {
+          console.log('📱 Received SMS:', receivedMessage);
+          setOtpFromMethod(receivedMessage);
+          
+          const otpMatch = receivedMessage.match(/(\d{6})/);
+          if (otpMatch && otpMatch[1]) {
+            const extractedOtp = otpMatch[1];
+            console.log('🔢 Extracted OTP:', extractedOtp);
+            setCode(extractedOtp);
+            // Auto-submit OTP after a short delay
+            setTimeout(() => {
+              const data = {
+                mobile_number: Number?.mobile_number,
+                otp: extractedOtp,
+              };
+              dispatch(otpVerification(data));
+            }, 500);
+          }
+        });
+        
+        setIsListening(true);
+      } catch (error) {
+        console.error('❌ OTP Listener Error:', error);
+        setError(`Error initializing OTP listener: ${error.message}`);
+      }
+    };
+
+    initializeOtpListener();
+
+    return () => {
+      removeListener();
+      setIsListening(false);
+    };
+  }, []);
   const onSubmit = () => {
     if (code.length < 6) {
       toastAlert.showToastError('Please provide a valid OTP');

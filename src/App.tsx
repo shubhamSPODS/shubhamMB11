@@ -16,11 +16,11 @@ import {
 } from 'react-native-permissions';
 import {Alert, Platform} from 'react-native';
 
-// List of permissions to request
+// List of permissions to request - Only essential permissions
 const permissionsList = [
-  PERMISSIONS.ANDROID.CAMERA,
-  PERMISSIONS.ANDROID.READ_EXTERNAL_STORAGE,
-  PERMISSIONS.ANDROID.ACCESS_FINE_LOCATION,
+  // Only SMS permissions for OTP auto-fill
+  PERMISSIONS.ANDROID.READ_SMS,
+  PERMISSIONS.ANDROID.RECEIVE_SMS,
 ];
 
 const App = () => {
@@ -49,7 +49,6 @@ const App = () => {
 
   // Function to check and request permissions
   const checkAndRequestPermissions = async () => {
-    return false
     let allGranted = true;
 
     for (const permission of permissionsList) {
@@ -68,8 +67,8 @@ const App = () => {
     const result = await request(permission);
     if (result === RESULTS.DENIED) {
       Alert.alert(
-        'Permission Required',
-        'This permission is needed for the app to work properly.',
+        'SMS Permission Required',
+        'SMS permission is needed to automatically fill OTP codes for faster verification.',
         [{text: 'OK'}]
       );
     }

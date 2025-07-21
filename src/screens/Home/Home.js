@@ -137,7 +137,8 @@ const Home = () => {
   //   } 
   // }, []);
   const requestPermission=async()=>{
-var result = await request(PERMISSIONS.IOS.CAMERA) 
+    // Camera permission not needed for OTP functionality
+    console.log('Camera permission request removed');
   }
   const InstallAPK = async () => {
     Alert.alert(

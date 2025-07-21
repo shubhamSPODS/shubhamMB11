@@ -66,30 +66,39 @@ export const otpVerification =
     try {
       dispatch(setLoading(true));
       const response = await appOperation.guest.otp_verification(data);
-//  console.log(response,'==respomse>>>');
  
       if (response?.success) {
-        appOperation.setCustomerToken(response?.data?.accessToken);
-        
-        await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.accessToken);
-        console.log('🔑 OTP verified - Auth token:', response?.data?.accessToken);
-        dispatch(updateDeviceToken());
-        await dispatch(getUserProfile(true, false));
-        dispatch(setUserData(response?.data?._id));
-        // NavigationService.navigate(BOTTOM_NAVIGATION_STACK);
+        try {
+          appOperation.setCustomerToken(response?.data?.accessToken);
+          await AsyncStorage.setItem(USER_TOKEN_KEY, response?.data?.accessToken);
+          console.log('🔑 OTP verified - Auth token:', response?.data?.accessToken);
+          
+          // Only call these functions if OTP verification was successful
+          try {
+            dispatch(updateDeviceToken());
+          } catch (deviceTokenError) {
+            console.error('Error updating device token:', deviceTokenError);
+            // Don't fail the entire flow for device token error
+          }
+          
+          try {
+            await dispatch(getUserProfile(true, false));
+          } catch (profileError) {
+            console.error('Error getting user profile:', profileError);
+            // Don't fail the entire flow for profile error
+          }
+          
+          dispatch(setUserData(response?.data?._id));
+        } catch (innerError) {
+          console.error('Error in post-verification steps:', innerError);
+          toastAlert.showToastError('Login successful but some features may not work properly.');
+        }
       } else {
-        toastAlert.showToastError(response?.message);
+        toastAlert.showToastError(response?.message || 'Invalid OTP. Please try again.');
       }
-      // if (response?.success) {
-      //   isAlert
-      //     ? toastAlert.showToastError(response?.message)
-      //     : NavigationService.navigate('Home' ,{data: data, id: 'register'})
-      // } else {
-      //   toastAlert.showToastError(response?.message);
-      // }
     } catch (e) {
       logError(e);
-      toastAlert.showToastError(e?.message);
+      toastAlert.showToastError(e?.message || 'Something went wrong. Please try again.');
     } finally {
       dispatch(setLoading(false));
     }
@@ -168,18 +177,27 @@ export const refreshToken = () => async () => {
   }
 };
 export const updateDeviceToken = () => async dispatch => {
-  let fcmToken = await AsyncStorage.getItem(FCM_TOKEN_KEY);
-  console.log(fcmToken, "Fcm_Token");
-  let data = {
-    fcm_device: Platform.OS,
-    fcm_token: fcmToken,
-    fcm_update: true,
-  };
   try {
+    let fcmToken = await AsyncStorage.getItem(FCM_TOKEN_KEY);
+    console.log(fcmToken, "Fcm_Token");
+    
+    if (!fcmToken) {
+      console.log('No FCM token available');
+      return;
+    }
+    
+    let data = {
+      fcm_device: Platform.OS,
+      fcm_token: fcmToken,
+      fcm_update: true,
+    };
+    
     const response = await appOperation.customer.fcm_token(data);
     console.log(response, "updateDeviceToken");
   } catch (e) {
     logError(e);
+    console.error('Error updating device token:', e);
+    // Don't throw error to prevent app crash
   }
 };
 
