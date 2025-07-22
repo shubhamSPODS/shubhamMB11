@@ -118,7 +118,7 @@ const GameJoinTable = ({ route, navigation }) => {
             return;
         }
 
-        const baseUrl = 'http://103.110.127.215:3006';
+        const baseUrl = 'https://game.mybattle11.com';
         const endpoint = '/findgame';
         
         try {
@@ -128,7 +128,7 @@ const GameJoinTable = ({ route, navigation }) => {
             console.log('User token:', userToken);
 
             // Construct the game URL with query parameters
-            const gameUrl = `${baseUrl}${endpoint}?userId=${userData?._id}&tableId=${routeData?._id}`;
+            const gameUrl = `${baseUrl}${endpoint}?playerId=${userData?._id}&tableId=${routeData?._id}&game=ludo&token=${userToken}`;
             console.log('Navigating to game URL:', gameUrl);
 
             // Navigate directly to WebView

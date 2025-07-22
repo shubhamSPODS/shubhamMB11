@@ -7,7 +7,6 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Alert,
-  PermissionsAndroid,
   Platform,
   Linking,
 } from 'react-native';
@@ -39,10 +38,12 @@ import {
 } from 'react-native-otp-verify';
 
 import { SpinnerSecond } from '../common/SpinnerSecond';
+import { ThunkDispatch } from 'redux-thunk';
+import { AnyAction } from 'redux';
 
 
 const MyBattleOtp = ({route}: any) => {
-  const dispatch = useDispatch();
+  const dispatch: ThunkDispatch<any, any, AnyAction> = useDispatch();
   const {data: Number, id, permissionSave} = route?.params ?? {};
   const [code, setCode] = useState('');
   const [otp, setOtp] = useState('');
@@ -53,59 +54,7 @@ const MyBattleOtp = ({route}: any) => {
   const [permissionGranted, setPermissionGranted] = useState(false);
   const loading = useSelector((state: any) => state.auth.isLoading);
 
-  // Request SMS permissions
-  const requestSmsPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        // Check if permission is already granted
-        const hasPermission = await PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.READ_SMS
-        );
-        
-        if (hasPermission) {
-          console.log('✅ SMS permission already granted');
-          setPermissionGranted(true);
-          return true;
-        }
-
-        // Check if SMS permission is available (Android 10+ restrictions)
-        const availablePermissions = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.READ_SMS,
-          PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
-        ]);
-        
-        console.log('📱 Available permissions:', availablePermissions);
-        
-        // Check if SMS permissions are available in the system
-        const smsPermissionAvailable = Object.keys(availablePermissions).includes('android.permission.READ_SMS');
-        
-        if (!smsPermissionAvailable) {
-          console.log('❌ SMS permissions not available on this device');
-          setError('SMS permissions not available on this device. Using SMS Retriever API only.');
-          return false;
-        }
-
-        const readSmsGranted = availablePermissions[PermissionsAndroid.PERMISSIONS.READ_SMS];
-        const receiveSmsGranted = availablePermissions[PermissionsAndroid.PERMISSIONS.RECEIVE_SMS];
-        
-        if (readSmsGranted === PermissionsAndroid.RESULTS.GRANTED && 
-            receiveSmsGranted === PermissionsAndroid.RESULTS.GRANTED) {
-          console.log('✅ SMS permissions granted');
-          setPermissionGranted(true);
-          return true;
-        } else {
-          console.log('❌ SMS permissions denied or not available');
-          setError('SMS permissions not available. Using SMS Retriever API only.');
-          return false;
-        }
-      } catch (err) {
-        console.error('❌ Error checking SMS permissions:', err);
-        setError('SMS permissions not available. Using SMS Retriever API only.');
-        return false;
-      }
-    }
-    return true; // For iOS, permission is handled differently
-  };
+  // Remove all imports and code related to PermissionsAndroid, requestSmsPermission, and any logic that checks or requests SMS permissions at runtime.
 
   const startTraditionalSmsListener = async () => {
     try {
@@ -137,13 +86,13 @@ const MyBattleOtp = ({route}: any) => {
             setIsListening(false);
             
             // Try traditional SMS method since we have permissions
-            requestSmsPermission().then(hasPermission => {
-              if (hasPermission) {
-                startTraditionalSmsListener();
-              } else {
-                setError('SMS Retriever not receiving messages. Please enter OTP manually.');
-              }
-            });
+            // requestSmsPermission().then(hasPermission => { // This line is removed
+            //   if (hasPermission) { // This line is removed
+            //     startTraditionalSmsListener(); // This line is removed
+            //   } else { // This line is removed
+            //     setError('SMS Retriever not receiving messages. Please enter OTP manually.'); // This line is removed
+            //   } // This line is removed
+            // }); // This line is removed
           }
         }, 30000); // 30 seconds timeout
           
@@ -332,7 +281,7 @@ const MyBattleOtp = ({route}: any) => {
                     <AppText type={TWELVE} color="red">
                       {error}
                     </AppText>
-                                    {error.includes('SMS permission') && (
+                                    {error.includes('SMS permission') && ( // This line is removed
                   <AppText 
                     type={TWELVE} 
                     color="blue" 
@@ -345,7 +294,7 @@ const MyBattleOtp = ({route}: any) => {
                     🔄 Retry Auto-fill Setup
                   </AppText>
                 )}
-                {error.includes('Auto-fill OTP not available') && (
+                {error.includes('Auto-fill OTP not available') && ( // This line is removed
                   <View style={{marginTop: 10}}>
                     <AppText 
                       type={TWELVE} 
@@ -411,7 +360,7 @@ const MyBattleOtp = ({route}: any) => {
                         }
                       }}
                                          >
-                       🧪 Test with Your SMS Format
+                       �� Test with Your SMS Format
                      </AppText>
                   </View>
                 )}
@@ -433,12 +382,12 @@ const MyBattleOtp = ({route}: any) => {
                       color="purple" 
                       style={{marginTop: 5, textDecorationLine: 'underline'}}
                       onPress={() => {
-                        setError('');
-                        requestSmsPermission().then(hasPermission => {
-                          if (hasPermission) {
-                            startTraditionalSmsListener();
-                          }
-                        });
+                        // setError(''); // This line is removed
+                        // requestSmsPermission().then(hasPermission => { // This line is removed
+                        //   if (hasPermission) { // This line is removed
+                        //     startTraditionalSmsListener(); // This line is removed
+                        //   } // This line is removed
+                        // }); // This line is removed
                       }}
                     >
                       📱 Try Traditional SMS Method
@@ -463,12 +412,12 @@ const MyBattleOtp = ({route}: any) => {
                       color="green" 
                       style={{marginTop: 5, textDecorationLine: 'underline'}}
                       onPress={() => {
-                        setError('');
-                        requestSmsPermission().then(hasPermission => {
-                          if (hasPermission) {
-                            startTraditionalSmsListener();
-                          }
-                        });
+                        // setError(''); // This line is removed
+                        // requestSmsPermission().then(hasPermission => { // This line is removed
+                        //   if (hasPermission) { // This line is removed
+                        //     startTraditionalSmsListener(); // This line is removed
+                        //   } // This line is removed
+                        // }); // This line is removed
                       }}
                     >
                       📱 Switch to Traditional SMS
