@@ -64,7 +64,8 @@ export const TruncateString = (name, id) => {
 const Matchsection = ({
   details,
   isFromMyMatch = false,
-  // tab = null,
+  matchType = null,
+  initialTabIndex = 0,
   isHome,
   index,
 }) => {
@@ -106,15 +107,12 @@ const Matchsection = ({
   const onNavigateContest = () => {
     if (details?.contest_details?.length == 0) {
       return toastAlert.showToastError('There Are No Contest For This Match');
-    } else if (isPastTime == false) {
-      dispatch(setContestData({ ...details }));
-      NavigationService.navigate(MY_CONTEST, { isFromMyMatch: false, tab });
-    } else if (isPastTime == true) {
-      dispatch(setContestData({ ...details }));
-      NavigationService.navigate(MY_CONTEST, { isFromMyMatch: true, tab });
+    }
+    dispatch(setContestData({ ...details }));
+    if (isPastTime) {
+      NavigationService.navigate(MY_CONTEST, { isFromMyMatch: true, matchType, initialTabIndex });
     } else {
-      dispatch(setContestData({ ...details }));
-      NavigationService.navigate(MY_CONTEST, { isFromMyMatch: false, tab });
+      NavigationService.navigate(MY_CONTEST, { isFromMyMatch: false, matchType, initialTabIndex });
     }
   };
 

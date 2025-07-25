@@ -42,6 +42,7 @@ import {
   setIsContestEntry,
   setLoading,
   setContestCategories,
+  setContestData,
 } from '../../slices/matchSlice';
 import ScoreboardList from '../Scoreboard/List';
 import styles from './styles';
@@ -252,23 +253,24 @@ const MyContest = () => {
   };
 
   const renderContest = ({item}) => {
+    // Find the full contest details from contestList.data
+    const fullContestDetails = (contestList?.data || []).find(
+      c => c._id === item._id || c.contest_category_id === item.contest_category_id
+    ) || item;
     return (
       <ContestCard
-        details={{
-          ...item,
-          contest_category_details: contestList?.contest_category_details || []
-        }}
+        details={fullContestDetails}
         totalTeamCount={myTeam?.length}
         matchType={matchType}
         matchDetails={contestData}
         onPress={() => {
-          dispatch(setIsContestEntry(true));
-          dispatch(setContestData(item));
+          dispatch(setContestData(contestData)); // Set full match data
           NavigationService.navigate(MY_CONTEST, {
             contestId: item?._id,
             matchId: contestData?._id,
             teamId: item?.teamId,
             matchType: contestData?.Type,
+            selectedContest: item, // Pass selected contest as param
           });
         }}
       />
@@ -680,12 +682,11 @@ const MyContest = () => {
   };
 
   const shouldShowCreateButton = () => {
-    console.log('Button conditions:', {
-      activeTab,
-      routeParams: route.params,
-      isPastTime
-    });
-    return true; 
+    // Hide the button for Live matches
+    if (contestData?.Status === 'Live') {
+      return false;
+    }
+    return true;
   };
 
   return (

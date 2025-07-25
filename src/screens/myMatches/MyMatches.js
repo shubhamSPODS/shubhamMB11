@@ -248,21 +248,22 @@ const MyMatches = () => {
   }, [dispatch]);
 
   const getMyJoinedMatches = () => {
-    if (!upcomingMatches || !Array.isArray(upcomingMatches)) {
-      console.log('No upcomingMatches data or not an array:', upcomingMatches);
+    if (!myMatchesHome || !Array.isArray(myMatchesHome)) {
+      console.log('No myMatchesHome data or not an array:', myMatchesHome);
       return [];
     }
 
-    return upcomingMatches.filter(match => {
+    return myMatchesHome.filter(match => {
       // Check if the user has joined any contests for this match
       const hasJoinedContests = match.teams && Array.isArray(match.teams) && 
         match.teams.some(contest => contest.joined > 0);
 
       const isCompletedMatch = match.Status === 'Completed';
+      const isLiveMatch = match.Status === 'Live';
       const hasTeamsData = match.teams && match.teams.length > 0;
 
-      // Include this match if the user has joined contests or if it's a completed match with team data
-      const shouldInclude = hasJoinedContests || (isCompletedMatch && hasTeamsData);
+      // Include this match if the user has joined contests, if it's a live match, or if it's a completed match with team data
+      const shouldInclude = hasJoinedContests || isLiveMatch || (isCompletedMatch && hasTeamsData);
       
       // Log Maharashtra Premier League matches for debugging
       if (match.SeriesName?.includes('Maharashtra') || match.Team1vsTeam2?.includes('Eagle') || match.Team1vsTeam2?.includes('Puneri')) {
@@ -275,6 +276,7 @@ const MyMatches = () => {
           teamsData: match.teams,
           hasJoinedContests,
           isCompletedMatch,
+          isLiveMatch,
           hasTeamsData,
           shouldInclude,
           contestsJoined: match.teams?.filter(contest => contest.joined > 0).length,
