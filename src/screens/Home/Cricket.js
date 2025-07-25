@@ -295,169 +295,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     />
   ), []);
 
-  // Filter My Matches by Teams and Scoreboard
-  const myTeamsMatches = useMemo(() => {
-    return myMatchesHome?.filter(match => 
-      match.teams && match.teams.length > 0 && 
-      match.teams.some(team => team.joined > 0)
-    ) || [];
-  }, [myMatchesHome]);
-  
-  const myScoreboardMatches = useMemo(() => {
-    return myMatchesHome?.filter(match => 
-      match.scorecard && match.scorecard.length > 0 && 
-      match.scorecard.some(scorecard => scorecard.joined > 0)
-    ) || [];
-  }, [myMatchesHome]);
 
-  const [myMatchesIndex, setMyMatchesIndex] = useState(0);
-  const [myMatchesRoutes] = useState([
-    {key: 'teams', title: 'Teams'},
-    {key: 'scoreboard', title: 'Scoreboard'},
-  ]);
-
-  const getMyMatchesFiltered = useCallback(() => {
-    return myMatchesIndex === 0 ? myTeamsMatches : myScoreboardMatches;
-  }, [myMatchesIndex, myTeamsMatches, myScoreboardMatches]);
-
-  const renderMyMatchesScene = useCallback(({route}) => {
-    const filteredMyMatches = getMyMatchesFiltered();
-    
-    console.log('[CRICKET.JS DEBUG] renderMyMatchesScene for route:', route.title, {
-      filteredMyMatchesLength: filteredMyMatches.length,
-      filteredMyMatches: filteredMyMatches.map(match => ({
-        id: match._id,
-        TeamA: match.TeamA,
-        TeamB: match.TeamB,
-        Status: match.Status,
-        hasScorecard: !!match.scorecard,
-        scorecardLength: match.scorecard?.length,
-        hasTeams: !!match.teams,
-        teamsLength: match.teams?.length,
-      })),
-    });
-    
-    if (filteredMyMatches.length === 0) {
-      return (
-        <View style={styles.emptyContainer}>
-          <AppText type={EIGHTEEN} weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptyText}>
-            No {route.title} matches found
-          </AppText>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.two}>
-        <ScrollView
-          showsHorizontalScrollIndicator={false}
-          horizontal={true}
-          removeClippedSubviews={true}>
-          {console.log(`Rendering My ${route.title} Matches:`, filteredMyMatches)}
-          {filteredMyMatches?.map((data, index) => {
-            // Determine the matchType for navigation
-            const matchType = route.key === 'teams' ? 'teams' : 'scoreboard';
-            console.log('[CRICKET.JS DEBUG] Rendering MyMatch item:', {
-              index,
-              matchId: data._id,
-              matchType,
-              routeKey: route.key,
-              data: {
-                TeamA: data.TeamA,
-                TeamB: data.TeamB,
-                Status: data.Status,
-                hasScorecard: !!data.scorecard,
-                scorecardLength: data.scorecard?.length,
-                hasTeams: !!data.teams,
-                teamsLength: data.teams?.length,
-              },
-            });
-            return (
-              <Matchsection
-                key={`my-${route.key}-match-${data._id || index}`}
-                details={data}
-                isFromMyMatch={true}
-                matchType={matchType}
-                initialTabIndex={0}
-                isHome={true}
-                index={index}
-              />
-            );
-          })}
-        </ScrollView>
-      </View>
-    );
-  }, [getMyMatchesFiltered]);
-
-  const renderMyMatchesTabBar = useCallback(props => (
-    <TabBar
-      {...props}
-      indicatorStyle={{
-        backgroundColor: colors.playerDetailsLinerOne,
-        height: 3,
-        borderRadius: 3,
-      }}
-      style={{
-        backgroundColor: 'transparent',
-        elevation: 0,
-        marginHorizontal: universalPaddingHorizontal,
-        height: 45,
-        marginVertical: 10,
-      }}
-      renderLabel={({route, focused}) => (
-        <View style={{width: '100%', alignItems: 'center'}}>
-          <AppText
-            type={EIGHTEEN}
-            weight={POPPINS_SEMI_BOLD}
-            color={WHITE}
-            style={{fontSize: 16}}>
-            {route.title}
-          </AppText>
-        </View>
-      )}
-      pressColor="transparent"
-      tabStyle={{borderRadius: 0}}
-    />
-  ), []);
-
-  const handleMyMatchesIndexChange = useCallback((newIndex) => {
-    setMyMatchesIndex(newIndex);
-  }, []);
-
-  const myMatchesTabViewConfig = useMemo(() => ({
-    navigationState: { index: myMatchesIndex, routes: myMatchesRoutes },
-    renderScene: renderMyMatchesScene,
-    onIndexChange: handleMyMatchesIndexChange,
-    initialLayout: { width: layout.width },
-    renderTabBar: renderMyMatchesTabBar,
-    lazy: true,
-    lazyPreloadDistance: 1,
-    swipeEnabled: true,
-    style: styles.myMatchesTabView
-  }), [myMatchesIndex, myMatchesRoutes, renderMyMatchesScene, handleMyMatchesIndexChange, layout.width, renderMyMatchesTabBar]);
-
-  const myMatchesSection = useMemo(() => {
-    if (myMatchesHome?.length === 0) return null;
-
-    return (
-      <View>
-        <View style={styles.one}>
-          <AppText type={EIGHTEEN} weight={POPPINS_MEDIUM} color={WHITE}>
-            My Matches
-          </AppText>
-          <ViewAll
-            onPress={() =>
-              NavigationService.navigate(BOTTOM_TAB_CONTEST_SCREEN, {
-                screen: MY_CONTEST,
-                params: { isFromMyMatch: true },
-              })
-            }
-          />
-        </View>
-        <TabView {...myMatchesTabViewConfig} />
-      </View>
-    );
-  }, [myMatchesHome, myMatchesTabViewConfig]);
 
   const handleIndexChange = useCallback((newIndex) => {
     setIndex(newIndex);
@@ -477,11 +315,9 @@ const Cricket = ({ random, setRefreshingTwo }) => {
 
   return (
     <View style={styles.container}>
-      {myMatchesSection}
-      
       <AppText
         style={{
-          marginTop: myMatchesHome?.length !== 0 ? 5 : 20,
+          marginTop: 20,
           marginHorizontal: universalPaddingHorizontal,
         }}
         type={EIGHTEEN}
@@ -499,22 +335,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
-  one: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 5,
-    width: '100%',
-    alignSelf: 'center',
-    alignItems: 'center',
-    paddingHorizontal: universalPaddingHorizontal,
-  },
-  two: {
-    height: 130,
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    alignContent: 'center',
-    marginTop: 10,
-  },
   flatlistContainer: {
     flex: 1,
     width: '100%',
@@ -526,20 +346,6 @@ const styles = StyleSheet.create({
   },
   tabView: {
     flex: 1,
-  },
-  myMatchesTabView: {
-    height: 200,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 30,
-    paddingHorizontal: universalPaddingHorizontal,
-  },
-  emptyText: {
-    textAlign: 'center',
-    opacity: 0.7,
   },
   noMatchesContainer: {
     flex: 1,

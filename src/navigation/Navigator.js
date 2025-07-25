@@ -2,11 +2,13 @@ import React, {createContext, useEffect} from 'react';
 import {NavigationContainer, useIsFocused, useNavigation, useFocusEffect} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {StatusBar, RefreshControl, Platform, BackHandler} from 'react-native';
+import {StatusBar, RefreshControl, Platform, BackHandler, View} from 'react-native';
 import {AppSafeAreaView} from '../common/AppSafeAreaView';
 import {HomeTopHeader} from '../common/HomeTopHeader';
 import {KeyBoardAware} from '../common/KeyboardAware';
 import Cricket from '../screens/Home/Cricket';
+import LiveMatchesWrapper from '../screens/Home/LiveMatchesWrapper';
+import HowToPlayWrapper from '../screens/Home/HowToPlayWrapper';
 
 import {
   AUTHSTACK,
@@ -353,6 +355,61 @@ const CricketTab = () => {
         options={{
           tabBarIcon: ({focused}) => (
             <>
+              <View style={{
+                position: 'absolute',
+                top: -30,
+                left: -10,
+                right: -10,
+                height: 60,
+                justifyContent: 'center',
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOffset: {
+                  width: 0,
+                  height: 4,
+                },
+                shadowOpacity: 0.3,
+                shadowRadius: 4.65,
+                elevation: 8,
+              }}>
+                <View style={{
+                  width: 65,
+                  height: 65,
+                  borderRadius: 32.5,
+                  backgroundColor: focused ? colors.playerDetailsLinerOne : colors.black,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 2,
+                  borderColor: focused ? colors.playerDetailsLinerTwo : colors.gray,
+                }}>
+                  <FastImage
+                    source={DICE}
+                    style={{
+                      width: 35,
+                      height: 35,
+                      tintColor: focused ? colors.white : colors.gray,
+                    }}
+                    resizeMode="contain"
+                  />
+                </View>
+                <AppText
+                  style={{marginTop: 12}}
+                  color={focused ? BROWNYELLOW : GRY}
+                  weight={POPPINS_MEDIUM}
+                  type={TEN}>
+                  Cricket
+                </AppText>
+              </View>
+            </>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name={'LiveMatches'}
+        component={LiveMatchesWrapper}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
               {focused ? (
                 <LinearGradient
                   start={{x: 0, y: 1}}
@@ -369,7 +426,7 @@ const CricketTab = () => {
                 />
               ) : null}
               <FastImage
-                source={DICE}
+                source={require('../../assets/images/watch.png')}
                 style={{
                   width: 25,
                   height: 25,
@@ -382,7 +439,48 @@ const CricketTab = () => {
                 color={focused ? BROWNYELLOW : GRY}
                 weight={POPPINS_MEDIUM}
                 type={TEN}>
-                Cricket
+                Live Matches
+              </AppText>
+            </>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name={'HowToPlay'}
+        component={HowToPlayWrapper}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
+                />
+              ) : null}
+              <FastImage
+                source={require('../../assets/images/secure.png')}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                How to Play
               </AppText>
             </>
           ),

@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 10,
     alignSelf: 'center',
-    width: Screen.Width / 2,
+    width: Screen.Width - (universalPaddingHorizontal * 4),
     resizeMode: 'contain',
     backgroundColor: colors.white
   },
