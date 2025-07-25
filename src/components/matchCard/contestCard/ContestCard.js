@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Pressable, Dimensions } from 'react-native';
 import FastImage from "@d11/react-native-fast-image";
 import LinearGradient from 'react-native-linear-gradient';
@@ -38,6 +38,7 @@ import {
 import { numberWithCommas, toastAlert } from '../../../helper/utility';
 import Confirmation from '../../../common/Confirmation';
 import { NewColor, colors } from '../../../theme/color';
+import { appOperation } from '../../../appOperation';
 
 const ContestCard = ({ details, totalTeamCount, matchType }) => {
   if (!details) {
@@ -45,14 +46,14 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
     return null;
   }
 
-
   const contestDetails = details?.contest_category_details?.find(
     cat => cat?._id === details?.contest_category_id
   ) || details;
 
-
   const [saveTeamName, setSaveTeamName] = useState('');
   const [isAdd, setIsAdd] = useState(false);
+  const [rankData, setRankData] = useState([]);
+  const [isLoadingRankData, setIsLoadingRankData] = useState(false);
 
   const dispatch = useDispatch();
   const selectTeam = useRef();
@@ -71,33 +72,115 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
   const winningPercent = Number(contestDetails?.Winning_percent || 0);
   const firstPrize = Number(contestDetails?.Rankdata?.[0]?.Price || winningAmount || 0);
 
+  // Fetch rank data if not available
+  const fetchRankData = async () => {
+    if (rankData.length > 0 || isLoadingRankData) return;
+    
+    const contestCategoryId = details?.contest_category_id;
+    const matchId = contestData?._id;
+    
+    if (!contestCategoryId || !matchId) {
+      console.log('Missing contestCategoryId or matchId for rank data fetch');
+      return;
+    }
+
+    try {
+      setIsLoadingRankData(true);
+      console.log('Fetching rank data for contest:', { contestCategoryId, matchId });
+      
+      const response = await appOperation.customer.getContestDetailsWithRankData(matchId, contestCategoryId);
+      
+      if (response?.success && response?.data?.length > 0) {
+        const contestWithRankData = response.data.find(
+          contest => contest.contest_category_id === contestCategoryId || contest._id === contestCategoryId
+        );
+        
+        if (contestWithRankData?.Rankdata?.length > 0) {
+          const formattedRankData = contestWithRankData.Rankdata.map(rank => ({
+            ...rank,
+            Price: Number(rank?.Price || 0),
+            StartRank: Number(rank?.StartRank || 0),
+            EndRank: Number(rank?.EndRank || 0)
+          }));
+          setRankData(formattedRankData);
+          console.log('Successfully fetched rank data:', formattedRankData);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching rank data:', error);
+    } finally {
+      setIsLoadingRankData(false);
+    }
+  };
+
+  // Fetch rank data on component mount if not available
+  useEffect(() => {
+    const existingRankData = 
+      details?.data?.Rankdata ||
+      details?.Rankdata ||
+      contestDetails?.Rankdata ||
+      (contestCategories?.find(cat => cat?._id === details?.contest_category_id)?.Rankdata || []);
+
+    if (existingRankData?.length > 0) {
+      setRankData(existingRankData);
+    } else {
+      fetchRankData();
+    }
+  }, [details, contestCategories]);
+
   const onClickContest = () => {
+    // Determine contest type and extract correct contest_category_id
+    const isScoreboardContest = matchType === 'scoreboard' || 
+                                details?.ContestType === 'ScoreCard' || 
+                                details?.contest_type === 'ScoreCard' ||
+                                contestDetails?.ContestType === 'ScoreCard' ||
+                                contestDetails?.contest_type === 'ScoreCard';
+    
+    // Extract contest_category_id from the correct array based on contest type
+    let correctContestCategoryId = details?.contest_category_id;
+    
+    if (contestData) {
+      if (isScoreboardContest && contestData.scorecard && contestData.scorecard.length > 0) {
+        // For scoreboard contests, use shadow_contest_id instead of contest_category_id
+        correctContestCategoryId = contestData.scorecard[0].shadow_contest_id;
+        console.log('🎯 Using scoreboard shadow_contest_id:', correctContestCategoryId);
+      } else if (!isScoreboardContest && contestData.teams && contestData.teams.length > 0) {
+        correctContestCategoryId = contestData.teams[0].contest_category_id;
+        console.log('🎯 Using teams contest_category_id:', correctContestCategoryId);
+      }
+    }
+    
     console.log('Navigating to LEADERBOARD with:', {
       contestDetails: contestDetails,
-      Rankdata: contestDetails?.Rankdata,
-      contest_category_id: details?.contest_category_id
+      Rankdata: rankData,
+      contest_category_id: correctContestCategoryId,
+      isScoreboardContest,
+      matchType
     });
 
     console.log('Available contestCategories:', contestCategories?.length);
     
     const contestCategory = contestCategories?.find(
-      cat => cat?._id === details?.contest_category_id
+      cat => cat?._id === correctContestCategoryId
     );
     
-    console.log('Found contest category:', {
-      id: contestCategory?._id,
-      rankDataLength: contestCategory?.Rankdata?.length
-    });
-    
+    // Use the fetched rank data or fallback to existing sources
+    const finalRankData = rankData.length > 0 ? rankData : (
+      details?.data?.Rankdata ||
+      details?.Rankdata ||
+      contestDetails?.Rankdata ||
+      (contestCategory?.Rankdata || [])
+    );
+
     const safeDetails = {
       ...details,
-      contest_category_id: details?.contest_category_id || '',
+      contest_category_id: correctContestCategoryId || '',
       inner_data_id: details?.inner_data_id || '',
       winning_amount: winningAmount,
       joined: joined,
       Contestsize: contestSize,
       EnteryFee: entryFee,
-      Rankdata: (contestCategory?.Rankdata || []).map(rank => ({
+      Rankdata: (finalRankData || []).map(rank => ({
         ...rank,
         Price: Number(rank?.Price || 0),
         StartRank: Number(rank?.StartRank || 0),
@@ -106,7 +189,9 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
       JoinWithMULT: Boolean(details?.JoinWithMULT || contestDetails?.JoinWithMULT),
       teams: Number(details?.teams || contestDetails?.teams || 0),
       Winning_percent: winningPercent,
-      shadow_contest_id: details?.shadow_contest_id || details?._id || ''
+      shadow_contest_id: details?.shadow_contest_id || details?._id || '',
+      contest_type: isScoreboardContest ? 'ScoreCard' : 'Teams',
+      ContestType: isScoreboardContest ? 'ScoreCard' : 'Teams'
     };
     
     console.log('Final Rankdata being passed:', safeDetails.Rankdata?.length);

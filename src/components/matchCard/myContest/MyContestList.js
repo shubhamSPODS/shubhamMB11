@@ -25,8 +25,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { colors } from '../../../theme/color';
 import { PENCIL, arrow, downArrow } from '../../../helper/image';
 import FastImage from "@d11/react-native-fast-image";
-import { getAllPlayerList, getTab, setAllPlayers } from '../../../slices/matchSlice';
+import { getAllPlayerList, getMyTeam, getTab, setAllPlayers, setSelectedMatch } from '../../../slices/matchSlice';
 import { universalPaddingHorizontal } from '../../../theme/dimens';
+import { appOperation } from '../../../appOperation';
+
 const MyContestList = ({ item, isScoreboard = false }) => {
   const dispatch = useDispatch();
   const matchDetails = useSelector(state => state?.match?.contestData);
@@ -43,7 +45,9 @@ const MyContestList = ({ item, isScoreboard = false }) => {
   const reduxIsPastTime = reduxInputDate < currentDate;
   
   const [visible, setVisible] = useState(false);
-  const [listShow, setListShow] = useState(false)
+  const [listShow, setListShow] = useState(false);
+  const [rankData, setRankData] = useState([]);
+  const [isLoadingRankData, setIsLoadingRankData] = useState(false);
   const { Status, _id, SeriesId } = contestData ?? '';
   
   
@@ -77,9 +81,86 @@ const MyContestList = ({ item, isScoreboard = false }) => {
   const entryFee = getContestData('EnteryFee') || getContestData('EntryFee') || getContestData('entry_fee');
   const contestSize = getContestData('Contestsize') || getContestData('ContestSize') || getContestData('contest_size');
   const joined = getContestData('joined') || item?.contest_details?.joined || 0;
-  const rankData = item?.data?.Rankdata || item?.Rankdata || [{ Price: winningAmount }];
   
   const percentage = contestSize > 0 ? (joined / contestSize) * 100 : 0;
+
+  // Fetch rank data if not available
+  const fetchRankData = async () => {
+    if (rankData.length > 0 || isLoadingRankData) return;
+    
+    // Determine contest type and extract correct contest_category_id
+    const isScoreboardContest = isScoreboard || 
+                                item?.ContestType === 'ScoreCard' || 
+                                item?.contest_type === 'ScoreCard';
+    
+    let contestCategoryId = item?.contest_category_id;
+    const matchId = matchDetails?._id;
+    
+    // Extract contest_category_id from the correct array based on contest type
+    if (matchDetails) {
+      if (isScoreboardContest && matchDetails.scorecard && matchDetails.scorecard.length > 0) {
+        // For scoreboard contests, use shadow_contest_id
+        contestCategoryId = matchDetails.scorecard[0].shadow_contest_id;
+        console.log('🎯 MyContestList: Using scoreboard shadow_contest_id:', contestCategoryId);
+      } else if (!isScoreboardContest && matchDetails.teams && matchDetails.teams.length > 0) {
+        contestCategoryId = matchDetails.teams[0].contest_category_id;
+        console.log('🎯 MyContestList: Using teams contest_category_id:', contestCategoryId);
+      }
+    }
+    
+    if (!contestCategoryId || !matchId) {
+      console.log('Missing contestCategoryId or matchId for rank data fetch in MyContestList:', {
+        contestCategoryId,
+        matchId,
+        isScoreboardContest,
+        hasScorecard: !!matchDetails?.scorecard,
+        hasTeams: !!matchDetails?.teams
+      });
+      return;
+    }
+
+    try {
+      setIsLoadingRankData(true);
+      console.log('Fetching rank data for MyContestList contest:', { contestCategoryId, matchId });
+      
+      const response = await appOperation.customer.getContestDetailsWithRankData(matchId, contestCategoryId);
+      
+      if (response?.success && response?.data?.length > 0) {
+        const contestWithRankData = response.data.find(
+          contest => contest.contest_category_id === contestCategoryId || contest._id === contestCategoryId
+        );
+        
+        if (contestWithRankData?.Rankdata?.length > 0) {
+          const formattedRankData = contestWithRankData.Rankdata.map(rank => ({
+            ...rank,
+            Price: Number(rank?.Price || 0),
+            StartRank: Number(rank?.StartRank || 0),
+            EndRank: Number(rank?.EndRank || 0)
+          }));
+          setRankData(formattedRankData);
+          console.log('Successfully fetched rank data for MyContestList:', formattedRankData);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching rank data in MyContestList:', error);
+    } finally {
+      setIsLoadingRankData(false);
+    }
+  };
+
+  // Initialize rank data on component mount
+  useEffect(() => {
+    const existingRankData = item?.data?.Rankdata || item?.Rankdata || [];
+    
+    if (existingRankData?.length > 0) {
+      setRankData(existingRankData);
+    } else {
+      fetchRankData();
+    }
+  }, [item]);
+
+  // Use fetched rank data or fallback
+  const finalRankData = rankData.length > 0 ? rankData : [{ Price: winningAmount }];
   
   console.log('🎯 Extracted contest data:', {
     winningAmount,
@@ -87,7 +168,7 @@ const MyContestList = ({ item, isScoreboard = false }) => {
     contestSize,
     joined,
     percentage,
-    rankData
+    rankData: finalRankData
   });
   
   // Debug logging for UI display values
@@ -100,22 +181,44 @@ const MyContestList = ({ item, isScoreboard = false }) => {
     entryFeeType: typeof entryFee
   });
   const onNavigate = () => {
+    // Determine contest type and extract correct contest_category_id
+    const isScoreboardContest = isScoreboard || 
+                                item?.ContestType === 'ScoreCard' || 
+                                item?.contest_type === 'ScoreCard';
+    
+    let correctContestCategoryId = item?.contest_category_id;
+    
+    // Extract contest_category_id from the correct array based on contest type
+    if (matchDetails) {
+      if (isScoreboardContest && matchDetails.scorecard && matchDetails.scorecard.length > 0) {
+        // For scoreboard contests, use shadow_contest_id
+        correctContestCategoryId = matchDetails.scorecard[0].shadow_contest_id;
+        console.log('🎯 MyContestList Navigation: Using scoreboard shadow_contest_id:', correctContestCategoryId);
+      } else if (!isScoreboardContest && matchDetails.teams && matchDetails.teams.length > 0) {
+        correctContestCategoryId = matchDetails.teams[0].contest_category_id;
+        console.log('🎯 MyContestList Navigation: Using teams contest_category_id:', correctContestCategoryId);
+      }
+    }
 
     NavigationService.navigate(LEADERBOARD, {
       details: {
-        details: item,
+        details: {
+          ...item,
+          Rankdata: finalRankData,
+          contest_category_id: correctContestCategoryId
+        },
         winning_amount: winningAmount,
         JoinWithMULT: item?.data?.JoinWithMULT || item?.JoinWithMULT,
         EnteryFee: entryFee,
         Contestsize: contestSize,
         joined: joined,
-        contest_category_id: item?.contest_category_id,
+        contest_category_id: correctContestCategoryId,
         shadow_contest_id: item?.contest_details?.shadow_contest_id || item?.shadow_contest_id,
         myContestIN: true,
         Winning_percent: item?.Winning_percent,
         teams: item?.data?.teams,
-        contest_type: item?.contest_type,
-        ContestType: item?.ContestType,
+        contest_type: isScoreboardContest ? 'ScoreCard' : 'Teams',
+        ContestType: isScoreboardContest ? 'ScoreCard' : 'Teams',
         _id: item?._id,
         ...item 
       },
@@ -126,7 +229,7 @@ const MyContestList = ({ item, isScoreboard = false }) => {
         ...matchDetails,
         MatchId: matchDetails?.MatchId || matchDetails?._id 
       },
-      Rankdata: rankData,
+      Rankdata: finalRankData,
       shadow_contest_id: item?.contest_details?.shadow_contest_id || item?.shadow_contest_id,
       isScoreboard: isScoreboard,
       totalTeamCount: isScoreboard ? item?.scoreboardDetails?.length || 0 : item?.teamDetails?.length || 0
@@ -245,8 +348,8 @@ const MyContestList = ({ item, isScoreboard = false }) => {
               marginTop: 2
             }}>
             {item?.Winning_percent ? Number(item?.Winning_percent)?.toFixed(2) :
-              0}% Winners l 1st ₹{rankData[0]?.Price ?
-                rankData[0]?.Price : 0}
+              0}% Winners l 1st ₹{finalRankData[0]?.Price ?
+                finalRankData[0]?.Price : 0}
           </AppText>
           <AppText
             style={{

@@ -1,6 +1,7 @@
 import React, {useEffect, useState, useRef} from 'react';
 import {View, FlatList, RefreshControl, TouchableOpacity} from 'react-native';
 import FastImage from "@d11/react-native-fast-image";
+import { appOperation } from '../../appOperation';
 
 import {
   AppText,
@@ -30,6 +31,20 @@ import NavigationService from '../../navigation/NavigationService';
 import {Screen, flexOne} from '../../theme/dimens';
 import { ActivityIndicator } from 'react-native-paper';
 
+/**
+ * @typedef {Object} LeaderBoardListProps
+ * @property {string} matchId
+ * @property {string} id
+ * @property {string} [match_contest_category_id]
+ * @property {any} forStatus
+ * @property {Function} setForStatus
+ * @property {boolean} selfCreateContest
+ * @property {boolean} [useScoreboardApi]
+ */
+
+/**
+ * @param {LeaderBoardListProps} props
+ */
 const LeaderBoardList = ({
   matchId,
   id,
@@ -37,7 +52,17 @@ const LeaderBoardList = ({
   forStatus,
   setForStatus,
   selfCreateContest,
+  useScoreboardApi = false,
 }) => {
+  console.log('[LEADERBOARD LIST DEBUG] Component initialized with:', {
+    matchId,
+    id,
+    match_contest_category_id,
+    forStatus,
+    selfCreateContest,
+    useScoreboardApi,
+  });
+
   const dispatch = useDispatch();
   const wsRef = useRef(null);
   const userData = useSelector(state => {
@@ -59,7 +84,7 @@ const LeaderBoardList = ({
 
   const contestCategoryId = id || 
     (contestData && contestData.contest_category_id) || 
-    "65ddb68ce2ddb20749839785"; 
+    null; 
 
   
   const validMatchContestCategoryId = match_contest_category_id ||
@@ -81,6 +106,15 @@ const LeaderBoardList = ({
 
   const url = contestCategoryId && validMatchId && userData?._id ? 
     `wss://app.mybattle11.com/leader-board?limit=${limit}&skip=${skip}&matchid=${validMatchId}&contest_category_id=${contestCategoryId}&user_id=${userData?._id}` : null;
+  
+  console.log('🔗 WebSocket URL construction:', {
+    hasContestCategoryId: !!contestCategoryId,
+    hasValidMatchId: !!validMatchId,
+    hasUserId: !!userData?._id,
+    contestCategoryId,
+    validMatchId,
+    url
+  });
   
   const createFallbackData = () => {
     console.log('Creating fallback data since WebSocket data is empty');
@@ -123,31 +157,36 @@ const LeaderBoardList = ({
   }, []);
 
   useEffect(() => {
+    if (useScoreboardApi) return; // Bypass WebSocket logic if using REST API
+    
+    console.log('🔄 REST API useEffect triggered:', {
+      hasId: !!id,
+      hasMatchId: !!validMatchId,
+      id,
+      matchId: validMatchId,
+      useScoreboardApi
+    });
+    
     if (validMatchId && contestCategoryId && !wsConnectAttempted) {
       setWsConnectAttempted(true);
       
       if (!url) {
-
+        console.log('⚠️ Missing matchId or contestCategoryId - creating fallback data directly');
         createFallbackData();
         return;
       }
-      
       try {
         console.log('🔌 Attempting to connect to WebSocket with URL:', url);
         wsRef.current = new WebSocket(url);
-        
         wsRef.current.onopen = () => {
           console.log('✅ WebSocket connection opened successfully');
           setIsConnected(true);
         };
-        
         wsRef.current.onmessage = e => {
           try {
             console.log('📩 WebSocket data received:', e?.data);
             const parseData = JSON.parse(e?.data);
-            
             if (parseData?.data && Array.isArray(parseData?.data) && parseData.data.length > 0) {
-              
               if (parseData?.live !== 'true') {
                 const playersWithDefaultRank = parseData.data.map(player => ({
                   ...player,
@@ -157,7 +196,6 @@ const LeaderBoardList = ({
               } else {
                 setLeaderBoards(parseData.data);
               }
-              
               setStatus(parseData?.live);
               if (setForStatus) setForStatus(parseData?.live);
             } else {
@@ -171,7 +209,6 @@ const LeaderBoardList = ({
             setLoading(false);
           }
         };
-        
         wsRef.current.onclose = e => {
           console.log('🔌 WebSocket connection closed with code:', e.code);
           setIsConnected(false);
@@ -180,7 +217,6 @@ const LeaderBoardList = ({
           }
           setLoading(false);
         };
-        
         wsRef.current.onerror = e => {
           console.log('❌ WebSocket error occurred');
           if (!timeoutOccurred && leaderBoards.length === 0) {
@@ -188,7 +224,6 @@ const LeaderBoardList = ({
           }
           setLoading(false);
         };
-        
         return () => {
           if (wsRef.current) {
             wsRef.current.close();
@@ -204,7 +239,51 @@ const LeaderBoardList = ({
         createFallbackData();
       }
     }
-  }, [validMatchId, contestCategoryId]);
+  }, [useScoreboardApi, validMatchId, contestCategoryId]);
+
+  // REST API fetch for Scoreboard Live match leaderboard
+  useEffect(() => {
+    console.log('[LEADERBOARD LIST DEBUG] REST API useEffect triggered:', {
+      useScoreboardApi,
+      matchId,
+      id,
+      hasMatchId: !!matchId,
+      hasId: !!id,
+    });
+
+    if (useScoreboardApi && matchId && id) {
+      console.log('[SCOREBOARD API] Starting API call with:', {
+        matchId,
+        contest_category_id: id,
+        isUsingScoreboardApi: true
+      });
+
+      setLoading(true);
+      const fetchLeaderboard = async () => {
+        try {
+          // For scoreboard API, we pass the shadow_contest_id as contest_category_id
+          const response = await appOperation.customer.getScoreboardLeaderboard({
+            matchid: matchId,
+            contest_category_id: id // id here is already the shadow_contest_id
+          });
+
+          console.log('[SCOREBOARD API] Response:', response);
+
+          if (response?.success) {
+            console.log('[SCOREBOARD API] Setting leaderboard data:', response.data);
+            setLeaderBoards(response.data);
+          } else {
+            console.log('[SCOREBOARD API] API returned error:', response.message);
+          }
+        } catch (error) {
+          console.log('[SCOREBOARD API] Fetch error:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchLeaderboard();
+    }
+  }, [useScoreboardApi, matchId, id]);
 
   useEffect(() => {
     let Mydata = leaderBoards?.map(item => {

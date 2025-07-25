@@ -206,28 +206,42 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   }, [fetchData]);
 
   const onPressScoreboard = useCallback((item, currentTab) => {
-                  console.log('🎯 Cricket.js onPressScoreboard called with item:', {
-                    id: item._id,
-                    TeamA: item.TeamA,
-                    TeamB: item.TeamB,
-                    currentTab: currentTab,
-                    matchType: currentTab,
-                    hasScorecard: !!item.scorecard,
-                    scorecard: item.scorecard
-                  });
+    console.log('[CRICKET.JS DEBUG] onPressScoreboard called with:', {
+      item: {
+        id: item._id,
+        TeamA: item.TeamA,
+        TeamB: item.TeamB,
+        Status: item.Status,
+        Type: item.Type,
+        hasScorecard: !!item.scorecard,
+        scorecardLength: item.scorecard?.length,
+        scorecard: item.scorecard,
+        hasTeams: !!item.teams,
+        teamsLength: item.teams?.length,
+        teams: item.teams,
+      },
+      currentTab,
+      matchType: currentTab,
+    });
                   
-                  dispatch(setSelectedMatch(item));
-                  dispatch(setContestData(item));
+    dispatch(setSelectedMatch(item));
+    dispatch(setContestData(item));
                   
-                  console.log('🎯 Navigating to MY_CONTEST from Cricket.js');
-                  NavigationService.navigate(MY_CONTEST, {
-                    matchId: item._id,
-                    matchType: currentTab,
-                    TeamA: item.TeamA,
-                    TeamB: item.TeamB,
-                    isFromMyMatch: false,
-                    contestId: item.contestId,
-                  });
+    const navigationParams = {
+      matchId: item._id, // This is the correct matchId for scoreboard matches
+      matchType: currentTab,
+      TeamA: item.TeamA,
+      TeamB: item.TeamB,
+      isFromMyMatch: false,
+      contestId: item.contestId,
+    };
+                  
+    console.log('[CRICKET.JS DEBUG] Navigating to MY_CONTEST with params:', navigationParams);
+    console.log('[CRICKET.JS DEBUG] Contest data being set:', item);
+    console.log('[CRICKET.JS DEBUG] Using matchId (_id):', item._id);
+                  
+    console.log('🎯 Navigating to MY_CONTEST from Cricket.js');
+    NavigationService.navigate(MY_CONTEST, navigationParams);
   }, [dispatch]);
 
   const currentMatchesWithContests = useMemo(() => {
@@ -309,6 +323,20 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   const renderMyMatchesScene = useCallback(({route}) => {
     const filteredMyMatches = getMyMatchesFiltered();
     
+    console.log('[CRICKET.JS DEBUG] renderMyMatchesScene for route:', route.title, {
+      filteredMyMatchesLength: filteredMyMatches.length,
+      filteredMyMatches: filteredMyMatches.map(match => ({
+        id: match._id,
+        TeamA: match.TeamA,
+        TeamB: match.TeamB,
+        Status: match.Status,
+        hasScorecard: !!match.scorecard,
+        scorecardLength: match.scorecard?.length,
+        hasTeams: !!match.teams,
+        teamsLength: match.teams?.length,
+      })),
+    });
+    
     if (filteredMyMatches.length === 0) {
       return (
         <View style={styles.emptyContainer}>
@@ -329,6 +357,21 @@ const Cricket = ({ random, setRefreshingTwo }) => {
           {filteredMyMatches?.map((data, index) => {
             // Determine the matchType for navigation
             const matchType = route.key === 'teams' ? 'teams' : 'scoreboard';
+            console.log('[CRICKET.JS DEBUG] Rendering MyMatch item:', {
+              index,
+              matchId: data._id,
+              matchType,
+              routeKey: route.key,
+              data: {
+                TeamA: data.TeamA,
+                TeamB: data.TeamB,
+                Status: data.Status,
+                hasScorecard: !!data.scorecard,
+                scorecardLength: data.scorecard?.length,
+                hasTeams: !!data.teams,
+                teamsLength: data.teams?.length,
+              },
+            });
             return (
               <Matchsection
                 key={`my-${route.key}-match-${data._id || index}`}

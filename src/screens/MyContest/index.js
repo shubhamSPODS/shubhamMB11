@@ -253,10 +253,13 @@ const MyContest = () => {
   };
 
   const renderContest = ({item}) => {
-    // Find the full contest details from contestList.data
-    const fullContestDetails = (contestList?.data || []).find(
+    // Prefer using the contest object from myContest (if available)
+    const joinedContest = myContest?.find(c => c._id === item._id || c.contest_category_id === item.contest_category_id);
+    const contestListObj = (contestList?.data || []).find(
       c => c._id === item._id || c.contest_category_id === item.contest_category_id
     ) || item;
+    // Merge joinedContest (with nested fields) over contestListObj
+    const fullContestDetails = { ...contestListObj, ...joinedContest };
     return (
       <ContestCard
         details={fullContestDetails}
@@ -270,7 +273,7 @@ const MyContest = () => {
             matchId: contestData?._id,
             teamId: item?.teamId,
             matchType: contestData?.Type,
-            selectedContest: item, // Pass selected contest as param
+            selectedContest: fullContestDetails, // Pass merged contest as param
           });
         }}
       />
@@ -343,7 +346,7 @@ const MyContest = () => {
       {
         key: 'second',
         title: route?.params?.isFromMyMatch == true
-          ? (matchType === 'teams' ? 'My Team' : 'My Contest')
+          ? 'My Contest'
           : 'My Contest',
       },
       {
@@ -449,12 +452,12 @@ const MyContest = () => {
       const transformScoreboardContests = () => {
         const contestGroups = {};
         myScoreboardContests.forEach((scoreboard, index) => {
-          const contestId = scoreboard.contest_id;
+          // For scoreboard contests, we should use shadow_contest_id as the key
+          const contestId = scoreboard.shadow_contest_id || scoreboard.contest_id;
           if (!contestGroups[contestId]) {
             const matchingContest = contestData?.scorecard?.find(c => 
               c.shadow_contest_id === contestId || 
-              c._id === contestId ||
-              c.contest_category_id === contestId
+              c._id === contestId
             );
             console.log('🔍 Looking for contest with ID:', contestId);
             console.log('🔍 Available scorecard contests:', contestData?.scorecard?.map(c => ({
@@ -466,8 +469,8 @@ const MyContest = () => {
             
             contestGroups[contestId] = {
               _id: matchingContest?._id || contestId,
-              contest_category_id: matchingContest?.contest_category_id || scoreboard.contest_category_id,
-              shadow_contest_id: matchingContest?.shadow_contest_id || contestId,
+              contest_category_id: matchingContest?.contest_category_id,
+              shadow_contest_id: contestId, // Use shadow_contest_id consistently
               scoreboardDetails: [],
               data: {
                 WinningAmount: matchingContest?.winning_amount || 100,
@@ -481,13 +484,13 @@ const MyContest = () => {
               contest_details: {
                 joined: 0,
                 winning_amount: matchingContest?.winning_amount || 100,
-                shadow_contest_id: matchingContest?.shadow_contest_id || contestId,
-                contest_category_id: matchingContest?.contest_category_id || scoreboard.contest_category_id
+                shadow_contest_id: contestId, // Use shadow_contest_id consistently
+                contest_category_id: matchingContest?.contest_category_id
               },
               Winning_percent: 10, 
               JoinWithMULT: false,
-              contest_type: matchingContest?.contest_type || 'ScoreCard',
-              ContestType: matchingContest?.ContestType || 'ScoreCard',
+              contest_type: 'ScoreCard',
+              ContestType: 'ScoreCard',
               EntryFee: matchingContest?.EntryFee || 1,
               ContestSize: matchingContest?.ContestSize || 100,
               winning_amount: matchingContest?.winning_amount || 100,

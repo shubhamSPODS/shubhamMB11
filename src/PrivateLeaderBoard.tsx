@@ -233,7 +233,10 @@ const PrivateLeaderBoard = () => {
         reconnectWebSocket();
         setRandom(Math.random());
     };
-    const renderMain = () => {
+    const renderMain = React.useCallback(() => {
+        const isScoreboardContest = MyCreateContestData[0]?.contest_type === 'ScoreCard' || 
+                                   MyCreateContestData[0]?.ContestType === 'ScoreCard';
+        
         return (
             <>
                 {activeTab == 1 && <Winnings
@@ -250,6 +253,7 @@ const PrivateLeaderBoard = () => {
                         setForStatus={setForStatus}
                         forStatus={forStatus}
                         selfCreateContest={true}
+                        useScoreboardApi={isScoreboardContest}
                     />
                 }
                 {
@@ -268,8 +272,8 @@ const PrivateLeaderBoard = () => {
                     />
                 }
             </>
-        )
-    }
+        );
+    }, [activeTab, MyCreateContestData, MatchDetails, setForStatus, forStatus, scoreBoard, onRefresh]);
     const length = scoreBoard && scoreBoard[0]?.innings?.length;
     const renderItemScore = ({ item, index }: any) => {
         return (

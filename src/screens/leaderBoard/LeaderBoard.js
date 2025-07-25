@@ -73,8 +73,23 @@ const FirstRoute = ({ route }) => {
   
   // Get relevant IDs from the route params
   const matchId = route?.route?.params?.matchDetails?.MatchId;
-  const contestCategoryId = details?.contest_category_id;
+  let contestCategoryId = details?.contest_category_id;
   const shadowContestId = details?.shadow_contest_id || details?.data?._id || details?.contest_details?.shadow_contest_id;
+  
+  // If contestCategoryId is not found, try to extract it from the contest data
+  if (!contestCategoryId && route?.route?.params?.matchDetails) {
+    const matchDetails = route.route.params.matchDetails;
+    const isScoreboardContest = details?.contest_type === 'ScoreCard' || 
+                                details?.ContestType === 'ScoreCard';
+    
+    if (isScoreboardContest && matchDetails.scorecard && matchDetails.scorecard.length > 0) {
+      contestCategoryId = matchDetails.scorecard[0].contest_category_id;
+      console.log('🎯 FirstRoute: Using scoreboard contest_category_id:', contestCategoryId);
+    } else if (!isScoreboardContest && matchDetails.teams && matchDetails.teams.length > 0) {
+      contestCategoryId = matchDetails.teams[0].contest_category_id;
+      console.log('🎯 FirstRoute: Using teams contest_category_id:', contestCategoryId);
+    }
+  }
   
   // Extract winning amount from multiple possible sources
   const winningAmount = Number(
@@ -103,16 +118,10 @@ const FirstRoute = ({ route }) => {
     const processContestDetails = () => {
       try {
         setLoading(true);
-        if (details?.data && Array.isArray(details.data.Rankdata)) {
-          const formattedRankData = details.data.Rankdata.map(rank => ({
-            ...rank,
-            Price: Number(rank?.Price || 0),
-            StartRank: Number(rank?.StartRank || 0),
-            EndRank: Number(rank?.EndRank || 0),
-          }));
-          setRankData(formattedRankData);
-          setContestDetails(details.data);
-        } else if (details?.Rankdata && Array.isArray(details.Rankdata)) {
+        
+        // First, check if rank data is already available in the details
+        if (details?.Rankdata && Array.isArray(details.Rankdata) && details.Rankdata.length > 0) {
+          console.log('Using rank data from details:', details.Rankdata);
           const formattedRankData = details.Rankdata.map(rank => ({
             ...rank,
             Price: Number(rank?.Price || 0),
@@ -121,6 +130,15 @@ const FirstRoute = ({ route }) => {
           }));
           setRankData(formattedRankData);
           setContestDetails(details);
+        } else if (details?.data && Array.isArray(details.data.Rankdata)) {
+          const formattedRankData = details.data.Rankdata.map(rank => ({
+            ...rank,
+            Price: Number(rank?.Price || 0),
+            StartRank: Number(rank?.StartRank || 0),
+            EndRank: Number(rank?.EndRank || 0),
+          }));
+          setRankData(formattedRankData);
+          setContestDetails(details.data);
         } else if (details?.contest_details?.winning_amount) {
           const fallbackRankData = [{
             Price: Number(details.contest_details.winning_amount),
@@ -139,9 +157,11 @@ const FirstRoute = ({ route }) => {
             Rankdata: fallbackRankData
           });
         } else {
+          console.log('No rank data found in details, setting empty array');
           setRankData([]);
         }
       } catch (error) {
+        console.error('Error processing contest details:', error);
         setRankData([]);
       } finally {
         setLoading(false);
@@ -174,17 +194,69 @@ const FirstRoute = ({ route }) => {
   );
 };
 
-const SecondRoute = ({ route }) => (
-  <LeaderBoardList
-    matchId={route?.route?.params?.matchDetails?.MatchId}
-    id={route?.route?.params?.details?.contest_category_id}
-    setForStatus={route?.setForStatus}
-    forStatus={route?.forStatus}
-    status={route?.status}
-    selfCreateContest={route?.params?.selfCreateContest}
-    userDataID={route?.params?.userData}
-  />
-);
+const SecondRoute = ({ route }) => {
+  // Extract parameters from the route structure
+  const routeParams = route?.route?.params || route?.params;
+  const matchId = routeParams?.matchDetails?.MatchId || routeParams?.matchDetails?._id;
+  let contestCategoryId = routeParams?.details?.details?.contest_category_id || 
+                         routeParams?.details?.contest_category_id;
+  
+  // If contestCategoryId is still not found, try to extract it from the contest data
+  if (!contestCategoryId && routeParams?.matchDetails) {
+    const matchDetails = routeParams.matchDetails;
+    const isScoreboardContest = routeParams?.details?.details?.contest_type === 'ScoreCard' || 
+                                routeParams?.details?.details?.ContestType === 'ScoreCard' ||
+                                routeParams?.details?.contest_type === 'ScoreCard' ||
+                                routeParams?.details?.ContestType === 'Scoreboard';
+    
+    if (isScoreboardContest && matchDetails.scorecard && matchDetails.scorecard.length > 0) {
+      contestCategoryId = matchDetails.scorecard[0].contest_category_id;
+      console.log('🎯 SecondRoute: Using scoreboard contest_category_id:', contestCategoryId);
+    } else if (!isScoreboardContest && matchDetails.teams && matchDetails.teams.length > 0) {
+      contestCategoryId = matchDetails.teams[0].contest_category_id;
+      console.log('🎯 SecondRoute: Using teams contest_category_id:', contestCategoryId);
+    }
+  }
+  
+  console.log('SecondRoute props:', { 
+    matchId, 
+    contestCategoryId, 
+    routeParams,
+    isScoreboardContest: routeParams?.details?.details?.contest_type === 'ScoreCard',
+    routeStructure: {
+      hasRouteRoute: !!route?.route,
+      hasRouteParams: !!route?.params,
+      routeRouteParams: route?.route?.params,
+      routeParams: route?.params,
+      detailsStructure: {
+        hasDetails: !!routeParams?.details,
+        hasDetailsDetails: !!routeParams?.details?.details,
+        detailsKeys: routeParams?.details ? Object.keys(routeParams.details) : [],
+        detailsDetailsKeys: routeParams?.details?.details ? Object.keys(routeParams.details.details) : []
+      }
+    }
+  });
+  
+  // Check if this is a scoreboard contest
+  const isScoreboardContest = 
+    routeParams?.details?.details?.contest_type === 'ScoreCard' ||
+    routeParams?.details?.details?.ContestType === 'ScoreCard' ||
+    routeParams?.details?.details?.contest_type === 'Scoreboard' ||
+    routeParams?.details?.details?.ContestType === 'Scoreboard';
+  
+  return (
+    <LeaderBoardList
+      matchId={matchId}
+      id={contestCategoryId}
+      setForStatus={route?.setForStatus}
+      forStatus={route?.forStatus}
+      status={route?.status}
+      selfCreateContest={routeParams?.selfCreateContest}
+      userDataID={routeParams?.userData}
+      useScoreboardApi={isScoreboardContest}
+    />
+  );
+};
 
 const ThirdRoute = ({ route }) => (
   <ScoreCard route={route} />

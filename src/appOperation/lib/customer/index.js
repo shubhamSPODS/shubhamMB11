@@ -272,4 +272,6 @@ export default appOperation => ({
       appOperation.put(`match/updateUserScoreCard`, data, CUSTOMER_TYPE),
     getUserScoreCard: matchId =>
       appOperation.get(`match/userScoreCard/${matchId}`, undefined, undefined, CUSTOMER_TYPE),
+  getScoreboardLeaderboard: data =>
+    appOperation.post(`match/scoreboard-leaderboard`, data, CUSTOMER_TYPE),
 });

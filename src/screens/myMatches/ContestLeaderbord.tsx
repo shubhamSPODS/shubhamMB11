@@ -39,34 +39,83 @@ const ContestLeaderbord = () => {
   const contestData = useSelector((state: any) => state?.match?.contestData);
   const [activeTab, setActiveTab] = useState('1');
   
+  // Comprehensive logging for debugging
+  console.log('[CONTEST LEADERBOARD DEBUG] Initial render with:', {
+    routeParams: route.params,
+    contestData,
+  });
+
+  // Get match ID from multiple sources
+  const matchIdFromParams = route.params?.matchId;
+  const contestDataId = contestData?._id;
+  const effectiveMatchId = matchIdFromParams || contestDataId;
+
+  console.log('[CONTEST LEADERBOARD DEBUG] Match ID sources:', {
+    matchIdFromParams,
+    contestDataId,
+    effectiveMatchId,
+    routeParams: route.params,
+  });
+
+  // Detect Scoreboard or ScoreCard contest
+  const isScoreboardContest =
+    contestData?.ContestType === 'Scoreboard' ||
+    contestData?.contest_type === 'Scoreboard' ||
+    contestData?.ContestType === 'ScoreCard' ||
+    contestData?.contest_type === 'ScoreCard' ||
+    route.params?.details?.ContestType === 'Scoreboard' ||
+    route.params?.details?.ContestType === 'ScoreCard';
+
+  console.log('[CONTEST LEADERBOARD DEBUG] Contest type detection:', {
+    isScoreboardContest,
+    contestDataContestType: contestData?.ContestType,
+    contestDataContestTypeAlt: contestData?.contest_type,
+    routeParamsContestType: route.params?.details?.ContestType,
+    contestDataScorecard: contestData?.scorecard,
+  });
+
+  // For ScoreCard/Scoreboard, use shadow_contest_id from scorecard array
+  const scorecardData = contestData?.scorecard?.[0];
+  const scorecardShadowId = scorecardData?.shadow_contest_id;
+  const scorecardMatchId = contestData?._id;
+
+  console.log('[CONTEST LEADERBOARD DEBUG] Scorecard data:', {
+    scorecardShadowId,
+    scorecardMatchId,
+    scorecardArray: contestData?.scorecard,
+    firstScorecardItem: contestData?.scorecard?.[0],
+  });
+
   // Extract contest category ID from multiple sources
-  // 1. From route params
-  // 2. From contestData
-  // 3. From FirstRoute details in logs
-  const contestCategoryId = route.params?.details?.contest_category_id || 
-                          contestData?.contest_category_id || 
-                          "65ddb68ce2ddb20749839785"; // Hardcoded from logs as fallback
-                          
-  // Extract match_contest_category_id from route params
-  // This should be the _id from the contest details
-  const matchContestCategoryId = route.params?.details?.match_contest_category_id || undefined;
-  
+  const contestCategoryId = isScoreboardContest
+    ? scorecardShadowId // Use shadow_contest_id for scorecard contests
+    : route.params?.contest_category_id ||
+      route.params?.details?.contest_category_id ||
+      '65ddb68ce2ddb20749839785'; // fallback
+
+  // Extract match ID from multiple sources
+  const matchId = isScoreboardContest
+    ? scorecardMatchId
+    : route.params?.matchId ||
+      route.params?.details?.matchId ||
+      effectiveMatchId ||
+      90890; // fallback
+
+  console.log('[CONTEST LEADERBOARD DEBUG] Final computed values:', {
+    contestCategoryId,
+    matchId,
+    isScoreboardContest,
+  });
+
   // Log important data for debugging
   useEffect(() => {
-    console.log('ContestLeaderboard props:', {
-      routeParams: route.params,
-      contestCategoryId: contestCategoryId,
-      matchContestCategoryId: matchContestCategoryId,
-      contestDataId: contestData?.contest_category_id,
-      matchId: contestData?.MatchId,
-      firstRouteDetails: contestData?._id ? {
-        id: contestData._id,
-        contest_category_id: contestData.contest_category_id,
-        match_contest_category_id: contestData.match_contest_category_id,
-        joined: contestData.joined
-      } : null
+    console.log('[CONTEST LEADERBOARD DEBUG] useEffect triggered with:', {
+      contestCategoryId,
+      matchId,
+      isScoreboardContest,
     });
-  }, []);
+
+  }, [contestCategoryId, matchId]);
   
   const data = [
     {
@@ -80,8 +129,15 @@ const ContestLeaderbord = () => {
   ];
   
   const renderMain = () => {
-    console.log('Rendering tab:', activeTab, 'with contestCategoryId:', contestCategoryId, 'matchContestCategoryId:', matchContestCategoryId);
-    
+    console.log('[LEADERBOARD PASSING] Final render with:', {
+      isScoreboardContest,
+      contestCategoryId,
+      matchId,
+      scorecardCategoryId,
+      scorecardMatchId,
+      contestData,
+      activeTab,
+    });
     return activeTab == '1' ? (
       // Pass minimal props required by Winnings component
       <Winnings 
@@ -93,11 +149,12 @@ const ContestLeaderbord = () => {
     ) : (
       // Pass minimal props required by LeaderBoardList component
       <LeaderBoardList
-        matchId={contestData?.MatchId}
+        matchId={matchId}
         id={contestCategoryId}
         forStatus={false}
         setForStatus={() => {}}
         selfCreateContest={false}
+        useScoreboardApi={isScoreboardContest}
       />
     );
   };
