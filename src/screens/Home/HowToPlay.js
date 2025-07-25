@@ -30,26 +30,32 @@ const HowToPlay = () => {
     },
     {
       step: 2,
-      title: "Create Your Team",
-      description: "Pick 11 players within the given credit limit. Choose your captain and vice-captain for bonus points",
-      icon: "👥"
+      title: "Choose Game Type",
+      description: "Select between Team contests (pick players) or Scoreboard contests (predict runs per over)",
+      icon: "🎯"
     },
     {
       step: 3,
+      title: "Create Your Team / Predict Runs",
+      description: "For Teams: Pick 11 players within credit limit. For Scoreboard: Predict runs for each over",
+      icon: "👥"
+    },
+    {
+      step: 4,
       title: "Join Contests",
       description: "Enter contests with different entry fees and prize pools. Compete with other players",
       icon: "🏆"
     },
     {
-      step: 4,
+      step: 5,
       title: "Track Performance",
-      description: "Watch live scores and track your team's performance in real-time",
+      description: "Watch live scores and track your predictions/team performance in real-time",
       icon: "📊"
     },
     {
-      step: 5,
+      step: 6,
       title: "Win Prizes",
-      description: "Earn points based on your players' real match performance and win cash prizes",
+      description: "Earn points based on your predictions/players' performance and win cash prizes",
       icon: "💰"
     }
   ];
@@ -83,6 +89,14 @@ const HowToPlay = () => {
     "Balance your team with players from both teams",
     "Choose captain and vice-captain wisely for bonus points",
     "Monitor team news for last-minute changes"
+  ];
+
+  const scoreboardTips = [
+    "Study team's batting patterns in recent matches",
+    "Consider pitch conditions and weather for run prediction",
+    "Analyze bowling strength of the opposition",
+    "Check if it's a batting or bowling friendly pitch",
+    "Monitor team's performance in powerplay and death overs"
   ];
 
   return (
@@ -176,17 +190,116 @@ const HowToPlay = () => {
         ))}
       </View>
 
-      {/* Tips Section */}
+      {/* Scoreboard Matches Section */}
       <View style={styles.section}>
         <AppText
           style={styles.sectionTitle}
           type={SIXTEEN}
           weight={POPPINS_SEMI_BOLD} 
           color={WHITE}>
-          Pro Tips
+          Scoreboard Matches
+        </AppText>
+        
+        <View style={styles.scoreboardContainer}>
+          <AppText
+            style={styles.scoreboardDescription}
+            type={FOURTEEN}
+            weight={POPPINS_MEDIUM} 
+            color={WHITE}>
+            In Scoreboard matches, you predict the number of runs that will be scored in each over of the match. Points are awarded based on how close your predictions are to the actual runs scored.
+          </AppText>
+          
+          <View style={styles.scoreboardPointsContainer}>
+            <AppText
+              style={styles.scoreboardPointsTitle}
+              type={FOURTEEN}
+              weight={POPPINS_SEMI_BOLD} 
+              color={WHITE}>
+              Points System:
+            </AppText>
+            <View style={styles.pointsList}>
+              <View style={styles.pointItem}>
+                <AppText style={styles.pointBullet}>•</AppText>
+                <AppText style={styles.pointText}>Exact prediction: 10 points</AppText>
+              </View>
+              <View style={styles.pointItem}>
+                <AppText style={styles.pointBullet}>•</AppText>
+                <AppText style={styles.pointText}>Within ±10 runs of actual score: 1 point deducted for each run difference</AppText>
+              </View>
+              <View style={styles.pointItem}>
+                <AppText style={styles.pointBullet}>•</AppText>
+                <AppText style={styles.pointText}>Beyond ±10 runs: 0 points</AppText>
+              </View>
+            </View>
+            
+            <View style={styles.exampleContainer}>
+              <AppText
+                style={styles.exampleTitle}
+                type={FOURTEEN}
+                weight={POPPINS_SEMI_BOLD} 
+                color={WHITE}>
+                Examples:
+              </AppText>
+              <View style={styles.exampleList}>
+                <View style={styles.exampleItem}>
+                  <AppText style={styles.exampleBullet}>•</AppText>
+                  <AppText style={styles.exampleText}>Actual: 15, Predicted: 15 → 10 points</AppText>
+                </View>
+                <View style={styles.exampleItem}>
+                  <AppText style={styles.exampleBullet}>•</AppText>
+                  <AppText style={styles.exampleText}>Actual: 15, Predicted: 14 or 16 → 9 points</AppText>
+                </View>
+                <View style={styles.exampleItem}>
+                  <AppText style={styles.exampleBullet}>•</AppText>
+                  <AppText style={styles.exampleText}>Actual: 15, Predicted: 5 or 25 → 0 points (beyond ±10 range)</AppText>
+                </View>
+                <View style={styles.exampleItem}>
+                  <AppText style={styles.exampleBullet}>•</AppText>
+                  <AppText style={styles.exampleText}>Actual: 15, Predicted: 6 or 24 → 1 point</AppText>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Team Contest Tips Section */}
+      <View style={styles.section}>
+        <AppText
+          style={styles.sectionTitle}
+          type={SIXTEEN}
+          weight={POPPINS_SEMI_BOLD} 
+          color={WHITE}>
+          Team Contest Tips
         </AppText>
         
         {tips.map((tip, index) => (
+          <View key={index} style={styles.tipContainer}>
+            <View style={styles.tipBullet}>
+              <AppText style={styles.tipBulletText}>•</AppText>
+            </View>
+            <AppText
+              style={styles.tipText}
+              type={FOURTEEN}
+              weight={POPPINS_MEDIUM} 
+              color={WHITE}>
+              {tip}
+            </AppText>
+          </View>
+        ))}
+      </View>
+
+      {/* Scoreboard Contest Tips Section */}
+      <View style={styles.section}>
+        <AppText
+          style={styles.sectionTitle}
+          type={SIXTEEN}
+          weight={POPPINS_SEMI_BOLD} 
+          color={WHITE}>
+          Scoreboard Contest Tips
+        </AppText>
+        
+        {scoreboardTips.map((tip, index) => (
           <View key={index} style={styles.tipContainer}>
             <View style={styles.tipBullet}>
               <AppText style={styles.tipBulletText}>•</AppText>
@@ -218,9 +331,17 @@ const HowToPlay = () => {
             type={FOURTEEN}
             weight={POPPINS_MEDIUM} 
             color={WHITE}>
+            <AppText style={styles.noteSectionTitle}>Team Contests:{'\n'}</AppText>
             • Captain gets 2x points, Vice-captain gets 1.5x points{'\n'}
             • Team must have 1-4 batsmen, 1-4 bowlers, 1-4 all-rounders, 1 wicket-keeper{'\n'}
             • Maximum 7 players from one team{'\n'}
+            {'\n'}
+            <AppText style={styles.noteSectionTitle}>Scoreboard Contests:{'\n'}</AppText>
+            • Predict runs for each over before the match starts{'\n'}
+            • Points awarded based on prediction accuracy{'\n'}
+            • All predictions must be submitted before match begins{'\n'}
+            {'\n'}
+            <AppText style={styles.noteSectionTitle}>General:{'\n'}</AppText>
             • Points are updated in real-time during the match{'\n'}
             • Contest results are finalized after match completion
           </AppText>
@@ -339,6 +460,76 @@ const styles = StyleSheet.create({
   importantNoteText: {
     lineHeight: 22,
     opacity: 0.9,
+  },
+  scoreboardContainer: {
+    backgroundColor: '#1a1a1a',
+    padding: 15,
+    borderRadius: 10,
+  },
+  scoreboardDescription: {
+    lineHeight: 22,
+    opacity: 0.9,
+    marginBottom: 15,
+  },
+  scoreboardPointsContainer: {
+    marginTop: 10,
+  },
+  scoreboardPointsTitle: {
+    marginBottom: 10,
+  },
+  pointsList: {
+    marginLeft: 10,
+  },
+  pointItem: {
+    flexDirection: 'row',
+    marginBottom: 8,
+    alignItems: 'flex-start',
+  },
+  pointBullet: {
+    color: colors.playerDetailsLinerOne,
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 10,
+    marginTop: 2,
+  },
+  pointText: {
+    flex: 1,
+    lineHeight: 20,
+    opacity: 0.9,
+  },
+  noteSectionTitle: {
+    fontWeight: 'bold',
+    color: colors.playerDetailsLinerOne,
+  },
+  exampleContainer: {
+    marginTop: 15,
+    backgroundColor: '#0f0f0f',
+    padding: 12,
+    borderRadius: 8,
+  },
+  exampleTitle: {
+    marginBottom: 10,
+  },
+  exampleList: {
+    marginLeft: 5,
+  },
+  exampleItem: {
+    flexDirection: 'row',
+    marginBottom: 6,
+    alignItems: 'flex-start',
+  },
+  exampleBullet: {
+    color: colors.playerDetailsLinerOne,
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 8,
+    marginTop: 2,
+  },
+  exampleText: {
+    flex: 1,
+    lineHeight: 18,
+    opacity: 0.9,
+    fontSize: 13,
   },
 });
 

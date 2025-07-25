@@ -87,6 +87,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {LiveTime} from '../../common/LiveTime';
 import {SceneMap, TabBar, TabView} from 'react-native-tab-view';
 import List from '../Scoreboard/List';
+import LeaderBoardList from '../../components/leaderBoardList/LeaderBoardList';
 
 const MyContest = () => {
   const dispatch = useDispatch();
@@ -628,30 +629,70 @@ const MyContest = () => {
     console.log('🎯 ThirdRoute rendering - matchType:', matchType);
     
     if (matchType === 'teams') {
-      if (myTeam?.length === 0) {
-        return (
-          <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-            <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
-              You haven't created any team for this match
-            </AppText>
-          </View>
-        );
-      }
+      // Get contest category ID for Teams matches
+      const contestCategoryId = myContest?.[0]?.contest_category_id || 
+                               contestData?.teams?.[0]?.contest_category_id ||
+                               contestData?.contest_category_id;
+      
+      console.log('🎯 Teams Leaderboard Debug:', {
+        matchId: _id,
+        contestCategoryId,
+        myContestLength: myContest?.length,
+        myContestFirst: myContest?.[0],
+        contestDataTeams: contestData?.teams,
+        contestDataTeamsFirst: contestData?.teams?.[0],
+        contestDataCategoryId: contestData?.contest_category_id
+      });
+      
+      // For Teams matches, show both team list and leaderboard
       return (
         <View style={{ flex: 1 }}>
-          <FlatList
-            data={myTeam}
-            renderItem={renderMyTeam}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={<EmptyComponent />}
-            keyExtractor={keyExtractor}
-            refreshControl={
-              <RefreshControl
-                refreshing={isLoading}
-                onRefresh={() => handleRefresh('my team')}
+          {/* Team List Section */}
+          <View style={{ marginBottom: 20 }}>
+            <AppText 
+              style={{ fontSize: 16, fontWeight: 'bold', marginHorizontal: 15, marginVertical: 10 }}
+              weight={POPPINS_SEMI_BOLD}>
+              My Teams ({myTeam?.length || 0})
+            </AppText>
+            {myTeam?.length === 0 ? (
+              <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20}}>
+                <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
+                  You haven't created any team for this match
+                </AppText>
+              </View>
+            ) : (
+              <FlatList
+                data={myTeam}
+                renderItem={renderMyTeam}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={<EmptyComponent />}
+                keyExtractor={keyExtractor}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isLoading}
+                    onRefresh={() => handleRefresh('my team')}
+                  />
+                }
               />
-            }
-          />
+            )}
+          </View>
+          
+          {/* Leaderboard Section */}
+          <View style={{ flex: 1 }}>
+            <AppText 
+              style={{ fontSize: 16, fontWeight: 'bold', marginHorizontal: 15, marginVertical: 10 }}
+              weight={POPPINS_SEMI_BOLD}>
+              Leaderboard
+            </AppText>
+            <LeaderBoardList
+              matchId={_id}
+              id={contestCategoryId}
+              forStatus={false}
+              setForStatus={() => {}}
+              selfCreateContest={false}
+              useScoreboardApi={false}
+            />
+          </View>
         </View>
       );
     } else {
@@ -660,7 +701,7 @@ const MyContest = () => {
         <ScoreboardList key={`scoreboard-${_id}`} matchIdProp={_id} />
       ), [_id]);
     }
-  }, [matchType, myTeam, renderMyTeam, keyExtractor, handleRefresh, isLoading]);
+  }, [matchType, myTeam, renderMyTeam, keyExtractor, handleRefresh, isLoading, _id, myContest, contestData]);
 
   const renderScene = React.useMemo(() => SceneMap({
     first: FirstRoute,

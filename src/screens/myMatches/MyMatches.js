@@ -12,6 +12,7 @@ import {TouchableOpacityView} from '../../common/TouchableOpacityView';
 import MatchCard from '../../components/matchCard/MatchCard';
 import {personIcon, combine, notification} from '../../helper/image';
 import {getMyMatches, setSelectedMatch, setLoading, setContestData} from '../../slices/matchSlice';
+import {getDate} from '../Home/Matchsection';
 import styles from './styles';
 import {
   AppText,
@@ -248,22 +249,32 @@ const MyMatches = () => {
   }, [dispatch]);
 
   const getMyJoinedMatches = () => {
-    if (!myMatchesHome || !Array.isArray(myMatchesHome)) {
-      console.log('No myMatchesHome data or not an array:', myMatchesHome);
+    // Use upcomingMatches instead of myMatchesHome for better consistency with cricket.js
+    const allMatches = [...(upcomingMatches || []), ...(myMatchesHome || [])];
+    
+    if (!allMatches || !Array.isArray(allMatches) || allMatches.length === 0) {
+      console.log('No matches data available:', { upcomingMatches: upcomingMatches?.length, myMatchesHome: myMatchesHome?.length });
       return [];
     }
 
-    return myMatchesHome.filter(match => {
+    // Remove duplicates based on match ID
+    const uniqueMatches = allMatches.filter((match, index, self) => 
+      index === self.findIndex(m => m._id === match._id)
+    );
+
+    return uniqueMatches.filter(match => {
       // Check if the user has joined any contests for this match
       const hasJoinedContests = match.teams && Array.isArray(match.teams) && 
         match.teams.some(contest => contest.joined > 0);
 
       const isCompletedMatch = match.Status === 'Completed';
       const isLiveMatch = match.Status === 'Live';
+      const isUpcomingMatch = match.Status !== 'Live' && match.Status !== 'Completed' && match.Status !== 'Cancelled';
       const hasTeamsData = match.teams && match.teams.length > 0;
+      const hasScorecardData = match.scorecard && match.scorecard.length > 0;
 
       // Include this match if the user has joined contests, if it's a live match, or if it's a completed match with team data
-      const shouldInclude = hasJoinedContests || isLiveMatch || (isCompletedMatch && hasTeamsData);
+      const shouldInclude = hasJoinedContests || isLiveMatch || (isCompletedMatch && (hasTeamsData || hasScorecardData)) || isUpcomingMatch;
       
       // Log Maharashtra Premier League matches for debugging
       if (match.SeriesName?.includes('Maharashtra') || match.Team1vsTeam2?.includes('Eagle') || match.Team1vsTeam2?.includes('Puneri')) {
@@ -277,7 +288,9 @@ const MyMatches = () => {
           hasJoinedContests,
           isCompletedMatch,
           isLiveMatch,
+          isUpcomingMatch,
           hasTeamsData,
+          hasScorecardData,
           shouldInclude,
           contestsJoined: match.teams?.filter(contest => contest.joined > 0).length,
           startDateTime: match.StartDateTime
@@ -295,34 +308,30 @@ const MyMatches = () => {
       console.log('No joined matches found');
       return [];
     }
-
-    const currentDate = new Date();
     
     return joinedMatches.filter(match => {
       if (!match) return false;
       
-      // Parse match date safely
-      const matchDate = match.StartDateTime ? new Date(match.StartDateTime) : new Date();
-      const isPastTime = matchDate < currentDate;
-      
       let shouldInclude = false;
       let reason = '';
       
+      // Use the same time-based filtering as cricket.js
+      const matchTime = getDate(match);
+      const isUpcoming = matchTime.hour >= 0; // Future matches
+      const isLive = match.Status === 'Live';
+      const isCompleted = (match.Status === 'Completed' || match.Status === 'Cancelled') && !isLive;
+      const isPastTime = matchTime.hour < 0 && !isLive; // Past matches that are not live
+      
       // Filter by match status based on current tab
       if (subIndex === 0) { // Upcoming
-        // For upcoming tab, include matches that are not past time and not completed/cancelled
-        // But also include matches where user has joined contests, regardless of status
-        const hasJoinedContests = match.teams && Array.isArray(match.teams) && 
-          match.teams.some(contest => contest.joined > 0);
-        
-        shouldInclude = (!isPastTime && match.Status !== 'Completed' && match.Status !== 'Cancelled') || hasJoinedContests;
-        reason = `Upcoming: (!isPastTime(${!isPastTime}) && Status!==Completed(${match.Status !== 'Completed'}) && Status!==Cancelled(${match.Status !== 'Cancelled'})) || hasJoinedContests(${hasJoinedContests})`;
+        shouldInclude = isUpcoming && !isLive && !isCompleted;
+        reason = `Upcoming: isUpcoming(${isUpcoming}) && !isLive(${!isLive}) && !isCompleted(${!isCompleted})`;
       } else if (subIndex === 1) { // Live
-        shouldInclude = match.Status === 'Live';
-        reason = `Live: Status===Live(${match.Status === 'Live'})`;
+        shouldInclude = isLive;
+        reason = `Live: isLive(${isLive})`;
       } else { // Completed
-        shouldInclude = isPastTime || match.Status === 'Completed' || match.Status === 'Cancelled';
-        reason = `Completed: isPastTime(${isPastTime}) || Status===Completed(${match.Status === 'Completed'}) || Status===Cancelled(${match.Status === 'Cancelled'})`;
+        shouldInclude = isCompleted || isPastTime;
+        reason = `Completed: isCompleted(${isCompleted}) || isPastTime(${isPastTime})`;
       }
       
       // Log Maharashtra matches for debugging
@@ -332,6 +341,10 @@ const MyMatches = () => {
           teams: match.Team1vsTeam2,
           status: match.Status,
           startDateTime: match.StartDateTime,
+          matchTime,
+          isUpcoming,
+          isLive,
+          isCompleted,
           isPastTime,
           currentSubTab: subIndex === 0 ? 'Upcoming' : subIndex === 1 ? 'Live' : 'Completed',
           shouldInclude,
