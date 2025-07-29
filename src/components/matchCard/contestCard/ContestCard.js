@@ -252,9 +252,40 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
       });
       
       if (isScoreboardContest) {
-        console.log('🎯 Joining scoreboard contest - opening SelectScoreboard sheet');
+        console.log('🎯 Joining scoreboard contest - checking if user has scoreboards');
         dispatch(setSelectedMatch(details ? { ...details } : {}));
-        selectScoreboard?.current?.open();
+        
+        // Check if user has any scoreboards for this match
+        try {
+          const matchId = contestData?._id;
+          if (!matchId) {
+            console.log('⚠️ No match ID available for scoreboard check');
+            return;
+          }
+          
+          const response = await appOperation.customer.getUserScoreCard(matchId);
+          console.log('🔍 Scoreboard check response:', response);
+          
+          if (response?.success && response?.data && response.data.length > 0) {
+            // User has scoreboards, open SelectScoreboard sheet
+            console.log('✅ User has scoreboards - opening SelectScoreboard sheet');
+            selectScoreboard?.current?.open();
+          } else {
+            // User has no scoreboards, navigate directly to Create Scoreboard
+            console.log('📝 User has no scoreboards - navigating to Create Scoreboard');
+            NavigationService.navigate('Scoreboard/Create', {
+              ...contestData,
+              isFromMyMatch: true,
+            });
+          }
+        } catch (error) {
+          console.error('Error checking scoreboards:', error);
+          // On error, navigate to Create Scoreboard as fallback
+          NavigationService.navigate('Scoreboard/Create', {
+            ...contestData,
+            isFromMyMatch: true,
+          });
+        }
         return;
       }
       

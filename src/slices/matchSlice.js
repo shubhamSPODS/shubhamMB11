@@ -7,6 +7,7 @@ import {
   CONTESTSHARE,
   KYC_SCREEN,
   MY_BALANCE,
+  MY_CONTEST,
   OTHER_USER_PROFILE,
   PRIVATECONTESTLEADER,
   SHARE_TEAM,
@@ -294,6 +295,11 @@ export const joinuserContest = data => async dispatch => {
   try {
     const res = await appOperation.customer.joinContestUserPri(data);
     dispatch(setjoinuserContest(res));
+    
+    // Navigate to My Contests after joining user contest
+    if (res?.code === 200 || res?.success === true) {
+      NavigationService.navigate(MY_CONTEST);
+    }
   } catch (e) {
   } finally {
     dispatch(setLoading(false));
@@ -361,6 +367,9 @@ export const joinContest = (data, matchDetails) => async dispatch => {
       dispatch(getContestList(matchDetails?.object, matchDetails?._id));
       dispatch(getMyTeam(matchDetails?._id));
       dispatch(getUserProfile(false, false));
+      
+      // Navigate to My Contests tab after successful join
+      NavigationService.navigate(MY_CONTEST);
     } else {
       toastAlert.showToastError(res?.message || 'Failed to join contest');
     }

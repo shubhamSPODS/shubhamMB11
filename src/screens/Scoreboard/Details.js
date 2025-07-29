@@ -28,9 +28,50 @@ const Details = ({route}) => {
     length: route.params?.details?.winningsData?.rankWinnings?.length
   });
 
-  const {scoreboardData, allPredictions, details} = route?.params || {};
-  const matchType = scoreboardData?.match_details?.Type || 'T20';
+  const {scoreboardData, allPredictions, details, contestData, upcomingMatches} = route?.params || {};
+  // Find the match from upcoming matches to get its type
+  const currentMatch = upcomingMatches?.find(match => 
+    match._id === contestData?._id || 
+    match.MatchId === contestData?.MatchId ||
+    match.match_id === contestData?.match_id
+  );
+  
+  const matchType = scoreboardData?.match_details?.Type || 
+                   scoreboardData?.match_details?.match_type ||
+                   scoreboardData?.match_type ||
+                   contestData?.Type ||
+                   contestData?.match_type ||
+                   contestData?.contestAllInfo?.Type ||
+                   contestData?.contestAllInfo?.match_type ||
+                   currentMatch?.Type ||
+                   currentMatch?.match_type ||
+                   // Only use SeriesName as fallback if no exact match type is found
+                   (contestData?.SeriesName && !contestData?.Type && !contestData?.match_type && !contestData?.contestAllInfo?.Type && !contestData?.contestAllInfo?.match_type) ?
+                     (contestData.SeriesName.includes('T10') ? 'T10' :
+                      contestData.SeriesName.includes('T20') ? 'T20' :
+                      contestData.SeriesName.includes('T50') ? 'T50' :
+                      contestData.SeriesName.includes('ODI') ? 'ODI' : null) :
+                   (currentMatch?.SeriesName && !currentMatch?.Type && !currentMatch?.match_type) ?
+                     (currentMatch.SeriesName.includes('T10') ? 'T10' :
+                      currentMatch.SeriesName.includes('T20') ? 'T20' :
+                      currentMatch.SeriesName.includes('T50') ? 'T50' :
+                      currentMatch.SeriesName.includes('ODI') ? 'ODI' : null) :
+                   'T20';
   const totalRuns = allPredictions?.reduce((sum, over) => sum + over.runs, 0) || 0;
+  
+  console.log('ScoreboardDetails Debug:', {
+    scoreboardData,
+    contestData,
+    upcomingMatches,
+    matchType,
+    scoreboardDataMatchDetails: scoreboardData?.match_details,
+    contestDataType: contestData?.Type,
+    contestDataMatchType: contestData?.match_type,
+    contestDataContestAllInfo: contestData?.contestAllInfo,
+    currentMatch: currentMatch,
+    currentMatchType: currentMatch?.Type,
+    currentMatchSeriesName: currentMatch?.SeriesName
+  });
   
 
   const renderOver = (prediction, index) => (

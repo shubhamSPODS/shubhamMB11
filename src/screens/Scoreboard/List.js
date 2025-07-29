@@ -40,7 +40,7 @@ const globalErrorState = {
   }
 };
 
-const ScoreboardCard = ({ item, onPress }) => {
+const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress }) => {
   const predictions = item.predictions || item.data?.predictions || [];
   
   if (!predictions || predictions.length === 0) {
@@ -58,9 +58,37 @@ const ScoreboardCard = ({ item, onPress }) => {
   const previewOvers = predictions.slice(0, 5);
   const totalRuns = predictions.reduce((sum, over) => sum + (over.runs || 0), 0);
   
+  // Find the match from upcoming matches to get its type
+  const currentMatch = upcomingMatches?.find(match => 
+    match._id === contestData?._id || 
+    match.MatchId === contestData?.MatchId ||
+    match.match_id === contestData?.match_id
+  );
+  
+  // Try to get match type from multiple sources, prioritizing exact match type data
   const matchType = item.match_details?.Type || 
                    item.matchDetails?.Type || 
                    item.Type || 
+                   item.match_details?.match_type ||
+                   item.matchDetails?.match_type ||
+                   item.match_type ||
+                   contestData?.Type ||
+                   contestData?.match_type ||
+                   contestData?.contestAllInfo?.Type ||
+                   contestData?.contestAllInfo?.match_type ||
+                   currentMatch?.Type ||
+                   currentMatch?.match_type ||
+                   // Only use SeriesName as fallback if no exact match type is found
+                   (contestData?.SeriesName && !contestData?.Type && !contestData?.match_type && !contestData?.contestAllInfo?.Type && !contestData?.contestAllInfo?.match_type) ?
+                     (contestData.SeriesName.includes('T10') ? 'T10' :
+                      contestData.SeriesName.includes('T20') ? 'T20' :
+                      contestData.SeriesName.includes('T50') ? 'T50' :
+                      contestData.SeriesName.includes('ODI') ? 'ODI' : null) :
+                   (currentMatch?.SeriesName && !currentMatch?.Type && !currentMatch?.match_type) ?
+                     (currentMatch.SeriesName.includes('T10') ? 'T10' :
+                      currentMatch.SeriesName.includes('T20') ? 'T20' :
+                      currentMatch.SeriesName.includes('T50') ? 'T50' :
+                      currentMatch.SeriesName.includes('ODI') ? 'ODI' : null) :
                    'T20';
   
   console.log('ScoreboardCard item:', {
@@ -68,7 +96,15 @@ const ScoreboardCard = ({ item, onPress }) => {
     predictionsLength: predictions.length,
     totalRuns,
     matchType,
-    samplePrediction: predictions[0]
+    samplePrediction: predictions[0],
+    itemMatchDetails: item.match_details,
+    itemMatchDetailsType: item.match_details?.Type,
+    contestDataType: contestData?.Type,
+    contestDataMatchType: contestData?.match_type,
+    contestDataContestAllInfo: contestData?.contestAllInfo,
+    currentMatch: currentMatch,
+    currentMatchType: currentMatch?.Type,
+    currentMatchSeriesName: currentMatch?.SeriesName
   });
   
   return (
@@ -80,11 +116,6 @@ const ScoreboardCard = ({ item, onPress }) => {
               {matchType}
             </AppText>
           </View>
-          {item.createdAt && (
-            <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.dateText}>
-              {new Date(item.createdAt).toLocaleDateString()}
-            </AppText>
-          )}
         </View>
         <View style={styles.totalRunsContainer}>
           <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.totalRunsText}>
@@ -131,6 +162,7 @@ const ScoreboardCard = ({ item, onPress }) => {
 const List = ({ matchIdProp }) => {
   const route = useRoute();
   const contestData = useSelector(state => state?.match?.contestData);
+  const upcomingMatches = useSelector(state => state?.match?.upcomingMatches);
   
   const [scoreboards, setScoreboards] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -169,6 +201,12 @@ const List = ({ matchIdProp }) => {
   }, []);
 
   const showErrorToast = (message) => {
+    // Suppress the specific "No score card found for this match" message
+    if (message && message.toLowerCase().includes('no score card found for this match')) {
+      console.log('🚨 Suppressing toast message:', message);
+      return;
+    }
+    
     // Clean up old error states first
     globalErrorState.cleanup();
     
@@ -286,7 +324,9 @@ const List = ({ matchIdProp }) => {
   const handleScoreboardPress = (scoreboard) => {
     NavigationService.navigate('Scoreboard/Details', {
       scoreboardData: scoreboard,
-      allPredictions: scoreboard.predictions
+      allPredictions: scoreboard.predictions,
+      contestData: contestData,
+      upcomingMatches: upcomingMatches
     });
   };
 
@@ -304,6 +344,8 @@ const List = ({ matchIdProp }) => {
             renderItem={({ item }) => (
               <ScoreboardCard
                 item={item}
+                contestData={contestData}
+                upcomingMatches={upcomingMatches}
                 onPress={() => handleScoreboardPress(item)}
               />
             )}
@@ -458,11 +500,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dateText: {
-    fontSize: 12,
-    opacity: 0.7,
-    marginTop: 4,
-  },
+
 });
 
 export default List; 

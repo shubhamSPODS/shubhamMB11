@@ -152,23 +152,108 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         const parseData = JSON.parse(e?.data);
           
           if (parseData?.upcoming) {
-            dispatch(setUpComingMatches(parseData.upcoming));
+            // Log complete WebSocket response for debugging
+            console.log('🔍 Complete WebSocket Response:', JSON.stringify(parseData, null, 2));
+            
+            // Log each match's contestadded status and game state
+            parseData.upcoming.forEach((match, index) => {
+              console.log(`📊 Match ${index + 1}:`, {
+                id: match._id,
+                name: match.Team1vsTeam2,
+                contestadded: match.contestadded,
+                game_state: match.game_state,
+                game_state_str: match.game_state_str,
+                hasTeams: !!match.teams,
+                teamsLength: match.teams?.length,
+                hasScorecard: !!match.scorecard,
+                scorecardLength: match.scorecard?.length
+              });
+            });
+            
+            // Filter out matches where contestadded is false
+            const filteredUpcoming = parseData.upcoming.filter(match => match.contestadded !== false);
+            
+            // Handle game state changes for live matches
+            parseData.upcoming.forEach(match => {
+              const isRainDelay = match.game_state === 4 || match.game_state === 11;
+              const isPlayOngoing = match.game_state === 3;
+              const isLiveMatch = match.Status === 'Live' || match.Status === 'live';
+              
+              console.log(`🎮 Game State for ${match.Team1vsTeam2}:`, {
+                game_state: match.game_state,
+                game_state_str: match.game_state_str,
+                isRainDelay,
+                isPlayOngoing,
+                isLiveMatch,
+                Status: match.Status
+              });
+              
+              // If it's a live match with rain delay, restart contest joining
+              if (isLiveMatch && isRainDelay) {
+                console.log(`🌧️ Rain delay detected for live match: ${match.Team1vsTeam2}`);
+                // Restart contest joining for this match
+                if (match.teams && match.teams.length > 0) {
+                  const contests = match.teams.map(contest => ({
+                    ...contest,
+                    matchId: match._id,
+                    matchName: match.Team1vsTeam2
+                  }));
+                  dispatch(getContestList(contests, match._id));
+                }
+                if (match.scorecard && match.scorecard.length > 0) {
+                  const scoreboardContests = match.scorecard.map(contest => ({
+                    ...contest,
+                    matchId: match._id,
+                    matchName: match.Team1vsTeam2
+                  }));
+                  dispatch(getContestList(scoreboardContests, match._id));
+                }
+              }
+              
+              // If play is ongoing, log the status
+              if (isLiveMatch && isPlayOngoing) {
+                console.log(`▶️ Play ongoing for live match: ${match.Team1vsTeam2}`);
+              }
+            });
+            
+            console.log('WebSocket upcoming matches:', {
+              total: parseData.upcoming.length,
+              filtered: filteredUpcoming.length,
+              removed: parseData.upcoming.length - filteredUpcoming.length,
+              sampleMatch: parseData.upcoming[0]
+            });
+            
+            dispatch(setUpComingMatches(filteredUpcoming));
             
             const contestUpdates = [];
-            parseData.upcoming.forEach(match => {
-            if (match.teams && match.teams.length > 0) {
-              const contests = match.teams.map(contest => ({
-                ...contest,
-                matchId: match._id,
-                matchName: match.Team1vsTeam2
-              }));
+            filteredUpcoming.forEach(match => {
+              // Fetch contests for matches with teams data
+              if (match.teams && match.teams.length > 0) {
+                const contests = match.teams.map(contest => ({
+                  ...contest,
+                  matchId: match._id,
+                  matchName: match.Team1vsTeam2
+                }));
                 contestUpdates.push({ contests, matchId: match._id });
+              }
+              
+              // Also fetch contests for matches with scorecard data
+              if (match.scorecard && match.scorecard.length > 0) {
+                const scoreboardContests = match.scorecard.map(contest => ({
+                  ...contest,
+                  matchId: match._id,
+                  matchName: match.Team1vsTeam2
+                }));
+                contestUpdates.push({ contests: scoreboardContests, matchId: match._id });
               }
             });
             
             if (contestUpdates.length > 0) {
               contestUpdates.forEach(update => {
-                dispatch(getContestList(update.contests, update.matchId));
+                // Only call getContestList if we have actual contest data
+                if (update.contests.length > 0) {
+                  dispatch(getContestList(update.contests, update.matchId));
+                }
               });
             }
           }
@@ -206,24 +291,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   }, [fetchData]);
 
   const onPressScoreboard = useCallback((item, currentTab) => {
-    console.log('[CRICKET.JS DEBUG] onPressScoreboard called with:', {
-      item: {
-        id: item._id,
-        TeamA: item.TeamA,
-        TeamB: item.TeamB,
-        Status: item.Status,
-        Type: item.Type,
-        hasScorecard: !!item.scorecard,
-        scorecardLength: item.scorecard?.length,
-        scorecard: item.scorecard,
-        hasTeams: !!item.teams,
-        teamsLength: item.teams?.length,
-        teams: item.teams,
-      },
-      currentTab,
-      matchType: currentTab,
-    });
-                  
+   
     dispatch(setSelectedMatch(item));
     dispatch(setContestData(item));
                   
@@ -235,10 +303,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       isFromMyMatch: false,
       contestId: item.contestId,
     };
-                  
-    console.log('[CRICKET.JS DEBUG] Navigating to MY_CONTEST with params:', navigationParams);
-    console.log('[CRICKET.JS DEBUG] Contest data being set:', item);
-    console.log('[CRICKET.JS DEBUG] Using matchId (_id):', item._id);
+  
                   
     console.log('🎯 Navigating to MY_CONTEST from Cricket.js');
     NavigationService.navigate(MY_CONTEST, navigationParams);
@@ -246,11 +311,92 @@ const Cricket = ({ random, setRefreshingTwo }) => {
 
   const currentMatchesWithContests = useMemo(() => {
     const filteredMatches = getFilteredMatches();
-    return filteredMatches.map(match => ({
-      ...match,
-      contest_details: contestList?.data?.filter(contest => contest.matchid === match._id) || [],
-    }));
-  }, [getFilteredMatches, contestList?.data]);
+    
+    return filteredMatches.map(match => {
+      // Get all contests for this match from the Redux store
+      const allContestsForMatch = contestList?.data || [];
+      
+    
+      
+      // Flatten the contest data structure and filter by match ID
+      const flattenedContests = allContestsForMatch.reduce((acc, category) => {
+        if (category?.data && Array.isArray(category.data)) {
+          // Add matchId to each contest for proper filtering
+          const contestsWithMatchId = category.data.map(contest => ({
+            ...contest,
+            matchid: match._id // Ensure matchid is set for filtering
+          }));
+          acc.push(...contestsWithMatchId);
+        }
+        return acc;
+      }, []);
+      
+      // Also check if contests are stored in a different structure
+      const alternativeContests = allContestsForMatch.reduce((acc, category) => {
+        if (category && typeof category === 'object' && !Array.isArray(category)) {
+          // Check if this category has contest data directly
+          if (category.contest_category_id || category.winning_amount || category.WinningAmount) {
+            acc.push({
+              ...category,
+              matchid: match._id
+            });
+          }
+        }
+        return acc;
+      }, []);
+      
+      // Combine both flattened and alternative contests
+      const allAvailableContests = [...flattenedContests, ...alternativeContests];
+      
+     
+      // Filter contests for this specific match
+      const matchContests = allAvailableContests.filter(contest => 
+        contest.matchid === match._id || 
+        contest.matchId === match._id ||
+        contest.match_id === match._id
+      );
+      
+      // Find the highest paid contest from Redux store
+      let highestPaidContest = null;
+      if (matchContests.length > 0) {
+        highestPaidContest = matchContests.reduce((prev, current) => {
+          const prevAmount = Number(prev?.winning_amount || prev?.WinningAmount || 0);
+          const currentAmount = Number(current?.winning_amount || current?.WinningAmount || 0);
+          return currentAmount > prevAmount ? current : prev;
+        });
+      }
+      
+      // Fallback to original teams/scorecard data based on current tab
+      if (!highestPaidContest) {
+        if (index === 0 && match.teams && match.teams.length > 0) {
+          // For Teams tab, use teams data
+          highestPaidContest = match.teams.reduce((prev, current) => {
+            const prevEntryFee = Number(prev?.EntryFee || 0);
+            const currentEntryFee = Number(current?.EntryFee || 0);
+            return currentEntryFee > prevEntryFee ? current : prev;
+          });
+         
+        } else if (index === 1 && match.scorecard && match.scorecard.length > 0) {
+          // For Scoreboard tab, use scorecard data
+          highestPaidContest = match.scorecard.reduce((prev, current) => {
+            const prevEntryFee = Number(prev?.EntryFee || 0);
+            const currentEntryFee = Number(current?.EntryFee || 0);
+            return currentEntryFee > prevEntryFee ? current : prev;
+          });
+         
+        }
+      }
+      
+      
+      
+      return {
+        ...match,
+        contest_details: highestPaidContest ? [highestPaidContest] : [],
+        teams: match.teams || [], // Keep original teams data for fallback
+        scorecard: match.scorecard || [], // Keep original scorecard data for fallback
+      };
+    });
+  }, [getFilteredMatches, contestList?.data, index]);
 
   const renderScene = useCallback(({route}) => {
     return (

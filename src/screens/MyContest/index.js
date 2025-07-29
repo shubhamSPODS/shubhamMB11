@@ -87,7 +87,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import {LiveTime} from '../../common/LiveTime';
 import {SceneMap, TabBar, TabView} from 'react-native-tab-view';
 import List from '../Scoreboard/List';
-import LeaderBoardList from '../../components/leaderBoardList/LeaderBoardList';
+
 
 const MyContest = () => {
   const dispatch = useDispatch();
@@ -629,79 +629,56 @@ const MyContest = () => {
     console.log('🎯 ThirdRoute rendering - matchType:', matchType);
     
     if (matchType === 'teams') {
-      // Get contest category ID for Teams matches
-      const contestCategoryId = myContest?.[0]?.contest_category_id || 
-                               contestData?.teams?.[0]?.contest_category_id ||
-                               contestData?.contest_category_id;
-      
-      console.log('🎯 Teams Leaderboard Debug:', {
-        matchId: _id,
-        contestCategoryId,
-        myContestLength: myContest?.length,
-        myContestFirst: myContest?.[0],
-        contestDataTeams: contestData?.teams,
-        contestDataTeamsFirst: contestData?.teams?.[0],
-        contestDataCategoryId: contestData?.contest_category_id
-      });
-      
-      // For Teams matches, show both team list and leaderboard
+      // For Teams matches, show only team list (no leaderboard)
       return (
         <View style={{ flex: 1 }}>
-          {/* Team List Section */}
-          <View style={{ marginBottom: 20 }}>
+          {myTeam?.length > 0 && (
             <AppText 
               style={{ fontSize: 16, fontWeight: 'bold', marginHorizontal: 15, marginVertical: 10 }}
               weight={POPPINS_SEMI_BOLD}>
               My Teams ({myTeam?.length || 0})
             </AppText>
-            {myTeam?.length === 0 ? (
-              <View style={{flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20}}>
-                <AppText style={{fontSize: 15}} weight={POPPINS_MEDIUM}>
-                  You haven't created any team for this match
+          )}
+          {myTeam?.length === 0 ? (
+            <View style={{
+              flex: 1, 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              paddingVertical: 20,
+              minHeight: 200
+            }}>
+              <View style={{alignItems: 'center'}}>
+                <AppText style={{fontSize: 16, textAlign: 'center', marginBottom: 10}} weight={POPPINS_SEMI_BOLD}>
+                  No Teams Created yet
+                </AppText>
+                <AppText style={{fontSize: 14, textAlign: 'center', color: '#888'}} weight={POPPINS_MEDIUM}>
+                  Create your First Prediction!
                 </AppText>
               </View>
-            ) : (
-              <FlatList
-                data={myTeam}
-                renderItem={renderMyTeam}
-                showsVerticalScrollIndicator={false}
-                ListEmptyComponent={<EmptyComponent />}
-                keyExtractor={keyExtractor}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isLoading}
-                    onRefresh={() => handleRefresh('my team')}
-                  />
-                }
-              />
-            )}
-          </View>
-          
-          {/* Leaderboard Section */}
-          <View style={{ flex: 1 }}>
-            <AppText 
-              style={{ fontSize: 16, fontWeight: 'bold', marginHorizontal: 15, marginVertical: 10 }}
-              weight={POPPINS_SEMI_BOLD}>
-              Leaderboard
-            </AppText>
-            <LeaderBoardList
-              matchId={_id}
-              id={contestCategoryId}
-              forStatus={false}
-              setForStatus={() => {}}
-              selfCreateContest={false}
-              useScoreboardApi={false}
+            </View>
+          ) : (
+            <FlatList
+              data={myTeam}
+              renderItem={renderMyTeam}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={<EmptyComponent />}
+              keyExtractor={keyExtractor}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isLoading}
+                  onRefresh={() => handleRefresh('my team')}
+                />
+              }
             />
-          </View>
+          )}
         </View>
       );
     } else {
-      
       return React.useMemo(() => (
         <ScoreboardList key={`scoreboard-${_id}`} matchIdProp={_id} />
       ), [_id]);
     }
-  }, [matchType, myTeam, renderMyTeam, keyExtractor, handleRefresh, isLoading, _id, myContest, contestData]);
+  }, [matchType, myTeam, renderMyTeam, keyExtractor, handleRefresh, isLoading, _id]);
 
   const renderScene = React.useMemo(() => SceneMap({
     first: FirstRoute,
@@ -726,10 +703,29 @@ const MyContest = () => {
   };
 
   const shouldShowCreateButton = () => {
-    // Hide the button for Live matches
+    console.log('🔍 Checking shouldShowCreateButton:', {
+      contestDataExists: !!contestData,
+      contestDataKeys: contestData ? Object.keys(contestData) : 'undefined',
+      Status: contestData?.Status,
+      game_state: contestData?.game_state,
+      game_state_str: contestData?.game_state_str,
+      matchName: contestData?.Team1vsTeam2,
+      fullContestData: contestData
+    });
+    
+    // Show the button when game_state is 2 (lineup is out) - users can still join even if match is Live
+    if (contestData?.game_state === 2) {
+      console.log('✅ Create button shown - lineup is out but users can still join (game_state: 2)');
+      return true;
+    }
+    
+    // Hide the button for Live matches (only if game_state is not 2)
     if (contestData?.Status === 'Live') {
+      console.log('🚫 Create button hidden - match is Live and lineup not available');
       return false;
     }
+    
+    console.log('✅ Create button will be shown');
     return true;
   };
 
@@ -1026,7 +1022,17 @@ const MyContest = () => {
             setContest={setContest}
           />
         </RBSheet>
-        {shouldShowCreateButton() && (
+        {(() => {
+          const shouldShow = shouldShowCreateButton();
+          console.log('🔍 Button visibility check:', {
+            shouldShow,
+            contestData: contestData,
+            Status: contestData?.Status,
+            game_state: contestData?.game_state,
+            matchType: route.params?.matchType
+          });
+          return shouldShow;
+        })() && (
           <View style={[
             styles.buttonContainer,
                 {marginVertical: Platform.OS == 'ios' ? 20 : 10},

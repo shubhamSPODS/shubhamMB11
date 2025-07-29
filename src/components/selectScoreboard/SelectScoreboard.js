@@ -56,19 +56,60 @@ const SelectScoreboard = ({
         return;
       }
 
-      const response = await appOperation.customer.getUserScoreCard(matchId);
+      // Try both API endpoints to get user scoreboards
+      let response;
+      try {
+        response = await appOperation.customer.getUserScoreCard(matchId);
+        console.log('🔍 getUserScoreCard Response:', response);
+      } catch (error) {
+        console.log('🔍 getUserScoreCard failed, trying getMyScoreboardContests');
+        try {
+          response = await appOperation.customer.getMyScoreboardContests(matchId);
+          console.log('🔍 getMyScoreboardContests Response:', response);
+        } catch (secondError) {
+          console.log('🔍 Both APIs failed:', secondError);
+          response = { success: false, data: [] };
+        }
+      }
       
+      console.log('🔍 SelectScoreboard Final API Response:', {
+        success: response?.success,
+        data: response?.data,
+        dataLength: response?.data?.length,
+        fullResponse: response
+      });
       
       if (response?.success && response?.data) {
         setScoreboards(response.data);
         
+        // If no scoreboards found, redirect to create screen
+        if (response.data.length === 0) {
+          console.log('🎯 No scoreboards found - redirecting to create screen');
+          setTimeout(() => {
+            onClose();
+            NavigationService.navigate('Scoreboard/Create', {
+              ...contestData,
+              isFromMyMatch: true,
+            });
+          }, 100);
+        }
       } else {
-        toastAlert.showToastError('Failed to load scoreboards');
+        console.log('🎯 API failed or no data - redirecting to create screen');
+        // Removed toast message to avoid showing "No score card found for this match"
         setScoreboards([]);
+        
+        // If failed to load, also redirect to create screen
+        setTimeout(() => {
+          onClose();
+          NavigationService.navigate('Scoreboard/Create', {
+            ...contestData,
+            isFromMyMatch: true,
+          });
+        }, 100);
       }
     } catch (error) {
       console.error('Error fetching scoreboards:', error);
-      toastAlert.showToastError('Error loading scoreboards');
+      // Removed toast message to avoid showing "No score card found for this match"
       setScoreboards([]);
     } finally {
       setLoading(false);
@@ -171,7 +212,7 @@ const SelectScoreboard = ({
         No scoreboards found for this match
       </AppText>
       <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptySubText}>
-        Create a scoreboard first to join contests
+        Redirecting to create scoreboard...
       </AppText>
     </View>
   );

@@ -107,38 +107,38 @@ const MatchCard = ({
     return formattedHours + ':' + (minutes < 10 ? '0' : '') + minutes + ' ' + meridiem;
   }, [details?.StartDateTime]);
 
-  const allContests = React.useMemo(() => 
-    details?.teams || details?.contest_details || [],
-  [details?.teams, details?.contest_details]);
+  const allContests = React.useMemo(() => {
+    // For teams matches, use teams data
+    if (matchType === 'teams') {
+      return details?.teams || details?.contest_details || [];
+    }
+    // For scoreboard matches, use scorecard data
+    else if (matchType === 'scoreboard') {
+      return details?.scorecard || details?.contest_details || [];
+    }
+    // Default fallback
+    return details?.teams || details?.contest_details || [];
+  }, [details?.teams, details?.contest_details, details?.scorecard, matchType]);
 
   useEffect(() => {
+    
     if (allContests.length > 0) {
       const contest = allContests.reduce((prev, current) => {
-        return Number(prev?.winning_amount) > Number(current?.winning_amount)
-          ? prev
-          : current;
+        // Try to get winning amount first, then fallback to entry fee
+        const prevAmount = Number(prev?.winning_amount || prev?.WinningAmount || prev?.EntryFee || 0);
+        const currentAmount = Number(current?.winning_amount || current?.WinningAmount || current?.EntryFee || 0);
+        return currentAmount > prevAmount ? current : prev;
       });
+      
       setContestDetails(contest);
+    } else {
     }
   }, [allContests]);
 
   const onNavigateContest = useCallback(() => {
-    console.log('🎯 MatchCard onNavigateContest pressed:', {
-      matchType,
-      Status: details?.Status,
-      hasOnPressScoreboard: !!onPressScoreboard,
-      allContestsLength: allContests?.length,
-      matchId: details?._id,
-      hasScorecard: !!details?.scorecard,
-      scorecard: details?.scorecard,
-      TeamA: details?.TeamA,
-      TeamB: details?.TeamB,
-      SeriesName: details?.SeriesName,
-      StartDateTime: details?.StartDateTime
-    });
+   
 
     if (details?.Status === 'Completed') {
-      console.log('🎯 Navigating to MY_CONTEST for completed match');
       dispatch(setContestData({...details, isFromMyMatch, tab, isHome}));
       NavigationService.navigate(MY_CONTEST, {
         isFromMyMatch: true,
@@ -264,6 +264,7 @@ const MatchCard = ({
   ), [details?.line_up_out, details?.TeamA, details?.TeamAlogo, details?.TeamB, details?.TeamBlogo, details?.TeamsShortNames, dateTime]);
 
   const ContestDetailsSection = React.useMemo(() => {
+    
     if (allContests.length === 0) return null;
     
     return (
@@ -293,7 +294,7 @@ const MatchCard = ({
             ) : (
               <>
                 <View style={{flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%'}}>
-                  {contestDetails?.contest_type && (
+                  {(contestDetails?.contest_type || contestDetails?.categoryName || contestDetails?.ContestType) && (
                     <LinearGradient
                       start={{x: 0, y: 0.5}}
                       end={{x: 0.5, y: 0}}
@@ -303,7 +304,7 @@ const MatchCard = ({
                         color={GREEN}
                         style={{fontSize: 11, marginTop: 1}}
                         weight={POPPINS_MEDIUM}>
-                        {contestDetails?.contest_type}
+                        {contestDetails?.contest_type || contestDetails?.categoryName || contestDetails?.ContestType}
                       </AppText>
                       <AppText
                         weight={LATO_SEMI_BOLD}
@@ -316,7 +317,7 @@ const MatchCard = ({
                         color={GREEN}
                         weight={POPPINS_MEDIUM}
                         style={[styles.textStyle, {marginTop: 1}]}>
-                        {contestDetails?.winning_amount}
+                        {contestDetails?.winning_amount || contestDetails?.WinningAmount || contestDetails?.EntryFee || '0'}
                       </AppText>
                     </LinearGradient>
                   )}

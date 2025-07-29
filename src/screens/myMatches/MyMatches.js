@@ -125,7 +125,7 @@ export const RenderSubTabBar = props => {
   );
 };
 
-export const ListEmptyComponent = ({title, activeTab}) => {
+export const ListEmptyComponent = ({title, activeTab, setSubIndex}) => {
   return (
     <View
       style={{
@@ -175,7 +175,14 @@ export const ListEmptyComponent = ({title, activeTab}) => {
       )}
       
       <PrimaryButton
-        onPress={() => NavigationService.navigate(BOTTOM_TAB_HOMESCREEN)}
+        onPress={() => {
+          // Switch to the 1st tab (Upcoming) when in Live tab
+          if (activeTab === 'Live') {
+            setSubIndex(0); // Switch to Upcoming tab (index 0)
+          } else {
+            NavigationService.navigate(BOTTOM_TAB_HOMESCREEN);
+          }
+        }}
         smallBtn={styles.joinButtonMyContest}
         title="VIEW UPCOMING MATCHES"
         type={TWELVE}
@@ -524,7 +531,7 @@ const MyMatches = () => {
             );
           })}
           {matchesWithContests?.length === 0 && (
-            <ListEmptyComponent activeTab="Upcoming" />
+            <ListEmptyComponent activeTab="Upcoming" setSubIndex={setSubIndex} />
           )}
         </ScrollView>
       );
@@ -572,7 +579,7 @@ const MyMatches = () => {
             );
           })}
           {matchesWithContests?.length === 0 && (
-            <ListEmptyComponent activeTab="Live" />
+            <ListEmptyComponent activeTab="Live" setSubIndex={setSubIndex} />
           )}
         </ScrollView>
       );
@@ -620,7 +627,7 @@ const MyMatches = () => {
             );
           })}
           {matchesWithContests?.length === 0 && (
-            <ListEmptyComponent activeTab="Completed" />
+            <ListEmptyComponent activeTab="Completed" setSubIndex={setSubIndex} />
           )}
         </ScrollView>
       );

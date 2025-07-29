@@ -43,7 +43,11 @@ const Create = ({route}) => {
   console.log('isEdit:', isEdit);
   console.log('isFromMyMatch:', isFromMyMatch);
   
-  const matchType = contestData?.contestAllInfo?.Type || contestData?.Type || 'T20';
+  const matchType = contestData?.contestAllInfo?.Type || 
+                   contestData?.Type || 
+                   contestData?.contestAllInfo?.match_type ||
+                   contestData?.match_type ||
+                   'T20';
 
   const getTotalOvers = () => {
     const matchTypeFormat = (matchType || '').split(' ').pop();

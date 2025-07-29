@@ -829,17 +829,20 @@ const SelectPlayer = () => {
                   weight={POPPINS_MEDIUM}
                   style={{ fontSize: 10, textAlign: 'center' }}
                 >
-                  {`${route.title} (${
-                    route.key === 'wk'
-                      ? filterSelectedPlayer?.wk?.length
-                      : route.key === 'bat'
-                        ? filterSelectedPlayer?.bat?.length
-                        : route.key === 'ar'
-                          ? filterSelectedPlayer?.all?.length
-                          : route.key === 'bowl'
-                            ? filterSelectedPlayer?.bowl?.length
-                            : 0
-                  })`}
+                  {route.key === 'pl' 
+                    ? route.title 
+                    : `${route.title} (${
+                        route.key === 'wk'
+                          ? filterSelectedPlayer?.wk?.length
+                          : route.key === 'bat'
+                            ? filterSelectedPlayer?.bat?.length
+                            : route.key === 'ar'
+                              ? filterSelectedPlayer?.all?.length
+                              : route.key === 'bowl'
+                                ? filterSelectedPlayer?.bowl?.length
+                                : 0
+                      })`
+                  }
                 </AppText>
               </View>
               {focused ? (

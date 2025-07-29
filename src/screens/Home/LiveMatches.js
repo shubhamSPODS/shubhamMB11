@@ -65,10 +65,81 @@ const LiveMatches = ({ random, setRefreshingTwo }) => {
           const parseData = JSON.parse(e?.data);
           
           if (parseData?.upcoming) {
-            dispatch(setUpComingMatches(parseData.upcoming));
+            // Log complete WebSocket response for debugging
+            console.log('🔍 LiveMatches Complete WebSocket Response:', JSON.stringify(parseData, null, 2));
+            
+            // Log each match's contestadded status and game state
+            parseData.upcoming.forEach((match, index) => {
+              console.log(`📊 LiveMatches Match ${index + 1}:`, {
+                id: match._id,
+                name: match.Team1vsTeam2,
+                contestadded: match.contestadded,
+                game_state: match.game_state,
+                game_state_str: match.game_state_str,
+                hasTeams: !!match.teams,
+                teamsLength: match.teams?.length,
+                hasScorecard: !!match.scorecard,
+                scorecardLength: match.scorecard?.length
+              });
+            });
+            
+            // Filter out matches where contestadded is false
+            const filteredUpcoming = parseData.upcoming.filter(match => match.contestadded !== false);
+            
+            // Handle game state changes for live matches
+            parseData.upcoming.forEach(match => {
+              const isRainDelay = match.game_state === 4 || match.game_state === 11;
+              const isPlayOngoing = match.game_state === 3;
+              const isLiveMatch = match.Status === 'Live' || match.Status === 'live';
+              
+              console.log(`🎮 LiveMatches Game State for ${match.Team1vsTeam2}:`, {
+                game_state: match.game_state,
+                game_state_str: match.game_state_str,
+                isRainDelay,
+                isPlayOngoing,
+                isLiveMatch,
+                Status: match.Status
+              });
+              
+              // If it's a live match with rain delay, restart contest joining
+              if (isLiveMatch && isRainDelay) {
+                console.log(`🌧️ LiveMatches Rain delay detected for live match: ${match.Team1vsTeam2}`);
+                // Restart contest joining for this match
+                if (match.teams && match.teams.length > 0) {
+                  const contests = match.teams.map(contest => ({
+                    ...contest,
+                    matchId: match._id,
+                    matchName: match.Team1vsTeam2
+                  }));
+                  dispatch(getContestList(contests, match._id));
+                }
+                if (match.scorecard && match.scorecard.length > 0) {
+                  const scoreboardContests = match.scorecard.map(contest => ({
+                    ...contest,
+                    matchId: match._id,
+                    matchName: match.Team1vsTeam2
+                  }));
+                  dispatch(getContestList(scoreboardContests, match._id));
+                }
+              }
+              
+              // If play is ongoing, log the status
+              if (isLiveMatch && isPlayOngoing) {
+                console.log(`▶️ LiveMatches Play ongoing for live match: ${match.Team1vsTeam2}`);
+              }
+            });
+            
+            console.log('LiveMatches WebSocket upcoming matches:', {
+              total: parseData.upcoming.length,
+              filtered: filteredUpcoming.length,
+              removed: parseData.upcoming.length - filteredUpcoming.length,
+              sampleMatch: parseData.upcoming[0]
+            });
+            
+            dispatch(setUpComingMatches(filteredUpcoming));
             
             const contestUpdates = [];
-            parseData.upcoming.forEach(match => {
+            filteredUpcoming.forEach(match => {
               if (match.teams && match.teams.length > 0) {
                 const contests = match.teams.map(contest => ({
                   ...contest,
