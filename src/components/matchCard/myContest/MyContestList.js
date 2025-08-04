@@ -93,20 +93,17 @@ const MyContestList = ({ item, isScoreboard = false }) => {
                                 item?.ContestType === 'ScoreCard' || 
                                 item?.contest_type === 'ScoreCard';
     
-    let contestCategoryId = item?.contest_category_id;
+    // Use the specific contest's contest_category_id, not a generic one
+    let contestCategoryId = item?.contest_category_id || item?.data?.contest_category_id;
     const matchId = matchDetails?._id;
     
-    // Extract contest_category_id from the correct array based on contest type
-    if (matchDetails) {
-      if (isScoreboardContest && matchDetails.scorecard && matchDetails.scorecard.length > 0) {
-        // For scoreboard contests, use shadow_contest_id
-        contestCategoryId = matchDetails.scorecard[0].shadow_contest_id;
-        console.log('🎯 MyContestList: Using scoreboard shadow_contest_id:', contestCategoryId);
-      } else if (!isScoreboardContest && matchDetails.teams && matchDetails.teams.length > 0) {
-        contestCategoryId = matchDetails.teams[0].contest_category_id;
-        console.log('🎯 MyContestList: Using teams contest_category_id:', contestCategoryId);
-      }
-    }
+    console.log('🎯 MyContestList fetchRankData: Contest category ID extraction:', {
+      itemContestCategoryId: item?.contest_category_id,
+      itemDataContestCategoryId: item?.data?.contest_category_id,
+      finalContestCategoryId: contestCategoryId,
+      itemId: item?._id,
+      isScoreboardContest
+    });
     
     if (!contestCategoryId || !matchId) {
       console.log('Missing contestCategoryId or matchId for rank data fetch in MyContestList:', {
@@ -162,43 +159,30 @@ const MyContestList = ({ item, isScoreboard = false }) => {
   // Use fetched rank data or fallback
   const finalRankData = rankData.length > 0 ? rankData : [{ Price: winningAmount }];
   
-  console.log('🎯 Extracted contest data:', {
-    winningAmount,
-    entryFee,
-    contestSize,
-    joined,
-    percentage,
-    rankData: finalRankData
-  });
-  
-  // Debug logging for UI display values
-  console.log('🎯 UI Display values:', {
-    winningAmountDisplay: winningAmount ? numberWithCommas(winningAmount) : 0,
-    contestSizeDisplay: numberWithCommas(contestSize),
-    entryFeeDisplay: entryFee ? entryFee : 0,
-    winningAmountType: typeof winningAmount,
-    contestSizeType: typeof contestSize,
-    entryFeeType: typeof entryFee
-  });
   const onNavigate = () => {
     // Determine contest type and extract correct contest_category_id
     const isScoreboardContest = isScoreboard || 
                                 item?.ContestType === 'ScoreCard' || 
                                 item?.contest_type === 'ScoreCard';
     
-    let correctContestCategoryId = item?.contest_category_id;
+    // Use the specific contest's contest_category_id, not a generic one
+    let correctContestCategoryId = item?.contest_category_id || item?.data?.contest_category_id;
     
-    // Extract contest_category_id from the correct array based on contest type
-    if (matchDetails) {
-      if (isScoreboardContest && matchDetails.scorecard && matchDetails.scorecard.length > 0) {
-        // For scoreboard contests, use shadow_contest_id
-        correctContestCategoryId = matchDetails.scorecard[0].shadow_contest_id;
-        console.log('🎯 MyContestList Navigation: Using scoreboard shadow_contest_id:', correctContestCategoryId);
-      } else if (!isScoreboardContest && matchDetails.teams && matchDetails.teams.length > 0) {
-        correctContestCategoryId = matchDetails.teams[0].contest_category_id;
-        console.log('🎯 MyContestList Navigation: Using teams contest_category_id:', correctContestCategoryId);
-      }
-    }
+    console.log('🎯 MyContestList Navigation: Contest category ID extraction:', {
+      itemContestCategoryId: item?.contest_category_id,
+      itemDataContestCategoryId: item?.data?.contest_category_id,
+      finalContestCategoryId: correctContestCategoryId,
+      itemId: item?._id,
+      isScoreboardContest
+    });
+    
+    console.log('🎯 MyContestList Navigation: Final navigation params:', {
+      matchId: matchDetails?._id,
+      contestCategoryId: correctContestCategoryId,
+      isScoreboardContest,
+      matchDetailsId: matchDetails?._id,
+      matchDetailsMatchId: matchDetails?.MatchId
+    });
 
     NavigationService.navigate(LEADERBOARD, {
       details: {
@@ -229,6 +213,7 @@ const MyContestList = ({ item, isScoreboard = false }) => {
         ...matchDetails,
         MatchId: matchDetails?.MatchId || matchDetails?._id 
       },
+      matchId: matchDetails?._id, // Pass the correct match ID from main match data
       Rankdata: finalRankData,
       shadow_contest_id: item?.contest_details?.shadow_contest_id || item?.shadow_contest_id,
       isScoreboard: isScoreboard,
@@ -384,7 +369,7 @@ const MyContestList = ({ item, isScoreboard = false }) => {
               <AppText
                 style={{ color: '#37CC4C', fontSize: 10 }}
                 weight={LATO_BOLD}>
-                {contestSize - joined}{' '}
+                {Math.max(0, contestSize - joined)}{' '}
                 spots left
               </AppText>
             </View>

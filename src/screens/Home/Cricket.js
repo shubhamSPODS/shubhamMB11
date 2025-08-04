@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   ScrollView,
@@ -179,14 +180,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
               const isPlayOngoing = match.game_state === 3;
               const isLiveMatch = match.Status === 'Live' || match.Status === 'live';
               
-              console.log(`🎮 Game State for ${match.Team1vsTeam2}:`, {
-                game_state: match.game_state,
-                game_state_str: match.game_state_str,
-                isRainDelay,
-                isPlayOngoing,
-                isLiveMatch,
-                Status: match.Status
-              });
               
               // If it's a live match with rain delay, restart contest joining
               if (isLiveMatch && isRainDelay) {
@@ -285,6 +278,22 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       setRefreshingTwo(false);
     }
   }, [_id, dispatch, setRefreshingTwo]);
+
+  // Refresh contest data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔄 Cricket screen focused - refreshing contest data');
+      // Refresh contest data for all matches
+      upcomingMatches.forEach(match => {
+        if (match.teams && match.teams.length > 0) {
+          dispatch(getContestList(match.teams, match._id));
+        }
+        if (match.scorecard && match.scorecard.length > 0) {
+          dispatch(getContestList(match.scorecard, match._id));
+        }
+      });
+    }, [upcomingMatches, dispatch])
+  );
 
   const onRefresh = useCallback(() => {
     fetchData(true); 

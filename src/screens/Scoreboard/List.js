@@ -62,11 +62,13 @@ const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress }) => {
   const currentMatch = upcomingMatches?.find(match => 
     match._id === contestData?._id || 
     match.MatchId === contestData?.MatchId ||
-    match.match_id === contestData?.match_id
+    match.match_id === contestData?.match_id ||
+    match._id === item?.match_id ||
+    match.MatchId === item?.match_id
   );
   
   // Try to get match type from multiple sources, prioritizing exact match type data
-  const matchType = item.match_details?.Type || 
+  let matchType = item.match_details?.Type || 
                    item.matchDetails?.Type || 
                    item.Type || 
                    item.match_details?.match_type ||
@@ -77,19 +79,24 @@ const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress }) => {
                    contestData?.contestAllInfo?.Type ||
                    contestData?.contestAllInfo?.match_type ||
                    currentMatch?.Type ||
-                   currentMatch?.match_type ||
-                   // Only use SeriesName as fallback if no exact match type is found
-                   (contestData?.SeriesName && !contestData?.Type && !contestData?.match_type && !contestData?.contestAllInfo?.Type && !contestData?.contestAllInfo?.match_type) ?
-                     (contestData.SeriesName.includes('T10') ? 'T10' :
-                      contestData.SeriesName.includes('T20') ? 'T20' :
-                      contestData.SeriesName.includes('T50') ? 'T50' :
-                      contestData.SeriesName.includes('ODI') ? 'ODI' : null) :
-                   (currentMatch?.SeriesName && !currentMatch?.Type && !currentMatch?.match_type) ?
-                     (currentMatch.SeriesName.includes('T10') ? 'T10' :
-                      currentMatch.SeriesName.includes('T20') ? 'T20' :
-                      currentMatch.SeriesName.includes('T50') ? 'T50' :
-                      currentMatch.SeriesName.includes('ODI') ? 'ODI' : null) :
-                   'T20';
+                   currentMatch?.match_type;
+  
+  // If no match type found, try to extract from series name
+  if (!matchType) {
+    const seriesName = contestData?.SeriesName || currentMatch?.SeriesName || item?.SeriesName;
+    if (seriesName) {
+      if (seriesName.includes('T10')) matchType = 'T10';
+      else if (seriesName.includes('T20')) matchType = 'T20';
+      else if (seriesName.includes('T50')) matchType = 'T50';
+      else if (seriesName.includes('ODI')) matchType = 'ODI';
+      else if (seriesName.includes('Test')) matchType = 'Test';
+    }
+  }
+  
+  // Fallback to T20 if still no match type found
+  if (!matchType) {
+    matchType = 'T20';
+  }
   
   console.log('ScoreboardCard item:', {
     id: item._id,
@@ -104,7 +111,11 @@ const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress }) => {
     contestDataContestAllInfo: contestData?.contestAllInfo,
     currentMatch: currentMatch,
     currentMatchType: currentMatch?.Type,
-    currentMatchSeriesName: currentMatch?.SeriesName
+    currentMatchSeriesName: currentMatch?.SeriesName,
+    itemMatchId: item?.match_id,
+    contestDataId: contestData?._id,
+    contestDataMatchId: contestData?.MatchId,
+    upcomingMatchesLength: upcomingMatches?.length
   });
   
   return (
@@ -159,10 +170,13 @@ const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress }) => {
   );
 };
 
-const List = ({ matchIdProp }) => {
+const List = ({ matchIdProp, contestData: contestDataProp }) => {
   const route = useRoute();
   const contestData = useSelector(state => state?.match?.contestData);
   const upcomingMatches = useSelector(state => state?.match?.upcomingMatches);
+  
+  // Use contestData from props if available, otherwise use from Redux
+  const effectiveContestData = contestDataProp || contestData;
   
   const [scoreboards, setScoreboards] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -170,16 +184,20 @@ const List = ({ matchIdProp }) => {
   const isFetchingRef = useRef(false);
   const isMountedRef = useRef(false);
 
+  // Extract match ID from multiple sources with priority order
   const matchId = matchIdProp || 
                  route.params?.matchId || 
                  route.params?.matchDetails?.MatchId || 
-                 contestData?._id || 
-                 contestData?.MatchId ||
-                 contestData?.match_id;
+                 effectiveContestData?._id || 
+                 effectiveContestData?.MatchId ||
+                 effectiveContestData?.match_id;
 
   console.log('=== SCOREBOARD LIST DEBUG ===');
+  console.log('Props matchIdProp:', matchIdProp);
+  console.log('Props contestDataProp:', contestDataProp);
+  console.log('Redux contestData:', contestData);
+  console.log('Effective contestData:', effectiveContestData);
   console.log('Route params:', JSON.stringify(route.params, null, 2));
-  console.log('Contest data:', JSON.stringify(contestData, null, 2));
   console.log('Extracted matchId:', matchId);
   console.log('Current isFetching state:', isFetchingRef.current);
   console.log('Component mounted:', isMountedRef.current);
@@ -322,10 +340,24 @@ const List = ({ matchIdProp }) => {
   };
 
   const handleScoreboardPress = (scoreboard) => {
+    console.log('🎯 ScoreboardList: Navigating to Details with data:', {
+      scoreboardId: scoreboard._id,
+      hasPredictions: !!scoreboard.predictions,
+      predictionsLength: scoreboard.predictions?.length,
+      contestData: effectiveContestData ? {
+        _id: effectiveContestData._id,
+        MatchId: effectiveContestData.MatchId,
+        Type: effectiveContestData.Type,
+        match_type: effectiveContestData.match_type,
+        SeriesName: effectiveContestData.SeriesName
+      } : null,
+      upcomingMatchesLength: upcomingMatches?.length
+    });
+    
     NavigationService.navigate('Scoreboard/Details', {
       scoreboardData: scoreboard,
       allPredictions: scoreboard.predictions,
-      contestData: contestData,
+      contestData: effectiveContestData,
       upcomingMatches: upcomingMatches
     });
   };
@@ -344,7 +376,7 @@ const List = ({ matchIdProp }) => {
             renderItem={({ item }) => (
               <ScoreboardCard
                 item={item}
-                contestData={contestData}
+                contestData={effectiveContestData}
                 upcomingMatches={upcomingMatches}
                 onPress={() => handleScoreboardPress(item)}
               />

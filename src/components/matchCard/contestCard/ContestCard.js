@@ -137,18 +137,9 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
                                 contestDetails?.contest_type === 'ScoreCard';
     
     // Extract contest_category_id from the correct array based on contest type
-    let correctContestCategoryId = details?.contest_category_id;
+    // Use the specific contest's contest_category_id, not a generic one
+    let correctContestCategoryId = details?.contest_category_id || details?.data?.contest_category_id;
     
-    if (contestData) {
-      if (isScoreboardContest && contestData.scorecard && contestData.scorecard.length > 0) {
-        // For scoreboard contests, use shadow_contest_id instead of contest_category_id
-        correctContestCategoryId = contestData.scorecard[0].shadow_contest_id;
-        console.log('🎯 Using scoreboard shadow_contest_id:', correctContestCategoryId);
-      } else if (!isScoreboardContest && contestData.teams && contestData.teams.length > 0) {
-        correctContestCategoryId = contestData.teams[0].contest_category_id;
-        console.log('🎯 Using teams contest_category_id:', correctContestCategoryId);
-      }
-    }
     
     console.log('Navigating to LEADERBOARD with:', {
       contestDetails: contestDetails,
@@ -227,6 +218,13 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
       kycVerified: contestData?.kycDetails?.adhar_verified
     });
     
+    // Check if match is live and lineup is not out
+    if (contestData?.Status === 'Live' && contestData?.game_state !== 2) {
+      console.log('🚫 Blocking contest join - match is Live but lineup is not out');
+      toastAlert.showToastError('Cannot join contest while match is live');
+      return;
+    }
+    
     if (contestData?.kycDetails?.adhar_verified == 0) {
       NavigationService.navigate(VERIFY_ADHAAR_SCREEN)
     } else 
@@ -252,40 +250,13 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
       });
       
       if (isScoreboardContest) {
-        console.log('🎯 Joining scoreboard contest - checking if user has scoreboards');
+        console.log('🎯 Joining scoreboard contest - opening SelectScoreboard screen directly');
         dispatch(setSelectedMatch(details ? { ...details } : {}));
         
-        // Check if user has any scoreboards for this match
-        try {
-          const matchId = contestData?._id;
-          if (!matchId) {
-            console.log('⚠️ No match ID available for scoreboard check');
-            return;
-          }
-          
-          const response = await appOperation.customer.getUserScoreCard(matchId);
-          console.log('🔍 Scoreboard check response:', response);
-          
-          if (response?.success && response?.data && response.data.length > 0) {
-            // User has scoreboards, open SelectScoreboard sheet
-            console.log('✅ User has scoreboards - opening SelectScoreboard sheet');
-            selectScoreboard?.current?.open();
-          } else {
-            // User has no scoreboards, navigate directly to Create Scoreboard
-            console.log('📝 User has no scoreboards - navigating to Create Scoreboard');
-            NavigationService.navigate('Scoreboard/Create', {
-              ...contestData,
-              isFromMyMatch: true,
-            });
-          }
-        } catch (error) {
-          console.error('Error checking scoreboards:', error);
-          // On error, navigate to Create Scoreboard as fallback
-          NavigationService.navigate('Scoreboard/Create', {
-            ...contestData,
-            isFromMyMatch: true,
-          });
-        }
+        // For scoreboard contests, always open the SelectScoreboard screen
+        // The SelectScoreboard component will handle checking if user has scoreboards
+        console.log('✅ Opening SelectScoreboard sheet for scoreboard contest');
+        selectScoreboard?.current?.open();
         return;
       }
       
@@ -508,6 +479,7 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
         closeOnDragDown={false}
         openDuration={100}
         height={Dimensions.get('window').height}
+        onOpen={() => console.log('🎯 SelectScoreboard RBSheet opened')}
         customStyles={{
           container: {
             backgroundColor: NewColor.linerWhite,

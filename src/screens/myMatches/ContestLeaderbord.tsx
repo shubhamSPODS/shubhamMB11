@@ -55,6 +55,8 @@ const ContestLeaderbord = () => {
     contestDataId,
     effectiveMatchId,
     routeParams: route.params,
+    routeParamsMatchId: route.params?.matchId,
+    routeParamsDetailsMatchId: route.params?.details?.matchId,
   });
 
   // Detect Scoreboard or ScoreCard contest
@@ -77,7 +79,7 @@ const ContestLeaderbord = () => {
   // For ScoreCard/Scoreboard, use shadow_contest_id from scorecard array
   const scorecardData = contestData?.scorecard?.[0];
   const scorecardShadowId = scorecardData?.shadow_contest_id;
-  const scorecardMatchId = contestData?._id;
+  const scorecardMatchId = contestData?._id; // Use main match _id, not scorecard contest _id
 
   console.log('[CONTEST LEADERBOARD DEBUG] Scorecard data:', {
     scorecardShadowId,
@@ -95,7 +97,8 @@ const ContestLeaderbord = () => {
 
   // Extract match ID from multiple sources
   const matchId = isScoreboardContest
-    ? scorecardMatchId
+    ? route.params?.matchId || // Prioritize matchId from route params
+      contestData?._id // Fallback to contestData _id
     : route.params?.matchId ||
       route.params?.details?.matchId ||
       effectiveMatchId ||
@@ -105,6 +108,8 @@ const ContestLeaderbord = () => {
     contestCategoryId,
     matchId,
     isScoreboardContest,
+    mainMatchId: contestData?._id,
+    matchIdField: contestData?.MatchId,
   });
 
   // Log important data for debugging
@@ -133,7 +138,6 @@ const ContestLeaderbord = () => {
       isScoreboardContest,
       contestCategoryId,
       matchId,
-      scorecardCategoryId,
       scorecardMatchId,
       contestData,
       activeTab,

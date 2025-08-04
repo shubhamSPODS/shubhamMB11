@@ -49,7 +49,6 @@ const SelectScoreboard = ({
       setLoading(true);
       const matchId = matchDetails?._id || contestData?._id;
       
-      console.log('🔍 Fetching scoreboards for matchId:', matchId);
       
       if (!matchId) {
         toastAlert.showToastError('Match ID not found');
@@ -60,31 +59,20 @@ const SelectScoreboard = ({
       let response;
       try {
         response = await appOperation.customer.getUserScoreCard(matchId);
-        console.log('🔍 getUserScoreCard Response:', response);
       } catch (error) {
-        console.log('🔍 getUserScoreCard failed, trying getMyScoreboardContests');
         try {
           response = await appOperation.customer.getMyScoreboardContests(matchId);
-          console.log('🔍 getMyScoreboardContests Response:', response);
         } catch (secondError) {
-          console.log('🔍 Both APIs failed:', secondError);
           response = { success: false, data: [] };
         }
       }
-      
-      console.log('🔍 SelectScoreboard Final API Response:', {
-        success: response?.success,
-        data: response?.data,
-        dataLength: response?.data?.length,
-        fullResponse: response
-      });
+
       
       if (response?.success && response?.data) {
         setScoreboards(response.data);
         
         // If no scoreboards found, redirect to create screen
         if (response.data.length === 0) {
-          console.log('🎯 No scoreboards found - redirecting to create screen');
           setTimeout(() => {
             onClose();
             NavigationService.navigate('Scoreboard/Create', {
@@ -92,10 +80,11 @@ const SelectScoreboard = ({
               isFromMyMatch: true,
             });
           }, 100);
+        } else {
+          console.log('🎯 Scoreboards loaded successfully:', response.data.length);
         }
       } else {
         console.log('🎯 API failed or no data - redirecting to create screen');
-        // Removed toast message to avoid showing "No score card found for this match"
         setScoreboards([]);
         
         // If failed to load, also redirect to create screen

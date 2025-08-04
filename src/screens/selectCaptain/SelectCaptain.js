@@ -294,7 +294,6 @@ const SelectCaptain = () => {
                 <AppText
                   weight={POPPINS_SEMI_BOLD}
                   color={BROWNYELLOW}
-                  type
                   type={TEN}>
                   VC
                 </AppText>
@@ -333,7 +332,8 @@ const SelectCaptain = () => {
         setIsLoading(true);
         const res = await appOperation.customer.editTeam({
           match_id: route?.params?.matchDetails?._id?.toString(),
-          matchid: route?.params?.matchDetails?.MatchId?.toString(),
+          matchid: route?.params?.matchDetails?.matchNo?.toString(),
+          match_contest_category_id: selectedMatch?._id,
           name: route?.params?.team_name,
           caption: captainId,
           vice_caption: viceCaptainId,
@@ -363,7 +363,8 @@ const SelectCaptain = () => {
 
         const res = await appOperation.customer.saveTeam({
           match_id: contestData._id?.toString(),
-          matchid: contestData?.MatchId?.toString(),
+          matchid: contestData?.matchNo?.toString(),
+          match_contest_category_id: selectedMatch?._id,
           name: `T${myTeam?.length + 1}`,
           caption: captainId,
           vice_caption: viceCaptainId,

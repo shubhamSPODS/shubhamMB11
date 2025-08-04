@@ -20,12 +20,16 @@ export default appOperation => ({
   getSeriesData: () =>
     appOperation.post('TeamData/Serieslist', {}, CUSTOMER_TYPE),
   getContestList: data => {
-    // console.log('getContestList called with data:', data);
     return appOperation.post(
       `match/contests/${data?.matchid}`,
       data?.object,
       CUSTOMER_TYPE,
-    );
+    ).then(response => {
+      return response;
+    }).catch(error => {
+      console.error('🎯 getContestList error:', error);
+      throw error;
+    });
   },
   getContestCategoryDetails: data => {
     console.log('getContestCategoryDetails called with data:', data);
@@ -44,12 +48,6 @@ export default appOperation => ({
       undefined,
       CUSTOMER_TYPE,
     ).then(response => {
-      console.log('=== CONTEST DETAILS API RESPONSE ===');
-      console.log('Request params:', { matchId, contestCategoryId });
-      console.log('Response success:', response?.success);
-      console.log('Response code:', response?.code);
-      console.log('Response message:', response?.message);
-      console.log('Data array length:', response?.data?.length);
       
       if (response?.data?.length > 0) {
         const contestDetails = response.data.find(
@@ -77,8 +75,6 @@ export default appOperation => ({
           console.log('Contest not found in response for ID:', contestCategoryId);
         }
       }
-      
-      console.log('=== END CONTEST DETAILS API RESPONSE ===');
       return response;
     }).catch(error => {
       console.error('Error in getContestDetailsWithRankData:', error);
@@ -162,15 +158,40 @@ export default appOperation => ({
       undefined,
       CUSTOMER_TYPE,
     ),
-  getMyJoinedContest: id =>
-    appOperation.get(
+  getMyJoinedContest: id => {
+    console.log('🎯 getMyJoinedContest API called with id:', id);
+    return appOperation.get(
       `match/my-contests/${id}`,
       undefined,
       undefined,
       CUSTOMER_TYPE,
-    ),
-  saveTeam: data => appOperation.post(`match/create-team`, data, CUSTOMER_TYPE),
-  editTeam: data => appOperation.put(`match/update-team`, data, CUSTOMER_TYPE),
+    ).then(response => {
+      console.log('🎯 getMyJoinedContest API response:', response);
+      return response;
+    }).catch(error => {
+      throw error;
+    });
+  },
+  saveTeam: data => {
+    console.log('🎯 saveTeam API called with data:', data);
+    return appOperation.post(`match/create-team`, data, CUSTOMER_TYPE).then(response => {
+      console.log('🎯 saveTeam API response:', response);
+      return response;
+    }).catch(error => {
+      console.error('🎯 saveTeam API error:', error);
+      throw error;
+    });
+  },
+  editTeam: data => {
+    console.log('🎯 editTeam API called with data:', data);
+    return appOperation.put(`match/update-team`, data, CUSTOMER_TYPE).then(response => {
+      console.log('🎯 editTeam API response:', response);
+      return response;
+    }).catch(error => {
+      console.error('🎯 editTeam API error:', error);
+      throw error;
+    });
+  },
   refresh_token: () =>
     appOperation.get(`user/refresh-token`, undefined, undefined, CUSTOMER_TYPE),
   fcm_token: data =>

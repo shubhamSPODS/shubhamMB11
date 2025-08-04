@@ -15,7 +15,7 @@ import {
   WHITE,
 } from '../../common/AppText';
 import NavigationService from '../../navigation/NavigationService';
-import { MY_CONTEST } from '../../navigation/routes';
+import { MY_CONTEST, SCOREBOARD_MATCH } from '../../navigation/routes';
 import { nameSlice, nameSliceTwo, toastAlert } from '../../helper/utility';
 import { useDispatch, useSelector } from 'react-redux';
 import { setContestData } from '../../slices/matchSlice';
@@ -105,14 +105,39 @@ const Matchsection = ({
     setContestDetails(contest);
   }, [data]);
   const onNavigateContest = () => {
-    if (details?.contest_details?.length == 0) {
-      return toastAlert.showToastError('There Are No Contest For This Match');
-    }
-    dispatch(setContestData({ ...details }));
-    if (isPastTime) {
-      NavigationService.navigate(MY_CONTEST, { isFromMyMatch: true, matchType, initialTabIndex });
+    if (matchType === 'scoreboard') {
+      // For scoreboard matches, navigate to scorecard
+      const joinedScorecard = details?.scorecard?.find(scorecard => scorecard.joined > 0);
+      const contestCategoryId = joinedScorecard?.contest_category_id || 
+                               details?.scorecard?.[0]?.contest_category_id ||
+                               "65ddb68ce2ddb20749839785";
+      
+      console.log('🎯 Matchsection: Navigating to scoreboard with details:', {
+        matchId: details._id,
+        contestCategoryId,
+        hasScorecard: !!details?.scorecard,
+        scorecardLength: details?.scorecard?.length
+      });
+      
+      dispatch(setContestData({ ...details }));
+      NavigationService.navigate(SCOREBOARD_MATCH, {
+        matchDetails: details,
+        matchType: 'scoreboard',
+        details: {
+          contest_category_id: contestCategoryId
+        }
+      });
     } else {
-      NavigationService.navigate(MY_CONTEST, { isFromMyMatch: false, matchType, initialTabIndex });
+      // For teams matches, use existing logic
+      if (details?.contest_details?.length == 0) {
+        return toastAlert.showToastError('There Are No Contest For This Match');
+      }
+      dispatch(setContestData({ ...details }));
+      if (isPastTime) {
+        NavigationService.navigate(MY_CONTEST, { isFromMyMatch: true, matchType, initialTabIndex });
+      } else {
+        NavigationService.navigate(MY_CONTEST, { isFromMyMatch: false, matchType, initialTabIndex });
+      }
     }
   };
 

@@ -95,11 +95,14 @@ const MyContest = () => {
   const route = useRoute();
   const filterSheet = useRef();
   const AleartLive = useRef();
+  
   const isLoading = useSelector(state => state.auth.isLoading);
   const contestData = useSelector(state => state?.match?.contestData);
   const contestList = useSelector(state => state?.match?.contestList);
   const myTeam = useSelector(state => state?.match?.myTeams);
   const myContest = useSelector(state => state?.match?.myContest);
+  
+
   const SortbyFilterData = useSelector(state => state?.match?.SortbyFilterData);
   const transformedData = transformData(contestList?.data);
   const MyCreateContestData = useSelector(
@@ -119,10 +122,15 @@ const MyContest = () => {
   const [activeTab, setActiveTab] = useState(1);
   const [matchActiveTab, setMatchActiveTab] = useState('');
   const [isSheet, setIsSheet] = useState(false);
-  const {matchType = 'teams', matchId} = route.params || {};
+  const {matchType = 'teams', matchId, matchDetails, details: routeDetails} = route.params || {};
   const layout = useWindowDimensions();
 
   const onRefresh = useCallback(async () => {
+    // If we have matchDetails from scoreboard navigation, set it as contest data
+    if (matchDetails && matchType === 'scoreboard') {
+      dispatch(setContestData(matchDetails));
+    }
+    
     let outputObject = {};
     dispatch(getContestList(outputObject, effectiveMatchId));
     dispatch(getMyTeam(effectiveMatchId));
@@ -140,7 +148,7 @@ const MyContest = () => {
         console.error('Error fetching scoreboard contests:', error);
       }
     }
-  }, [effectiveMatchId, SeriesId, dispatch, matchType]);
+  }, [effectiveMatchId, SeriesId, dispatch, matchType, matchDetails]);
   
   const DATA = [
     {
@@ -177,18 +185,17 @@ const MyContest = () => {
   }, [activeTab, matchType]);
   const {_id, isFromMyMatch, match_id, isHome, SeriesId} = contestData ?? '';
   const matchIdFromParams = route.params?.matchId;
-  const effectiveMatchId = _id || matchIdFromParams;
+  const matchIdFromMatchDetails = matchDetails?._id;
+  const effectiveMatchId = _id || matchIdFromParams || matchIdFromMatchDetails;
   
-  console.log('🎯 Match ID Debug:', {
-    contestDataId: _id,
-    matchIdFromParams,
-    effectiveMatchId,
-    contestData: contestData,
-    routeParams: route.params
-  });
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
+        // If we have matchDetails from scoreboard navigation, set it as contest data
+        if (matchDetails && matchType === 'scoreboard') {
+          dispatch(setContestData(matchDetails));
+        }
+        
         let outputObject = {};
         dispatch(getContestList(outputObject, effectiveMatchId));
         dispatch(getMyTeam(effectiveMatchId));
@@ -209,11 +216,20 @@ const MyContest = () => {
       };
       
       fetchData();
-    }, [effectiveMatchId, SeriesId, dispatch, matchType]),
+    }, [effectiveMatchId, SeriesId, dispatch, matchType, matchDetails]),
   );
   useEffect(() => {
     dispatch(getKycDetails());
   }, []);
+
+  // Auto-refresh contest data when user is redirected to Contest tab after joining
+  useEffect(() => {
+    if (index === 0) { // Contest tab (FirstRoute)
+      console.log('🔄 Contest tab active - refreshing contest data');
+      let outputObject = {};
+      dispatch(getContestList(outputObject, effectiveMatchId));
+    }
+  }, [index, effectiveMatchId, dispatch]);
 
   const renderItem = ({item}) => {
     return (
@@ -250,6 +266,12 @@ const MyContest = () => {
 
   const renderMyContest = ({item}) => {
     console.log('🎯 renderMyContest called with item:', item);
+    console.log('🎯 renderMyContest item details:', {
+      _id: item?._id,
+      contest_category_id: item?.contest_category_id,
+      joined: item?.joined,
+      teamDetails: item?.teamDetails?.length || 0
+    });
     return <MyContestList item={item} matchDetails={route?.params} />;
   };
 
@@ -413,6 +435,17 @@ const MyContest = () => {
       }
     }, [matchType, contestData, allContestList, contestList, transformedData]);
 
+    // Create a unique key that changes when contest data is updated
+    const contestDataKey = useMemo(() => {
+      const contestListData = contestList?.data || [];
+      const dataHash = JSON.stringify(contestListData.map(cat => ({
+        id: cat._id,
+        dataLength: cat.data?.length,
+        joinedCount: cat.data?.reduce((sum, contest) => sum + (contest.joined || 0), 0)
+      })));
+      return `contest-${effectiveMatchId}-${dataHash}`;
+    }, [contestList?.data, effectiveMatchId]);
+
     return (
       <View style={flexOne}>
         {MyCreateContestData?.length > 0 && (
@@ -430,6 +463,7 @@ const MyContest = () => {
           </View>
         )}
         <FlatList
+          key={contestDataKey}
           data={contestDataForList}
           renderItem={renderContest}
           showsVerticalScrollIndicator={false}
@@ -446,6 +480,48 @@ const MyContest = () => {
 
   const SecondRoute = React.useCallback(() => {
     console.log('🎯 SecondRoute rendering - matchType:', matchType);
+    console.log('🎯 SecondRoute myContest data:', {
+      myContestLength: myContest?.length || 0,
+      myContestData: myContest,
+      isFromMyMatch: route?.params?.isFromMyMatch
+    });
+    
+    // Alternative approach: Get all contests and filter for joined ones
+    const allContests = contestData?.teams || [];
+    
+    // Map correct contest_category_id from API response to each contest
+    const mappedContests = allContests.map(contest => {
+      // Find the matching contest in the API response to get the correct contest_category_id
+      const apiContest = contestList?.data?.find(apiContest => 
+        apiContest.data?.some(contestData => 
+          contestData._id === contest._id || 
+          contestData.shadow_contest_id === contest.shadow_contest_id
+        )
+      );
+      
+      const correctContestData = apiContest?.data?.find(contestData => 
+        contestData._id === contest._id || 
+        contestData.shadow_contest_id === contest.shadow_contest_id
+      );
+      
+      if (correctContestData?.contest_category_id) {
+        console.log('🎯 Mapping contest_category_id:', {
+          contestId: contest._id,
+          oldContestCategoryId: contest.contest_category_id,
+          newContestCategoryId: correctContestData.contest_category_id
+        });
+        
+        return {
+          ...contest,
+          contest_category_id: correctContestData.contest_category_id
+        };
+      }
+      
+      return contest;
+    });
+    
+    const joinedContests = mappedContests.filter(contest => contest.joined > 0);
+    console.log('🎯 Alternative approach - all contests:', allContests.length, 'joined contests:', joinedContests.length);
     
     if (matchType === 'scoreboard') {
       console.log('📋 My scoreboard contests data:', myScoreboardContests);
@@ -562,67 +638,76 @@ const MyContest = () => {
       );
     }
 
-    return (
-      <>
-        {route?.params?.isFromMyMatch == true ? (
-          <View
-            style={{
-              width: Screen.Width - 10,
-              alignSelf: 'center',
-              marginTop: 5,
-            }}>
-            <FlatList
-              data={myContest}
-              showsVerticalScrollIndicator={false}
-              renderItem={renderMyContest}
-              ListHeaderComponent={renderMyCreateContest}
-              ListEmptyComponent={() => {
-                return (
-                  <View style={{marginTop: 30}}>
-                    <EmptyComponent />
-                  </View>
-                );
-              }}
-              keyExtractor={(item, index) => index.toString()}
-              refreshControl={
-                <RefreshControl
-                  refreshing={false}
-                  onRefresh={() => handleRefresh('my contest')}
+            // Use alternative data source if API returns only one contest
+        const contestDataToShow = myContest?.length <= 1 && joinedContests?.length > 0 ? joinedContests : myContest;
+        console.log('🎯 Using contest data:', {
+          myContestLength: myContest?.length || 0,
+          joinedContestsLength: joinedContests?.length || 0,
+          finalDataLength: contestDataToShow?.length || 0,
+          usingAlternative: myContest?.length <= 1 && joinedContests?.length > 0
+        });
+        
+        return (
+          <>
+            {route?.params?.isFromMyMatch == true ? (
+              <View
+                style={{
+                  width: Screen.Width - 10,
+                  alignSelf: 'center',
+                  marginTop: 5,
+                }}>
+                <FlatList
+                  data={contestDataToShow}
+                  showsVerticalScrollIndicator={false}
+                  renderItem={renderMyContest}
+                  ListHeaderComponent={renderMyCreateContest}
+                  ListEmptyComponent={() => {
+                    return (
+                      <View style={{marginTop: 30}}>
+                        <EmptyComponent />
+                      </View>
+                    );
+                  }}
+                  keyExtractor={(item, index) => item?._id || index.toString()}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={false}
+                      onRefresh={() => handleRefresh('my contest')}
+                    />
+                  }
                 />
-              }
-            />
-          </View>
-        ) : (
-          <View
-            style={{
-              width: Screen.Width - 10,
-              alignSelf: 'center',
-              marginTop: 5,
-            }}>
-            <FlatList
-              data={myContest}
-              showsVerticalScrollIndicator={false}
-              renderItem={renderMyContest}
-              ListHeaderComponent={renderMyCreateContest}
-              ListEmptyComponent={() => {
-                return (
-                  <View style={{marginTop: 30}}>
-                    <EmptyComponent />
-                  </View>
-                );
-              }}
-              keyExtractor={(item, index) => index.toString()}
-              refreshControl={
-                <RefreshControl
-                  refreshing={false}
-                  onRefresh={() => handleRefresh('my contest')}
+              </View>
+            ) : (
+              <View
+                style={{
+                  width: Screen.Width - 10,
+                  alignSelf: 'center',
+                  marginTop: 5,
+                }}>
+                <FlatList
+                  data={contestDataToShow}
+                  showsVerticalScrollIndicator={false}
+                  renderItem={renderMyContest}
+                  ListHeaderComponent={renderMyCreateContest}
+                  ListEmptyComponent={() => {
+                    return (
+                      <View style={{marginTop: 30}}>
+                        <EmptyComponent />
+                      </View>
+                    );
+                  }}
+                  keyExtractor={(item, index) => item?._id || index.toString()}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={false}
+                      onRefresh={() => handleRefresh('my contest')}
+                    />
+                  }
                 />
-              }
-            />
-          </View>
-        )}
-      </>
-    );
+              </View>
+            )}
+          </>
+        );
   }, [matchType, myContest, renderMyContest, renderMyCreateContest, route?.params?.isFromMyMatch, handleRefresh, myScoreboardContests, contestData, isLoading, onRefresh]);
 
   const ThirdRoute = React.useCallback(() => {
@@ -675,8 +760,12 @@ const MyContest = () => {
       );
     } else {
       return React.useMemo(() => (
-        <ScoreboardList key={`scoreboard-${_id}`} matchIdProp={_id} />
-      ), [_id]);
+        <ScoreboardList 
+          key={`scoreboard-${_id}`} 
+          matchIdProp={_id} 
+          contestData={contestData}
+        />
+      ), [_id, contestData]);
     }
   }, [matchType, myTeam, renderMyTeam, keyExtractor, handleRefresh, isLoading, _id]);
 
@@ -687,6 +776,13 @@ const MyContest = () => {
   }), [FirstRoute, SecondRoute, ThirdRoute]);
 
   const handleCreatePress = () => {
+    // Check if match is live and lineup is not out
+    if (contestData?.Status === 'Live' && contestData?.game_state !== 2) {
+      console.log('🚫 Blocking team creation - match is Live but lineup is not out');
+      toastAlert.showToastError('Cannot create team while match is live');
+      return;
+    }
+    
     if (matchType === 'scoreboard') {
       NavigationService.navigate(SCOREBOARD_CREATE, {
         ...contestData,
@@ -703,15 +799,6 @@ const MyContest = () => {
   };
 
   const shouldShowCreateButton = () => {
-    console.log('🔍 Checking shouldShowCreateButton:', {
-      contestDataExists: !!contestData,
-      contestDataKeys: contestData ? Object.keys(contestData) : 'undefined',
-      Status: contestData?.Status,
-      game_state: contestData?.game_state,
-      game_state_str: contestData?.game_state_str,
-      matchName: contestData?.Team1vsTeam2,
-      fullContestData: contestData
-    });
     
     // Show the button when game_state is 2 (lineup is out) - users can still join even if match is Live
     if (contestData?.game_state === 2) {
@@ -725,7 +812,6 @@ const MyContest = () => {
       return false;
     }
     
-    console.log('✅ Create button will be shown');
     return true;
   };
 
@@ -764,7 +850,7 @@ const MyContest = () => {
                 marginRight: 10,
               }}
             />
-            <AppText>{'Select Contest'}</AppText>
+            <AppText>{matchType === 'scoreboard' ? 'Scoreboard Match' : 'Select Contest'}</AppText>
           </TouchableOpacityView>
           <TouchableOpacityView
             onPress={() => NavigationService.navigate(MY_BALANCE)}>
@@ -1024,13 +1110,6 @@ const MyContest = () => {
         </RBSheet>
         {(() => {
           const shouldShow = shouldShowCreateButton();
-          console.log('🔍 Button visibility check:', {
-            shouldShow,
-            contestData: contestData,
-            Status: contestData?.Status,
-            game_state: contestData?.game_state,
-            matchType: route.params?.matchType
-          });
           return shouldShow;
         })() && (
           <View style={[

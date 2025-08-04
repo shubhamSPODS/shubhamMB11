@@ -151,10 +151,27 @@ const MatchCard = ({
       }
       
       dispatch(setContestData({...details, isFromMyMatch, tab, isHome}));
-      NavigationService.navigate(SCOREBOARD_MATCH, {
-        isFromMyMatch: false,
-        matchType: 'scoreboard',
+      // Find the first joined scorecard contest to get the contest category ID
+      const joinedScorecard = details?.scorecard?.find(scorecard => scorecard.joined > 0);
+      const contestCategoryId = joinedScorecard?.contest_category_id || 
+                               details?.scorecard?.[0]?.contest_category_id ||
+                               details?.contest_details?.[0]?.contest_category_id ||
+                               "65ddb68ce2ddb20749839785"; // Default contest category ID
+      
+      console.log('🎯 MatchCard: Navigating to scoreboard with details:', {
         matchId: details._id,
+        contestCategoryId,
+        hasScorecard: !!details?.scorecard,
+        scorecardLength: details?.scorecard?.length,
+        joinedScorecards: details?.scorecard?.filter(s => s.joined > 0).length
+      });
+      
+      NavigationService.navigate(SCOREBOARD_MATCH, {
+        matchDetails: details,
+        matchType: 'scoreboard',
+        details: {
+          contest_category_id: contestCategoryId
+        }
       });
     } else if (!allContests || allContests.length === 0) {
       return toastAlert.showToastError('There Are No Contest For This Match');

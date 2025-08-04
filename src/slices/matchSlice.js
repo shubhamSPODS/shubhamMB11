@@ -363,13 +363,32 @@ export const joinContest = (data, matchDetails) => async dispatch => {
 
     if (res?.code === 200 || res?.success === true) {
       toastAlert.showToastSuccess(res?.message || 'Contest joined successfully');
-      dispatch(getMyJoinedContest(matchDetails?._id));
+      
+      // Comprehensive refresh of all related data
+      console.log('🔄 Refreshing contest data after successful join');
+      
+      // Refresh contest list with updated joined counts
       dispatch(getContestList(matchDetails?.object, matchDetails?._id));
+      
+      // Refresh my joined contests
+      dispatch(getMyJoinedContest(matchDetails?._id));
+      
+      // Refresh my teams
       dispatch(getMyTeam(matchDetails?._id));
+      
+      // Refresh user profile (wallet balance, etc.)
       dispatch(getUserProfile(false, false));
       
-      // Navigate to My Contests tab after successful join
-      NavigationService.navigate(MY_CONTEST);
+      // Force a small delay to ensure data is updated before navigation
+      setTimeout(() => {
+        // Navigate to My Contests tab after successful join
+        NavigationService.navigate(MY_CONTEST);
+        
+        // Force another refresh after navigation to ensure UI is updated
+        setTimeout(() => {
+          dispatch(getContestList(matchDetails?.object, matchDetails?._id));
+        }, 1000);
+      }, 500);
     } else {
       toastAlert.showToastError(res?.message || 'Failed to join contest');
     }
@@ -405,11 +424,28 @@ export const joinScoreboardContest = (scoreboardId, matchDetails, contestDetails
 
     if (res?.code === 200 || res?.success === true) {
       toastAlert.showToastSuccess(res?.message || 'Scoreboard contest joined successfully');
-      dispatch(getMyJoinedContest(matchDetails?._id));
+      
+      // Comprehensive refresh of all related data
+      console.log('🔄 Refreshing contest data after successful scoreboard join');
+      
+      // Refresh contest list with updated joined counts
       dispatch(getContestList(matchDetails?.object, matchDetails?._id));
+      
+      // Refresh my joined contests
+      dispatch(getMyJoinedContest(matchDetails?._id));
+      
+      // Refresh user profile (wallet balance, etc.)
       dispatch(getUserProfile(false, false));
       
-      NavigationService.goBack();
+      // Force a small delay to ensure data is updated before navigation
+      setTimeout(() => {
+        NavigationService.goBack();
+        
+        // Force another refresh after navigation to ensure UI is updated
+        setTimeout(() => {
+          dispatch(getContestList(matchDetails?.object, matchDetails?._id));
+        }, 1000);
+      }, 500);
     } else {
       toastAlert.showToastError(res?.message || 'Failed to join scoreboard contest');
     }

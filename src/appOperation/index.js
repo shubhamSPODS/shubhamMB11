@@ -106,15 +106,46 @@ export class AppOperation {
         bodyData = JSON.stringify(data);
       }
 
+      // Add specific logging for scoreboard leaderboard API
+      if (url === 'match/scoreboard-leaderboard') {
+        console.log('🎯 [SCOREBOARD LEADERBOARD API] HTTP Request:', {
+          fullUrl: uri,
+          method,
+          headers,
+          body: data,
+          bodyData: bodyData
+        });
+      }
+
       fetch(uri, { method, headers, body: bodyData })
         .then(response => {
           let status = response.status;
+          
+          // Add specific logging for scoreboard leaderboard API response
+          if (url === 'match/scoreboard-leaderboard') {
+            console.log('🎯 [SCOREBOARD LEADERBOARD API] HTTP Response Status:', {
+              status,
+              ok: response.ok,
+              statusText: response.statusText
+            });
+          }
+          
           if (response.ok) {
             return response
               .text()
               .then(responseData => {
                 let jsonData = JSON.parse(responseData);
-                console.log('API Response Data:', jsonData);
+                
+                // Add specific logging for scoreboard leaderboard API response data
+                if (url === 'match/scoreboard-leaderboard') {
+                  console.log('🎯 [SCOREBOARD LEADERBOARD API] HTTP Response Data:', {
+                    success: jsonData?.success,
+                    message: jsonData?.message,
+                    dataLength: jsonData?.data?.length || 0,
+                    fullResponse: jsonData
+                  });
+                }
+                
                 resolve({ ...jsonData, code: status });
               })
               .catch(errorResponse => {
@@ -131,6 +162,15 @@ export class AppOperation {
             });
         })
         .catch(error => {
+          // Add specific logging for scoreboard leaderboard API network error
+          if (url === 'match/scoreboard-leaderboard') {
+            console.log('🎯 [SCOREBOARD LEADERBOARD API] HTTP Network Error:', {
+              error: error,
+              message: error?.message,
+              stack: error?.stack
+            });
+          }
+          
           console.log('API Network Error:', error);
           const customError = this.getErrorMessageForResponse(error);
           reject(new ApiError(customError));

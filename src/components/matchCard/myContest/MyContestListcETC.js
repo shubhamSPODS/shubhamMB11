@@ -211,7 +211,7 @@ const MyContestListETC = ({ item }) => {
               <AppText
                 style={{ color: '#37CC4C', fontSize: 10 }}
                 weight={LATO_BOLD}>
-                {item?.data?.Contestsize - (item?.user_contest_details?.joined || 0)} left
+                {Math.max(0, item?.data?.Contestsize - (item?.user_contest_details?.joined || 0))} left
               </AppText>
             </View>
           </>

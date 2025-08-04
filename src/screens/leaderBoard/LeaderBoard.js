@@ -77,18 +77,10 @@ const FirstRoute = ({ route }) => {
   const shadowContestId = details?.shadow_contest_id || details?.data?._id || details?.contest_details?.shadow_contest_id;
   
   // If contestCategoryId is not found, try to extract it from the contest data
-  if (!contestCategoryId && route?.route?.params?.matchDetails) {
-    const matchDetails = route.route.params.matchDetails;
-    const isScoreboardContest = details?.contest_type === 'ScoreCard' || 
-                                details?.ContestType === 'ScoreCard';
-    
-    if (isScoreboardContest && matchDetails.scorecard && matchDetails.scorecard.length > 0) {
-      contestCategoryId = matchDetails.scorecard[0].contest_category_id;
-      console.log('🎯 FirstRoute: Using scoreboard contest_category_id:', contestCategoryId);
-    } else if (!isScoreboardContest && matchDetails.teams && matchDetails.teams.length > 0) {
-      contestCategoryId = matchDetails.teams[0].contest_category_id;
-      console.log('🎯 FirstRoute: Using teams contest_category_id:', contestCategoryId);
-    }
+  // Use the specific contest's contest_category_id from details, not a generic one
+  if (!contestCategoryId) {
+    contestCategoryId = details?.contest_category_id || details?.data?.contest_category_id;
+    console.log('🎯 FirstRoute: Using specific contest contest_category_id:', contestCategoryId);
   }
   
   // Extract winning amount from multiple possible sources
@@ -200,22 +192,14 @@ const SecondRoute = ({ route }) => {
   const matchId = routeParams?.matchDetails?.MatchId || routeParams?.matchDetails?._id;
   let contestCategoryId = routeParams?.details?.details?.contest_category_id || 
                          routeParams?.details?.contest_category_id;
+  let shadowContestId = routeParams?.details?.details?.shadow_contest_id || 
+                         routeParams?.details?.shadow_contest_id;
   
-  // If contestCategoryId is still not found, try to extract it from the contest data
-  if (!contestCategoryId && routeParams?.matchDetails) {
-    const matchDetails = routeParams.matchDetails;
-    const isScoreboardContest = routeParams?.details?.details?.contest_type === 'ScoreCard' || 
-                                routeParams?.details?.details?.ContestType === 'ScoreCard' ||
-                                routeParams?.details?.contest_type === 'ScoreCard' ||
-                                routeParams?.details?.ContestType === 'Scoreboard';
-    
-    if (isScoreboardContest && matchDetails.scorecard && matchDetails.scorecard.length > 0) {
-      contestCategoryId = matchDetails.scorecard[0].contest_category_id;
-      console.log('🎯 SecondRoute: Using scoreboard contest_category_id:', contestCategoryId);
-    } else if (!isScoreboardContest && matchDetails.teams && matchDetails.teams.length > 0) {
-      contestCategoryId = matchDetails.teams[0].contest_category_id;
-      console.log('🎯 SecondRoute: Using teams contest_category_id:', contestCategoryId);
-    }
+  // Use the specific contest's contest_category_id from details, not a generic one
+  if (!contestCategoryId) {
+    contestCategoryId = routeParams?.details?.details?.contest_category_id || 
+                       routeParams?.details?.contest_category_id;
+    console.log('🎯 SecondRoute: Using specific contest contest_category_id:', contestCategoryId);
   }
   
   console.log('SecondRoute props:', { 
@@ -244,10 +228,18 @@ const SecondRoute = ({ route }) => {
     routeParams?.details?.details?.contest_type === 'Scoreboard' ||
     routeParams?.details?.details?.ContestType === 'Scoreboard';
   
+  console.log('🎯 SecondRoute: Passing to LeaderBoardList:', {
+    matchId,
+    contestCategoryId,
+    routeParamsDetails: routeParams?.details,
+    routeParamsDetailsDetails: routeParams?.details?.details
+  });
+
   return (
     <LeaderBoardList
       matchId={matchId}
       id={contestCategoryId}
+      shadowContestId={shadowContestId}
       setForStatus={route?.setForStatus}
       forStatus={route?.forStatus}
       status={route?.status}
@@ -258,9 +250,55 @@ const SecondRoute = ({ route }) => {
   );
 };
 
-const ThirdRoute = ({ route }) => (
-  <ScoreCard route={route} />
-);
+const ThirdRoute = ({ route }) => {
+  // Extract parameters from the route structure
+  const routeParams = route?.route?.params || route?.params;
+  const matchId = routeParams?.matchDetails?.MatchId || routeParams?.matchDetails?._id;
+  let contestCategoryId = routeParams?.details?.details?.contest_category_id || 
+                         routeParams?.details?.contest_category_id;
+  
+  // Use the specific contest's contest_category_id from details, not a generic one
+  if (!contestCategoryId) {
+    contestCategoryId = routeParams?.details?.details?.contest_category_id || 
+                       routeParams?.details?.contest_category_id;
+    console.log('🎯 ThirdRoute: Using specific contest contest_category_id:', contestCategoryId);
+  }
+  
+  console.log('ThirdRoute props:', { 
+    matchId, 
+    contestCategoryId, 
+    routeParams,
+    isScoreboardContest: routeParams?.details?.details?.contest_type === 'ScoreCard',
+    routeStructure: {
+      hasRouteRoute: !!route?.route,
+      hasRouteParams: !!route?.params,
+      routeRouteParams: route?.route?.params,
+      routeParams: route?.params,
+      detailsStructure: {
+        hasDetails: !!routeParams?.details,
+        hasDetailsDetails: !!routeParams?.details?.details,
+        detailsKeys: routeParams?.details ? Object.keys(routeParams.details) : [],
+        detailsDetailsKeys: routeParams?.details?.details ? Object.keys(routeParams.details.details) : []
+      }
+    }
+  });
+  
+  // Create the proper route structure that ScoreCard expects
+  const scoreCardRoute = {
+    route: {
+      params: {
+        matchDetails: {
+          MatchId: matchId
+        },
+        details: {
+          contest_category_id: contestCategoryId
+        }
+      }
+    }
+  };
+  
+  return <ScoreCard route={scoreCardRoute} />;
+};
 const LeaderBoard = () => {
   const route = useRoute();
   const wsRefTwo = useRef(null);
@@ -324,30 +362,67 @@ const LeaderBoard = () => {
     return state.profile.userData;
   }) ?? {};
 
-  let url = `ws://app.mybattle11.com/leader-board?limit=10&skip=0&matchid=${route?.params?.matchDetails?.MatchId || ''}&contest_category_id=${route?.params?.details?.contest_category_id || ''}&user_id=${userData?._id || ''}`;
-  let urlTwo = `ws://app.mybattle11.com/mainleaderboard?limit=10&skip=0&matchid=${route?.params?.matchDetails?.MatchId || ''}&contest_category_id=${route?.params?.details?.contest_category_id || ''}&user_id=${userData?._id || ''}`;
+  // Extract parameters with better error handling - prioritize matchNo
+  const matchId = matchDetails?.matchNo || 
+                 route?.params?.matchDetails?.matchNo ||
+                 route?.params?.matchDetails?.MatchId || 
+                 route?.params?.matchDetails?._id ||
+                 matchDetails?.MatchId ||
+                 matchDetails?._id;
+                 
+  const contestCategoryId = route?.params?.details?.contest_category_id ||
+                           route?.params?.details?.details?.contest_category_id ||
+                           matchDetails?.contest_category_id;
+
+  let url = `wss://app.mybattle11.com/leader-board?limit=10&skip=0&matchid=${matchId}&contest_category_id=${contestCategoryId}&user_id=${userData?._id || ''}`;
+  let urlTwo = `wss://app.mybattle11.com/mainleaderboard?limit=10&skip=0&matchid=${matchId}&contest_category_id=${contestCategoryId}&user_id=${userData?._id || ''}`;
+  
+
   useEffect(() => {
-    if (
-      route?.params?.matchDetails?.MatchId &&
-      route?.params?.details?.contest_category_id
-    ) {
+    if (matchId && contestCategoryId && userData?._id) {
+      console.log('🎯 LeaderBoard: Setting up WebSocket connection with:', {
+        matchId,
+        contestCategoryId,
+        userId: userData._id,
+        url: urlTwo
+      });
+      
       wsRefTwo.current = new WebSocket(urlTwo);
       wsRefTwo.current.onopen = () => {
-        console.log('connected');
+        console.log('🎯 LeaderBoard: WebSocket connected successfully');
+        console.log('🎯 LeaderBoard: Connection details:', {
+          readyState: wsRefTwo.current?.readyState,
+          url: wsRefTwo.current?.url,
+          protocol: wsRefTwo.current?.protocol
+        });
       };
       wsRefTwo.current.onclose = e => {
-        console.log('Connection Failed Plz Check Your Network', e);
+        console.log('🎯 LeaderBoard: Connection Failed Plz Check Your Network', e);
+        console.log('🎯 LeaderBoard: Close event details:', {
+          code: e.code,
+          reason: e.reason,
+          wasClean: e.wasClean
+        });
         wsRefTwo.current = new WebSocket(urlTwo);
       };
       wsRefTwo.current.onerror = e => {
-        console.log('Something Went Wrong', e);
+        console.log('🎯 LeaderBoard: Something Went Wrong', e);
+        console.log('🎯 LeaderBoard: Error event details:', e);
         wsRefTwo.current = new WebSocket(urlTwo);
       };
       return () => {
-        wsRefTwo.current.close();
+        if (wsRefTwo.current) {
+          wsRefTwo.current.close();
+        }
       };
+    } else {
+      console.log('🎯 LeaderBoard: Missing required parameters for WebSocket:', {
+        hasMatchId: !!matchId,
+        hasContestCategoryId: !!contestCategoryId,
+        hasUserId: !!userData?._id
+      });
     }
-  }, [route?.params?.matchDetails?.MatchId]);
+  }, [matchId, contestCategoryId, userData?._id]);
   const getData = React.useCallback(() => {
     if (isConnected && wsRefTwo.current) {
       wsRefTwo.current.close();
@@ -361,12 +436,13 @@ const LeaderBoard = () => {
       if (!wsRefTwo.current) return;
       wsRefTwo.current.onmessage = e => {
         try {
-          const parseData = JSON.parse(e?.data);
+          const parseData = JSON.parse(e?.data);   
           setScoreBoard(parseData?.score || []);
           setTeamAScore(parseData?.score?.[0]?.teama || []);
           setTeamBScore(parseData?.score?.[0]?.teamb || []);
         } catch (err) {
           console.error('Error parsing websocket data:', err);
+          console.log('🎯 LeaderBoard: Raw WebSocket data that failed to parse:', e?.data);
         }
       };
     } catch (error) {
@@ -416,6 +492,13 @@ const LeaderBoard = () => {
       matchDetails
     });
     
+    // Check if match is live and lineup is not out
+    if (matchDetails?.Status === 'Live' && matchDetails?.game_state !== 2) {
+      console.log('🚫 Blocking contest join - match is Live but lineup is not out');
+      toastAlert.showToastError('Cannot join contest while match is live');
+      return;
+    }
+    
     // Check if this is a scoreboard contest
     const isScoreboardContest = details?.ContestType === 'ScoreCard' || 
                                 details?.contest_type === 'ScoreCard' ||
@@ -442,40 +525,13 @@ const LeaderBoard = () => {
       
       // Handle scoreboard contests differently
       if (isScoreboardContest) {
-        console.log('🎯 This is a scoreboard contest - checking if user has scoreboards');
+        console.log('🎯 This is a scoreboard contest - opening SelectScoreboard screen directly');
         dispatch(setSelectedMatch(details ? { ...details } : {}));
         
-        // Check if user has any scoreboards for this match
-        try {
-          const matchId = matchDetails?._id;
-          if (!matchId) {
-            console.log('⚠️ No match ID available for scoreboard check');
-            return;
-          }
-          
-          const response = await appOperation.customer.getUserScoreCard(matchId);
-          console.log('🔍 Scoreboard check response:', response);
-          
-          if (response?.success && response?.data && response.data.length > 0) {
-            // User has scoreboards, open SelectScoreboard sheet
-            console.log('✅ User has scoreboards - opening SelectScoreboard sheet');
-            selectScoreboard?.current?.open();
-          } else {
-            // User has no scoreboards, navigate directly to Create Scoreboard
-            console.log('📝 User has no scoreboards - navigating to Create Scoreboard');
-            NavigationService.navigate('Scoreboard/Create', {
-              ...matchDetails,
-              isFromMyMatch: true,
-            });
-          }
-        } catch (error) {
-          console.error('Error checking scoreboards:', error);
-          // On error, navigate to Create Scoreboard as fallback
-          NavigationService.navigate('Scoreboard/Create', {
-            ...matchDetails,
-            isFromMyMatch: true,
-          });
-        }
+        // For scoreboard contests, always open the SelectScoreboard screen
+        // The SelectScoreboard component will handle checking if user has scoreboards
+        console.log('✅ Opening SelectScoreboard sheet for scoreboard contest');
+        selectScoreboard?.current?.open();
         return;
       }
       
@@ -761,25 +817,12 @@ const LeaderBoard = () => {
       <CommonImageBackground common>
         <View style={{ flex: 1 }}>
           {renderTop()}
-          {scoreBoard && scoreBoard[0]?.status_note == '' ? (
-            <>
-              <TabView
-                navigationState={{ index, routes }}
-                renderScene={renderScene}
-                onIndexChange={setIndex}
-                initialLayout={{ width: layout.width }}
-                renderTabBar={props => (
-                  <RenderTabBar
-                    {...props}
-                    onTabChange={e => {
-                      setActiveTab(e);
-                    }}
-                  />
-                )}
-              />
-             
-            </>
-          ) : (
+          
+          {/* Debug the scoreBoard condition */}
+          {(() => {
+            const shouldShowScorecard = scoreBoard && scoreBoard[0]?.status_note !== '';
+            return shouldShowScorecard;
+          })() ? (
             <>
               <TabView
                 navigationState={{ index, routes: routes1 }}
@@ -798,6 +841,24 @@ const LeaderBoard = () => {
                 )}
               />
             
+            </>
+          ) : (
+            <>
+              <TabView
+                navigationState={{ index, routes }}
+                renderScene={renderScene}
+                onIndexChange={setIndex}
+                initialLayout={{ width: layout.width }}
+                renderTabBar={props => (
+                  <RenderTabBar
+                    {...props}
+                    onTabChange={e => {
+                      setActiveTab(e);
+                    }}
+                  />
+                )}
+              />
+             
             </>
           )}
           {scoreBoard && scoreBoard[0]?.status_note == '' &&

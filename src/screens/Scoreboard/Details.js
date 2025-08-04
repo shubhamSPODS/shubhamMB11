@@ -33,10 +33,12 @@ const Details = ({route}) => {
   const currentMatch = upcomingMatches?.find(match => 
     match._id === contestData?._id || 
     match.MatchId === contestData?.MatchId ||
-    match.match_id === contestData?.match_id
+    match.match_id === contestData?.match_id ||
+    match._id === scoreboardData?.match_id ||
+    match.MatchId === scoreboardData?.match_id
   );
   
-  const matchType = scoreboardData?.match_details?.Type || 
+  let matchType = scoreboardData?.match_details?.Type || 
                    scoreboardData?.match_details?.match_type ||
                    scoreboardData?.match_type ||
                    contestData?.Type ||
@@ -44,19 +46,24 @@ const Details = ({route}) => {
                    contestData?.contestAllInfo?.Type ||
                    contestData?.contestAllInfo?.match_type ||
                    currentMatch?.Type ||
-                   currentMatch?.match_type ||
-                   // Only use SeriesName as fallback if no exact match type is found
-                   (contestData?.SeriesName && !contestData?.Type && !contestData?.match_type && !contestData?.contestAllInfo?.Type && !contestData?.contestAllInfo?.match_type) ?
-                     (contestData.SeriesName.includes('T10') ? 'T10' :
-                      contestData.SeriesName.includes('T20') ? 'T20' :
-                      contestData.SeriesName.includes('T50') ? 'T50' :
-                      contestData.SeriesName.includes('ODI') ? 'ODI' : null) :
-                   (currentMatch?.SeriesName && !currentMatch?.Type && !currentMatch?.match_type) ?
-                     (currentMatch.SeriesName.includes('T10') ? 'T10' :
-                      currentMatch.SeriesName.includes('T20') ? 'T20' :
-                      currentMatch.SeriesName.includes('T50') ? 'T50' :
-                      currentMatch.SeriesName.includes('ODI') ? 'ODI' : null) :
-                   'T20';
+                   currentMatch?.match_type;
+  
+  // If no match type found, try to extract from series name
+  if (!matchType) {
+    const seriesName = contestData?.SeriesName || currentMatch?.SeriesName || scoreboardData?.SeriesName;
+    if (seriesName) {
+      if (seriesName.includes('T10')) matchType = 'T10';
+      else if (seriesName.includes('T20')) matchType = 'T20';
+      else if (seriesName.includes('T50')) matchType = 'T50';
+      else if (seriesName.includes('ODI')) matchType = 'ODI';
+      else if (seriesName.includes('Test')) matchType = 'Test';
+    }
+  }
+  
+  // Fallback to T20 if still no match type found
+  if (!matchType) {
+    matchType = 'T20';
+  }
   const totalRuns = allPredictions?.reduce((sum, over) => sum + over.runs, 0) || 0;
   
   console.log('ScoreboardDetails Debug:', {

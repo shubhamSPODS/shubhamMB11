@@ -40,6 +40,7 @@ import {
   BOTTOM_TAB_PROFILE_SCREEN,
   Notification__SCREEN,
   MY_CONTEST,
+  SCOREBOARD_MATCH,
 } from '../../navigation/routes';
 import PrimaryButton from '../../common/primaryButton';
 import {HomeTopHeader} from '../../common/HomeTopHeader';
@@ -431,9 +432,13 @@ const MyMatches = () => {
 
     const joinedContest = item.teams?.find(t => t.joined > 0);
     
-    const contest_category_id = joinedContest?.contest_category_id || "65ddb68ce2ddb20749839785"; 
+    // For scoreboard matches, look for joined scorecard contests
+    const joinedScorecard = item.scorecard?.find(s => s.joined > 0);
+    const contest_category_id = joinedScorecard?.contest_category_id || 
+                               joinedContest?.contest_category_id || 
+                               "65ddb68ce2ddb20749839785"; 
     
-    const match_contest_category_id = joinedContest?._id || "";
+    const match_contest_category_id = joinedScorecard?._id || joinedContest?._id || "";
     
     console.log('Contest IDs for navigation:', {
       contest_category_id,
@@ -466,13 +471,9 @@ const MyMatches = () => {
               }
             });
             
-            navigation.navigate(MY_CONTEST, {
-              matchId: item._id,
+            navigation.navigate(SCOREBOARD_MATCH, {
+              matchDetails: item,
               matchType: 'scoreboard',
-              TeamA: item.TeamA,
-              TeamB: item.TeamB,
-              isFromMyMatch: true,
-              contestId: item.contestId,
               details: {
                 contest_category_id: contest_category_id,
                 match_contest_category_id: match_contest_category_id

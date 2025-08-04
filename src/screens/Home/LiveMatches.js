@@ -14,6 +14,7 @@ import {
   POPPINS_MEDIUM,
   POPPINS_SEMI_BOLD,
   WHITE,
+  FORTEEN,
 } from '../../common/AppText';
 import Matchsection, { getDate } from './Matchsection';
 import { universalPaddingHorizontal } from '../../theme/dimens';
@@ -92,14 +93,6 @@ const LiveMatches = ({ random, setRefreshingTwo }) => {
               const isPlayOngoing = match.game_state === 3;
               const isLiveMatch = match.Status === 'Live' || match.Status === 'live';
               
-              console.log(`🎮 LiveMatches Game State for ${match.Team1vsTeam2}:`, {
-                game_state: match.game_state,
-                game_state_str: match.game_state_str,
-                isRainDelay,
-                isPlayOngoing,
-                isLiveMatch,
-                Status: match.Status
-              });
               
               // If it's a live match with rain delay, restart contest joining
               if (isLiveMatch && isRainDelay) {
@@ -158,6 +151,17 @@ const LiveMatches = ({ random, setRefreshingTwo }) => {
           }
           
           if (parseData?.mymatches) {
+            console.log('🎯 LiveMatches: Setting my matches data:', parseData.mymatches.length, 'matches');
+            parseData.mymatches.forEach((match, index) => {
+              console.log(`🎯 LiveMatches: Match ${index + 1}:`, {
+                id: match._id,
+                teams: match.Team1vsTeam2,
+                status: match.Status,
+                hasScorecard: !!match.scorecard,
+                scorecardLength: match.scorecard?.length,
+                scorecardJoined: match.scorecard?.filter(s => s.joined > 0).length
+              });
+            });
             dispatch(setMyMatchesHome(parseData.mymatches));
           }
         } catch (error) {
@@ -200,10 +204,40 @@ const LiveMatches = ({ random, setRefreshingTwo }) => {
   }, [myMatchesHome]);
   
   const myScoreboardMatches = useMemo(() => {
-    return myMatchesHome?.filter(match => 
-      match.scorecard && match.scorecard.length > 0 && 
-      match.scorecard.some(scorecard => scorecard.joined > 0)
-    ) || [];
+    console.log('🎯 LiveMatches: Filtering scoreboard matches from:', myMatchesHome?.length || 0, 'total matches');
+    
+    const filtered = myMatchesHome?.filter(match => {
+      const hasScorecard = match.scorecard && match.scorecard.length > 0;
+      const isLive = match.Status === 'Live' || match.Status === 'live';
+      const hasJoinedScorecard = match.scorecard?.some(scorecard => scorecard.joined > 0);
+      
+      const shouldInclude = hasScorecard && (isLive || hasJoinedScorecard);
+      
+      console.log(`🎯 LiveMatches: Match ${match.Team1vsTeam2}:`, {
+        hasScorecard,
+        isLive,
+        hasJoinedScorecard,
+        shouldInclude,
+        status: match.Status,
+        scorecardLength: match.scorecard?.length
+      });
+      
+      return shouldInclude;
+    }) || [];
+    
+    console.log('🎯 LiveMatches: Scoreboard matches found:', filtered.length);
+    filtered.forEach((match, index) => {
+      console.log(`🎯 LiveMatches: Scoreboard match ${index + 1}:`, {
+        id: match._id,
+        teams: match.Team1vsTeam2,
+        scorecardCount: match.scorecard?.length,
+        joinedScorecards: match.scorecard?.filter(s => s.joined > 0).length,
+        status: match.Status,
+        isLive: match.Status === 'Live' || match.Status === 'live'
+      });
+    });
+    
+    return filtered;
   }, [myMatchesHome]);
 
   const [myMatchesIndex, setMyMatchesIndex] = useState(0);
@@ -249,15 +283,16 @@ const LiveMatches = ({ random, setRefreshingTwo }) => {
           {filteredMyMatches?.map((data, index) => {
             const matchType = route.key === 'teams' ? 'teams' : 'scoreboard';
             return (
-              <Matchsection
-                key={`my-${route.key}-match-${data._id || index}`}
-                details={data}
-                isFromMyMatch={true}
-                matchType={matchType}
-                initialTabIndex={0}
-                isHome={true}
-                index={index}
-              />
+              <View key={`my-${route.key}-match-${data._id || index}`} style={styles.matchCardContainer}>
+                <Matchsection
+                  details={data}
+                  isFromMyMatch={true}
+                  matchType={matchType}
+                  initialTabIndex={0}
+                  isHome={true}
+                  index={index}
+                />
+              </View>
             );
           })}
         </ScrollView>
@@ -330,11 +365,25 @@ const LiveMatches = ({ random, setRefreshingTwo }) => {
     );
   }, [myMatchesHome, myMatchesTabViewConfig]);
 
-
+  // Check if there are any live matches available
+  const hasAnyLiveMatches = useMemo(() => {
+    return myMatchesHome && myMatchesHome.length > 0;
+  }, [myMatchesHome]);
 
   return (
     <View style={styles.container}>
-      {myMatchesSection}
+      {hasAnyLiveMatches ? (
+        myMatchesSection
+      ) : (
+        <View style={styles.emptyContainer}>
+          <AppText type={EIGHTEEN} weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptyText}>
+            No Live matches available
+          </AppText>
+          <AppText type={EIGHTEEN} weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptySubText}>
+            Check back later for live matches
+          </AppText>
+        </View>
+      )}
     </View>
   );
 };
@@ -385,6 +434,14 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     opacity: 0.7,
+    marginBottom: 10,
+  },
+  emptySubText: {
+    textAlign: 'center',
+    opacity: 0.5,
+  },
+  matchCardContainer: {
+    marginBottom: 15,
   },
 });
 
