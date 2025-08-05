@@ -439,10 +439,24 @@ export const joinScoreboardContest = (scoreboardId, matchDetails, contestDetails
 
     dispatch(setLoading(true));
     
+    // Handle multiple scoreboard IDs (comma-separated)
+    const scoreboardIds = scoreboardId.includes(',') ? scoreboardId.split(',') : [scoreboardId];
+    
     const data = {
-      predictions_id: [scoreboardId],
+      predictions_id: scoreboardIds,
       match_contest_category_id: contestDetails._id
     };
+    
+    console.log('🎯 [JOIN SCOREBOARD CONTEST] API Payload:', {
+      scoreboardId,
+      scoreboardIds,
+      data,
+      contestDetails: {
+        _id: contestDetails._id,
+        contest_category_id: contestDetails.contest_category_id,
+        shadow_contest_id: contestDetails.shadow_contest_id
+      }
+    });
     
     const res = await appOperation.customer.joinScoreboardContest(data);
 

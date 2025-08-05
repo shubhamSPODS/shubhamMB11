@@ -56,6 +56,7 @@ const Confirmation = ({
   onClose,
   isScoreboardContest = false,
   selectedScoreboard,
+  supportsMultipleEntries = false,
 }) => {
   const dispatch = useDispatch();
   const myTeam = useSelector(state => state?.match?.myTeams);
@@ -86,26 +87,57 @@ const Confirmation = ({
   const depositBalance = totaldeposit || 0;
   const totalBalance = depositBalance + winningAmount + cash_bonus;
   
-  // Calculate number of teams
-  const numberOfTeams = selectMulty?.length || 1;
+  // Calculate number of teams or scoreboards
+  let numberOfEntries = 1;
   
-  // Calculate single team entry fee
+  // Check if this is a scoreboard contest by looking at the contest type
+  const isActuallyScoreboardContest = isScoreboardContest || 
+                                     details?.ContestType === 'ScoreCard' || 
+                                     details?.contest_type === 'ScoreCard' ||
+                                     details?.ContestType === 'Scoreboard' ||
+                                     details?.contest_type === 'Scoreboard';
+  
+  if (isActuallyScoreboardContest && supportsMultipleEntries && Array.isArray(selectedScoreboard)) {
+    // Multiple scoreboards selected
+    numberOfEntries = selectedScoreboard.length;
+  } else if (selectMulty?.length) {
+    // Multiple teams selected
+    numberOfEntries = selectMulty.length;
+  }
+  
+  // Calculate single entry fee
   const singleEntryFee = Number(entryFee);
   
-  // Calculate total entry fee for all teams
-  const totalEntryFee = singleEntryFee * numberOfTeams;
+  // Calculate total entry fee for all entries
+  const totalEntryFee = singleEntryFee * numberOfEntries;
   
-  // Calculate maximum usable bonus per team
-  const maxBonusPerTeam = (singleEntryFee * Number(usableBonusPercentage)) / 100;
+  // Calculate maximum usable bonus per entry
+  const maxBonusPerEntry = (singleEntryFee * Number(usableBonusPercentage)) / 100;
   
-  // Calculate actual usable bonus per team (limited by available cash bonus)
-  const actualBonusPerTeam = Math.min(maxBonusPerTeam, cash_bonus || 0);
+  // Calculate actual usable bonus per entry (limited by available cash bonus)
+  const actualBonusPerEntry = Math.min(maxBonusPerEntry, cash_bonus || 0);
   
-  // Calculate total usable bonus for all teams (limited by available cash bonus)
-  const totalUsableBonus = Math.min(actualBonusPerTeam * numberOfTeams, cash_bonus || 0);
+  // Calculate total usable bonus for all entries (limited by available cash bonus)
+  const totalUsableBonus = Math.min(actualBonusPerEntry * numberOfEntries, cash_bonus || 0);
   
   // Calculate amount to pay
   const payAmount = Math.max(0, totalEntryFee - totalUsableBonus);
+  
+  // Debug logging for fee calculation
+  console.log('🎯 [CONFIRMATION] Fee calculation:', {
+    isScoreboardContest,
+    isActuallyScoreboardContest,
+    supportsMultipleEntries,
+    selectedScoreboard: Array.isArray(selectedScoreboard) ? selectedScoreboard.length : 1,
+    numberOfEntries,
+    singleEntryFee,
+    totalEntryFee,
+    totalUsableBonus,
+    payAmount,
+    totalBalance,
+    contestType: details?.ContestType,
+    contestTypeAlt: details?.contest_type
+  });
   
   const { _id: contestListId, } = contestData ?? '';
 
@@ -118,20 +150,72 @@ const Confirmation = ({
 
   const onSubmit = () => {
     // Handle scoreboard contest joining
-    if (isScoreboardContest && selectedScoreboard) {
+    if (isActuallyScoreboardContest && selectedScoreboard) {
       if (payAmount > (depositBalance + winningAmount)) {
         NavigationService.navigate(ADD_MONEY_SCREEN);
         handleClose();
         return;
       }
 
-      console.log('🎯 Joining scoreboard contest via new API:', {
-        scoreboard: selectedScoreboard._id,
-        contest: details._id,
-        match: matchDetails._id,
-        payAmount
-      });
-      dispatch(joinScoreboardContest(selectedScoreboard._id, matchDetails, details));
+      // Function to get the correct ID field for the scoreboard
+      const getScoreboardId = (scoreboard) => {
+        return scoreboard.prediction_id || 
+               scoreboard.predictions_id || 
+               scoreboard.scoreboard_id || 
+               scoreboard.id || 
+               scoreboard._id;
+      };
+
+      if (supportsMultipleEntries && Array.isArray(selectedScoreboard)) {
+        // Multiple scoreboards selected
+        const scoreboardIds = selectedScoreboard.map(sb => getScoreboardId(sb));
+        console.log('🎯 Joining multiple scoreboard contest:', {
+          scoreboards: scoreboardIds,
+          selectedScoreboards: selectedScoreboard.map(sb => ({
+            _id: sb._id,
+            prediction_id: sb.prediction_id,
+            predictions_id: sb.predictions_id,
+            id: sb.id,
+            scoreboard_id: sb.scoreboard_id,
+            correctId: getScoreboardId(sb)
+          })),
+          contest: details._id,
+          match: matchDetails._id,
+          payAmount,
+          numberOfEntries: selectedScoreboard.length,
+          totalEntryFee,
+          totalUsableBonus
+        });
+        dispatch(joinScoreboardContest(scoreboardIds.join(','), matchDetails, details));
+      } else {
+        // Single scoreboard selected
+        const scoreboardId = Array.isArray(selectedScoreboard) ? getScoreboardId(selectedScoreboard[0]) : getScoreboardId(selectedScoreboard);
+        console.log('🎯 Joining single scoreboard contest:', {
+          scoreboard: scoreboardId,
+          selectedScoreboard: Array.isArray(selectedScoreboard) ? {
+            _id: selectedScoreboard[0]?._id,
+            prediction_id: selectedScoreboard[0]?.prediction_id,
+            predictions_id: selectedScoreboard[0]?.predictions_id,
+            id: selectedScoreboard[0]?.id,
+            scoreboard_id: selectedScoreboard[0]?.scoreboard_id,
+            correctId: getScoreboardId(selectedScoreboard[0])
+          } : {
+            _id: selectedScoreboard._id,
+            prediction_id: selectedScoreboard.prediction_id,
+            predictions_id: selectedScoreboard.predictions_id,
+            id: selectedScoreboard.id,
+            scoreboard_id: selectedScoreboard.scoreboard_id,
+            correctId: getScoreboardId(selectedScoreboard)
+          },
+          contest: details._id,
+          match: matchDetails._id,
+          payAmount,
+          numberOfEntries: 1,
+          totalEntryFee,
+          totalUsableBonus
+        });
+        dispatch(joinScoreboardContest(scoreboardId, matchDetails, details));
+      }
       handleClose();
       return;
     }
@@ -307,7 +391,7 @@ const Confirmation = ({
             }}>
             <View style={styles.center}>
               <AppText type={SIXTEEN} weight={SEMI_BOLD}>
-                Contest Fee
+                {isScoreboardContest ? 'Scoreboard Contest Fee' : 'Contest Fee'}
               </AppText>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <AppText color={WHITE} weight={LATO_SEMI_BOLD} type={SIXTEEN}>
@@ -316,7 +400,7 @@ const Confirmation = ({
                     type={SIXTEEN}
                     color={WHITE}
                     weight={SEMI_BOLD}>
-                    {numberOfTeams > 1 ? `${singleEntryFee} x ${numberOfTeams}` : singleEntryFee}
+                    {numberOfEntries > 1 ? `${singleEntryFee} x ${numberOfEntries}` : singleEntryFee}
                   </AppText>
                 </AppText>
               </View>

@@ -337,6 +337,11 @@ const LeaderBoard = () => {
     ContestType: details?.ContestType || details?.data?.ContestType || '',
     ...details 
   };
+
+  // Check if this contest supports multiple entries
+  const supportsMultipleEntries = contestDetails?.ContestSize > 1 || 
+                                 contestDetails?.Contestsize > 1 ||
+                                 contestDetails?.JoinWithMULT === true;
   
 
   const totalTeamCount = route?.params?.totalTeamCount ?? 0;
@@ -943,6 +948,7 @@ const LeaderBoard = () => {
           matchDetails={matchDetails}
           onClose={() => selectScoreboard?.current?.close()}
           selectScoreboard={selectScoreboard}
+          supportsMultipleEntries={supportsMultipleEntries}
         />
       </RBSheet>
       

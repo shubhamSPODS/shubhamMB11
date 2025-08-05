@@ -80,6 +80,21 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
     contest => contest?.contest_category_id === details?.contest_category_id
   )?.teams || 1;
 
+  // Check if this contest supports multiple entries
+  const supportsMultipleEntries = details?.ContestSize > 1 || 
+                                 details?.Contestsize > 1 ||
+                                 details?.JoinWithMULT === true ||
+                                 contestDetails?.ContestSize > 1 ||
+                                 contestDetails?.Contestsize > 1 ||
+                                 contestDetails?.JoinWithMULT === true;
+
+  // Check if this is a scoreboard contest
+  const isScoreboardContest = matchType === 'scoreboard' || 
+                              details?.ContestType === 'ScoreCard' || 
+                              details?.contest_type === 'ScoreCard' ||
+                              contestDetails?.ContestType === 'ScoreCard' ||
+                              contestDetails?.contest_type === 'ScoreCard';
+
   // Debug logging for contest details
   console.log('🎯 [CONTEST CARD] Contest details debug:', {
     contestId: details?._id,
@@ -93,7 +108,12 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
       teams: contest?.teams
     })),
     finalJoinWithMultiple: JoinWithMultiple,
-    finalTotalMultipleTeams: totalMultipleTeams
+    finalTotalMultipleTeams: totalMultipleTeams,
+    isScoreboardContest,
+    supportsMultipleEntries,
+    matchType,
+    contestType: details?.ContestType,
+    contestTypeAlt: details?.contest_type
   });
 
   // Fetch rank data if not available
@@ -270,6 +290,8 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
         contestDetailsContestType: contestDetails?.ContestType,
         contestDetailsContestTypeLower: contestDetails?.contest_type,
         isScoreboardContest,
+        supportsMultipleEntries,
+        contestSize: details?.ContestSize || contestDetails?.ContestSize,
         selectScoreboardRef: !!selectScoreboard?.current
       });
       
@@ -548,6 +570,7 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
           matchDetails={contestData}
           onClose={() => selectScoreboard?.current?.close()}
           selectScoreboard={selectScoreboard}
+          supportsMultipleEntries={supportsMultipleEntries}
         />
       </RBSheet>
       
@@ -560,6 +583,8 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
         saveTeamName={saveTeamName}
         selectMulty={[]}
         JoinWithMULT={JoinWithMultiple}
+        isScoreboardContest={isScoreboardContest}
+        supportsMultipleEntries={supportsMultipleEntries}
       />
     </Pressable>
   );

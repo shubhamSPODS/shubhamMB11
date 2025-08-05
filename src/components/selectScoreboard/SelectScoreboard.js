@@ -32,13 +32,21 @@ const SelectScoreboard = ({
   contestDetails, 
   matchDetails, 
   onClose, 
-  selectScoreboard 
+  selectScoreboard,
+  supportsMultipleEntries = false
 }) => {
   const [scoreboards, setScoreboards] = useState([]);
   const [selectedScoreboard, setSelectedScoreboard] = useState(null);
+  const [selectedScoreboards, setSelectedScoreboards] = useState([]); // For multiple selection
   const [loading, setLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const contestData = useSelector(state => state?.match?.contestData);
+  
+  // Check if this contest supports multiple entries (use prop or fallback to contest details)
+  const finalSupportsMultipleEntries = supportsMultipleEntries || 
+                                      contestDetails?.ContestSize > 1 || 
+                                      contestDetails?.Contestsize > 1 ||
+                                      contestDetails?.JoinWithMULT === true;
 
   useEffect(() => {
     fetchUserScoreboards();
@@ -70,6 +78,18 @@ const SelectScoreboard = ({
       
       if (response?.success && response?.data) {
         setScoreboards(response.data);
+        
+        // Debug: Log the structure of the first scoreboard to understand available fields
+        if (response.data.length > 0) {
+          console.log('🎯 [DEBUG] First scoreboard structure:', {
+            _id: response.data[0]._id,
+            prediction_id: response.data[0].prediction_id,
+            predictions_id: response.data[0].predictions_id,
+            id: response.data[0].id,
+            scoreboard_id: response.data[0].scoreboard_id,
+            fullObject: response.data[0]
+          });
+        }
         
         // If no scoreboards found, redirect to create screen
         if (response.data.length === 0) {
@@ -116,8 +136,41 @@ const SelectScoreboard = ({
     }
   };
 
+  // Function to get the correct ID field for the scoreboard
+  const getScoreboardId = (scoreboard) => {
+    // Try different possible ID fields in order of preference
+    return scoreboard.prediction_id || 
+           scoreboard.predictions_id || 
+           scoreboard.scoreboard_id || 
+           scoreboard.id || 
+           scoreboard._id;
+  };
+
+  const handleScoreboardSelection = (scoreboard) => {
+    if (finalSupportsMultipleEntries) {
+      // Multiple selection mode
+      const isSelected = selectedScoreboards.some(sb => getScoreboardId(sb) === getScoreboardId(scoreboard));
+      if (isSelected) {
+        setSelectedScoreboards(selectedScoreboards.filter(sb => getScoreboardId(sb) !== getScoreboardId(scoreboard)));
+      } else {
+        setSelectedScoreboards([...selectedScoreboards, scoreboard]);
+      }
+    } else {
+      // Single selection mode
+      setSelectedScoreboard(scoreboard);
+    }
+  };
+
+  const isScoreboardSelected = (scoreboard) => {
+    if (finalSupportsMultipleEntries) {
+      return selectedScoreboards.some(sb => getScoreboardId(sb) === getScoreboardId(scoreboard));
+    } else {
+      return getScoreboardId(selectedScoreboard) === getScoreboardId(scoreboard);
+    }
+  };
+
   const renderScoreboardItem = ({ item, index }) => {
-    const isSelected = selectedScoreboard?._id === item._id;
+    const isSelected = isScoreboardSelected(item);
     const predictions = item.predictions || [];
     const previewOvers = predictions.slice(0, 5);
     const totalRuns = predictions.reduce((sum, over) => sum + (over.runs || 0), 0);
@@ -128,75 +181,101 @@ const SelectScoreboard = ({
                      'T20';
     
     return (
-      <TouchableOpacity 
-        style={[
-          styles.scoreboardCard,
-          isSelected && styles.selectedCard
-        ]}
-        onPress={() => setSelectedScoreboard(item)}
-      >
-        <View style={styles.cardTopSection}>
-          <View style={styles.matchInfoSection}>
-            <View style={styles.matchTypeBadge}>
-              <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
-                {matchType}
+      <View style={styles.scoreboardItemContainer}>
+        {finalSupportsMultipleEntries && (
+          <TouchableOpacity 
+            style={styles.checkboxContainer}
+            onPress={() => handleScoreboardSelection(item)}
+          >
+            <View style={[
+              styles.checkbox,
+              isSelected && styles.checkboxSelected
+            ]}>
+              {isSelected && (
+                <View style={styles.checkmark} />
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+        
+        <TouchableOpacity 
+          style={[
+            styles.scoreboardCard,
+            isSelected && styles.selectedCard
+          ]}
+          onPress={() => handleScoreboardSelection(item)}
+        >
+          <View style={styles.cardTopSection}>
+            <View style={styles.matchInfoSection}>
+              <View style={styles.matchTypeBadge}>
+                <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
+                  {matchType}
+                </AppText>
+              </View>
+            </View>
+            
+            <View style={styles.totalRunsContainer}>
+              <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.totalRunsText}>
+                {totalRuns}
+              </AppText>
+              <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.totalRunsLabel}>
+                Total Runs
               </AppText>
             </View>
           </View>
-          
-          <View style={styles.totalRunsContainer}>
-            <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.totalRunsText}>
-              {totalRuns}
-            </AppText>
-            <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.totalRunsLabel}>
-              Total Runs
-            </AppText>
-          </View>
-        </View>
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        {/* Overs section */}
-        <View style={styles.oversContainer}>
-          <View style={styles.oversHeader}>
-            <AppText weight={POPPINS_SEMI_BOLD} color={WHITE} style={styles.oversTitle}>
-              Over by Over ({predictions.length} overs)
-            </AppText>
-            {predictions.length > 5 && (
-              <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.moreOversText}>
-                +{predictions.length - 5} more
+          {/* Overs section */}
+          <View style={styles.oversContainer}>
+            <View style={styles.oversHeader}>
+              <AppText weight={POPPINS_SEMI_BOLD} color={WHITE} style={styles.oversTitle}>
+                Over by Over ({predictions.length} overs)
               </AppText>
-            )}
-          </View>
-          <View style={styles.oversGrid}>
-            {previewOvers.map((over, idx) => (
-              <View key={over.over_number || idx} style={styles.overItem}>
-                <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.overLabel}>
-                  Over {over.over_number || (idx + 1)}
+              {predictions.length > 5 && (
+                <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.moreOversText}>
+                  +{predictions.length - 5} more
                 </AppText>
-                <View style={styles.runsBox}>
-                  <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.runsText}>
-                    {over.runs || 0}
+              )}
+            </View>
+            <View style={styles.oversGrid}>
+              {previewOvers.map((over, idx) => (
+                <View key={over.over_number || idx} style={styles.overItem}>
+                  <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.overLabel}>
+                    Over {over.over_number || (idx + 1)}
                   </AppText>
+                  <View style={styles.runsBox}>
+                    <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.runsText}>
+                      {over.runs || 0}
+                    </AppText>
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </View>
     );
   };
 
   const handleJoinContest = () => {
-    if (!selectedScoreboard) {
-      toastAlert.showToastError('Please select a scoreboard to join the contest');
-      return;
+    if (finalSupportsMultipleEntries) {
+      if (selectedScoreboards.length === 0) {
+        toastAlert.showToastError('Please select at least one scoreboard to join the contest');
+        return;
+      }
+    } else {
+      if (!selectedScoreboard) {
+        toastAlert.showToastError('Please select a scoreboard to join the contest');
+        return;
+      }
     }
 
     console.log('🎯 Opening confirmation for scoreboard contest:', {
-      scoreboard: selectedScoreboard._id,
+      scoreboards: finalSupportsMultipleEntries ? selectedScoreboards.map(sb => sb._id) : [selectedScoreboard._id],
       contest: contestDetails._id,
-      match: matchDetails._id
+      match: matchDetails._id,
+      supportsMultipleEntries: finalSupportsMultipleEntries
     });
 
     setShowConfirmation(true);
@@ -204,6 +283,23 @@ const SelectScoreboard = ({
 
   const handleConfirmationSuccess = () => {
     onClose();
+  };
+
+  const getSelectedCount = () => {
+    if (finalSupportsMultipleEntries) {
+      return selectedScoreboards.length;
+    } else {
+      return selectedScoreboard ? 1 : 0;
+    }
+  };
+
+  const getButtonText = () => {
+    const count = getSelectedCount();
+    if (finalSupportsMultipleEntries) {
+      return count > 0 ? `JOIN CONTEST (${count} SELECTED)` : 'JOIN CONTEST';
+    } else {
+      return 'JOIN CONTEST';
+    }
   };
 
   const EmptyComponent = () => (
@@ -225,17 +321,20 @@ const SelectScoreboard = ({
             <FastImage source={backIconMain} style={styles.backIcon} />
           </TouchableOpacity>
           <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.headerTitle}>
-            Select Scoreboard
+            Select Scoreboard{finalSupportsMultipleEntries ? 's' : ''}
           </AppText>
           <View style={styles.placeholder} />
         </View>
 
         <View style={styles.infoContainer}>
           <AppText weight={POPPINS_SEMI_BOLD} color={WHITE} style={styles.infoTitle}>
-            Choose a Scoreboard to Join Contest
+            Choose Scoreboard{finalSupportsMultipleEntries ? 's' : ''} to Join Contest
           </AppText>
           <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.infoText}>
-            Select one of your created scoreboards to join this contest
+            {finalSupportsMultipleEntries 
+              ? 'Select one or more scoreboards to join this contest with multiple entries'
+              : 'Select one of your created scoreboards to join this contest'
+            }
           </AppText>
         </View>
 
@@ -260,11 +359,11 @@ const SelectScoreboard = ({
                 <PrimaryButton
                   buttonStyle={[
                     styles.joinButton,
-                    !selectedScoreboard && styles.disabledButton
+                    getSelectedCount() === 0 && styles.disabledButton
                   ]}
                   onPress={handleJoinContest}
-                  title="JOIN CONTEST"
-                  disabled={!selectedScoreboard}
+                  title={getButtonText()}
+                  disabled={getSelectedCount() === 0}
                 />
               </View>
             )}
@@ -277,9 +376,10 @@ const SelectScoreboard = ({
           setIsModalVisible={setShowConfirmation}
           details={contestDetails}
           matchDetails={matchDetails}
-          selectedScoreboard={selectedScoreboard}
+          selectedScoreboard={finalSupportsMultipleEntries ? selectedScoreboards : selectedScoreboard}
           onClose={() => setShowConfirmation(false)}
           isScoreboardContest={true}
+          supportsMultipleEntries={finalSupportsMultipleEntries}
         />
       </View>
     </AppSafeAreaView>
@@ -330,10 +430,14 @@ const styles = StyleSheet.create({
   listContent: {
     padding: 15,
   },
+  scoreboardItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 15,
+  },
   scoreboardCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 15,
-    marginBottom: 15,
     padding: 15,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.15)',
@@ -345,11 +449,36 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+    flex: 1,
   },
   selectedCard: {
     borderColor: colors.blue,
     borderWidth: 2,
     backgroundColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  checkboxContainer: {
+    marginRight: 12,
+    marginTop: 15,
+    padding: 5,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: WHITE,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: colors.blue,
+    borderColor: colors.blue,
+  },
+  checkmark: {
+    width: 10,
+    height: 10,
+    backgroundColor: WHITE,
+    borderRadius: 2,
   },
   cardTopSection: {
     flexDirection: 'row',
