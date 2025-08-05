@@ -389,7 +389,6 @@ const LeaderBoard = () => {
       
       wsRefTwo.current = new WebSocket(urlTwo);
       wsRefTwo.current.onopen = () => {
-        console.log('🎯 LeaderBoard: WebSocket connected successfully');
         console.log('🎯 LeaderBoard: Connection details:', {
           readyState: wsRefTwo.current?.readyState,
           url: wsRefTwo.current?.url,
@@ -397,7 +396,6 @@ const LeaderBoard = () => {
         });
       };
       wsRefTwo.current.onclose = e => {
-        console.log('🎯 LeaderBoard: Connection Failed Plz Check Your Network', e);
         console.log('🎯 LeaderBoard: Close event details:', {
           code: e.code,
           reason: e.reason,
@@ -406,8 +404,6 @@ const LeaderBoard = () => {
         wsRefTwo.current = new WebSocket(urlTwo);
       };
       wsRefTwo.current.onerror = e => {
-        console.log('🎯 LeaderBoard: Something Went Wrong', e);
-        console.log('🎯 LeaderBoard: Error event details:', e);
         wsRefTwo.current = new WebSocket(urlTwo);
       };
       return () => {
@@ -442,7 +438,6 @@ const LeaderBoard = () => {
           setTeamBScore(parseData?.score?.[0]?.teamb || []);
         } catch (err) {
           console.error('Error parsing websocket data:', err);
-          console.log('🎯 LeaderBoard: Raw WebSocket data that failed to parse:', e?.data);
         }
       };
     } catch (error) {

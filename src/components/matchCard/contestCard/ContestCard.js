@@ -40,7 +40,7 @@ import Confirmation from '../../../common/Confirmation';
 import { NewColor, colors } from '../../../theme/color';
 import { appOperation } from '../../../appOperation';
 
-const ContestCard = ({ details, totalTeamCount, matchType }) => {
+const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
   if (!details) {
     console.log('Contest details:', details);
     return null;
@@ -71,6 +71,30 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
   const entryFee = Number(details?.EntryFee || details?.EnteryFee || contestDetails?.EnteryFee || 0);
   const winningPercent = Number(contestDetails?.Winning_percent || 0);
   const firstPrize = Number(contestDetails?.Rankdata?.[0]?.Price || winningAmount || 0);
+  // Get JoinWithMULT and teams from the specific contest details
+  const JoinWithMultiple = details?.JoinWithMULT || matchDetails?.contest_details?.find(
+    contest => contest?.contest_category_id === details?.contest_category_id
+  )?.JoinWithMULT || false;
+  
+  const totalMultipleTeams = details?.teams || matchDetails?.contest_details?.find(
+    contest => contest?.contest_category_id === details?.contest_category_id
+  )?.teams || 1;
+
+  // Debug logging for contest details
+  console.log('🎯 [CONTEST CARD] Contest details debug:', {
+    contestId: details?._id,
+    contestCategoryId: details?.contest_category_id,
+    detailsJoinWithMULT: details?.JoinWithMULT,
+    detailsTeams: details?.teams,
+    matchDetailsContestDetails: matchDetails?.contest_details?.map(contest => ({
+      contestId: contest?._id,
+      contestCategoryId: contest?.contest_category_id,
+      JoinWithMULT: contest?.JoinWithMULT,
+      teams: contest?.teams
+    })),
+    finalJoinWithMultiple: JoinWithMultiple,
+    finalTotalMultipleTeams: totalMultipleTeams
+  });
 
   // Fetch rank data if not available
   const fetchRankData = async () => {
@@ -177,8 +201,8 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
         StartRank: Number(rank?.StartRank || 0),
         EndRank: Number(rank?.EndRank || 0)
       })),
-      JoinWithMULT: Boolean(details?.JoinWithMULT || contestDetails?.JoinWithMULT),
-      teams: Number(details?.teams || contestDetails?.teams || 0),
+      JoinWithMULT: JoinWithMultiple,
+      teams: totalMultipleTeams,
       Winning_percent: winningPercent,
       shadow_contest_id: details?.shadow_contest_id || details?._id || '',
       contest_type: isScoreboardContest ? 'ScoreCard' : 'Teams',
@@ -328,7 +352,7 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
           <AppText type={TEN} weight={LATO_BOLD} color={WHITE}>
             PRIZE POOL
           </AppText>
-          {details?.JoinWithMULT && (
+          {(details?.JoinWithMULT || JoinWithMultiple) && (
             <AppText type={TEN} weight={LATO_BOLD} color={WHITE}>
               Multiple Entries
             </AppText>
@@ -420,7 +444,7 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <FastImage
               tintColor={'#DBA63D'}
-              source={details?.JoinWithMULT ? m : SINGLE}
+              source={(details?.JoinWithMULT || JoinWithMultiple) ? m : SINGLE}
               resizeMode="contain"
               style={styles.gloryIcon}
             />
@@ -433,7 +457,7 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
                 fontWeight: '800'
               }]}>
               {' '}
-              {details?.JoinWithMULT ? `Upto ${details?.teams}` : 'Single'}
+              {(details?.JoinWithMULT || JoinWithMultiple) ? `Upto ${totalMultipleTeams}` : 'Single'}
             </AppText>
           </View>
         </View>
@@ -469,8 +493,8 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
           onClose={() => selectTeam?.current?.close()}
           selectTeam={selectTeam}
           teamDetails={details?.teamDetails}
-          joinWith={details.teams}
-          JoinWithMULT={details?.JoinWithMULT}
+          totallMultipleTeams={totalMultipleTeams}
+          JoinWithMULT={details?.JoinWithMULT || JoinWithMultiple}
         />
       </RBSheet>
       
@@ -505,7 +529,7 @@ const ContestCard = ({ details, totalTeamCount, matchType }) => {
         teamLength={false}
         saveTeamName={saveTeamName}
         selectMulty={[]}
-        JoinWithMULT={false}
+        JoinWithMULT={JoinWithMultiple}
       />
     </Pressable>
   );

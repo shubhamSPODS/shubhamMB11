@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, SafeAreaView, TouchableOpacity, Image, ActivityIndicator, Platform, StatusBar } from 'react-native';
+import { View, FlatList, StyleSheet, ActivityIndicator, Platform, StatusBar, TouchableOpacity } from 'react-native';
 import { AppText, POPPINS_SEMI_BOLD } from '../../common/AppText';
 import { NewColor } from '../../theme/color';
 import TransactionItem from '../../components/TransactionItem';
-import { back } from '../../helper/image';
+import { AppSafeAreaView } from '../../common/AppSafeAreaView';
+import { HomeTopHeader } from '../../common/HomeTopHeader';
 import { GET_WITH_TOKEN } from '../../Backend/Backend';
 
 const TransactionsScreen = ({ navigation }) => {
@@ -54,14 +55,20 @@ const TransactionsScreen = ({ navigation }) => {
     };
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Image source={back} style={styles.backIcon} />
-                </TouchableOpacity>
-                <AppText weight={POPPINS_SEMI_BOLD} style={styles.headerTitle}>Transactions</AppText>
-                <View style={{width: 25}} />
-            </View>
+        <AppSafeAreaView
+            statusColor={true}
+            style={styles.container}
+            hidden={false}>
+            <StatusBar
+                backgroundColor={'transparent'}
+                translucent={true}
+                networkActivityIndicatorVisible={true}
+            />
+            <HomeTopHeader
+                showBack={true}
+                personClick={() => navigation.goBack()}
+                title="Transactions"
+            />
 
             <View style={styles.filterContainer}>
                 {renderFilterButton('All')}
@@ -81,32 +88,14 @@ const TransactionsScreen = ({ navigation }) => {
                     ListEmptyComponent={<AppText style={styles.emptyText}>No transactions found.</AppText>}
                 />
             )}
-        </SafeAreaView>
+        </AppSafeAreaView>
     );
 };
 
 const styles = StyleSheet.create({
-    safeArea: {
+    container: {
         flex: 1,
-        backgroundColor: '#111019', 
-        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        backgroundColor: '#1a0f35', 
-    },
-    backIcon: {
-        width: 25,
-        height: 25,
-        tintColor: '#FFFFFF',
-    },
-    headerTitle: {
-        color: '#FFFFFF',
-        fontSize: 20,
+        backgroundColor: '#111019',
     },
     list: {
         marginTop: 10,

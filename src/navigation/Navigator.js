@@ -77,6 +77,7 @@ import {
   MY_CONTEST_SWPIE,
   PAYMENT_SCREEN,
   LUDO_GAME_MODE,
+  LUDO_HOW_TO_PLAY,
   GAME_TABLE,
   GAME_JOIN_TABLE,
   RUMMY_GAME_MODE,
@@ -185,6 +186,7 @@ import HomeScreen from '../screens/HomeScreen';
 import MyBalance from '../screens/MyBalance';
 import TransactionsScreen from '../screens/Transactions';
 import LudoGameMode from '../screens/Ludo/LudoGameMode';
+import LudoHowToPlay from '../screens/Ludo/LudoHowToPlay';
 import GameTable from '../screens/GameTable';
 import GameJoinTable from '../helper/GameJoinTable';
 import RummyGameModes from '../screens/Rummy/RummyGameMode';
@@ -635,6 +637,47 @@ const LudoTab = () => {
           ),
         }}
       />
+      <Tab.Screen
+        name={'How to Play'}
+        component={LudoHowToPlay}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[colors.playerDetailsLinerOne, colors.playerDetailsLinerTwo]}
+                />
+              ) : null}
+              <FastImage
+                source={require('../../assets/images/secure.png')}
+                style={{
+                  width: 25,
+                  height: 25,
+                  tintColor: focused ? colors.brownYellow : colors.gray,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                How to Play
+              </AppText>
+            </>
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 };
@@ -879,6 +922,7 @@ const RootStackScreen = () => (
     <Stack.Screen name={PAYMENT_SCREEN} component={PaymentScreen} />
     <Stack.Screen name={GAME_TABLE} component={GameTable} />
     <Stack.Screen name={LUDO_GAME_MODE} component={LudoTab} />
+    <Stack.Screen name={LUDO_HOW_TO_PLAY} component={LudoHowToPlay} />
     <Stack.Screen name={GAME_JOIN_TABLE} component={GameJoinTable} />
     <Stack.Screen name={GAME_WEB_VIEW} component={GameWebView} />
     <Stack.Screen name={RUMMY_GAME_MODE} component={RummyTab} />

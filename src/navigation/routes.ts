@@ -85,6 +85,7 @@ export const UPLOAD_SELFIE = 'UPLOAD_SELFIE';
 export const MY_CONTEST_SWPIE = 'MY_CONTEST_SWPIE';
 export const PAYMENT_SCREEN  = 'PAYMENT_SCREEN';
 export const LUDO_GAME_MODE='LudoGameMode'
+export const LUDO_HOW_TO_PLAY='LudoHowToPlay'
 export const RUMMY_GAME_MODE='RummyGameMode'
 
 export const GAME_TABLE='GameTable'

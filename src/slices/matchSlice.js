@@ -357,6 +357,30 @@ export const joinContest = (data, matchDetails) => async dispatch => {
       return;
     }
 
+    // Additional validation for multiple teams payload
+    if (data?.mutiple && data?.arofobj) {
+      console.log('🎯 [JOIN CONTEST] Final payload validation before API call:');
+      console.log('🎯 [JOIN CONTEST] Payload structure:', {
+        mutiple: data.mutiple,
+        arofobjLength: data.arofobj.length,
+        arofobjStructure: data.arofobj.map((team, index) => ({
+          index,
+          hasRequiredFields: {
+            cid: !!team.cid,
+            match_id: !!team.match_id,
+            teams_id: Array.isArray(team.teams_id) && team.teams_id.length > 0,
+            contest_category_id: !!team.contest_category_id,
+            shadow_contest_id: !!team.shadow_contest_id,
+            match_contest_category_id: !!team.match_contest_category_id,
+            teamName: !!team.teamName,
+            method: !!team.method,
+            amount: !!team.amount
+          },
+          teamData: team
+        }))
+      });
+    }
+
     dispatch(setLoading(true));
     const res = await appOperation.customer.joinContest(data);
     console.log('Join contest response:', res);
@@ -515,7 +539,9 @@ export const getContestList = (outputObject, id) => async dispatch => {
           const transformedItem = {
             ...contestItem,
             ...(details || {}),
-            _id: contestItem._id, 
+            _id: contestItem._id,
+            JoinWithMULT: details?.JoinWithMULT || contestItem?.JoinWithMULT || false,
+            teams: details?.teams || contestItem?.teams || 1
           };
           return transformedItem;
         });

@@ -33,7 +33,7 @@ import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import { universalPaddingHorizontal } from '../../theme/dimens';
 import PrimaryButton from '../../common/primaryButton';
 
-const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, joinWith, JoinWithMULT }) => {
+const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, totallMultipleTeams, JoinWithMULT }) => {
   const dispatch = useDispatch();
   const myTeam = useSelector(state => state?.match?.myTeams);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -75,8 +75,8 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, joinWi
           newArray.splice(existingIndex, 1);
           return newArray;
         } else {
-          if (joinWith === lengthTeam || joinWith === prev.length) {
-            toastAlert.showToastError(`You can join only ${joinWith} teams`);
+          if (totallMultipleTeams === lengthTeam || totallMultipleTeams === prev.length) {
+            toastAlert.showToastError(`You can join only ${totallMultipleTeams} teams`);
             return prev;
           }
           return [...prev, item];
@@ -85,7 +85,7 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, joinWi
     } else {
       setSelectedTeam(item);
     }
-  }, [teamDetails, selectMulty.length, JoinWithMULT, joinWith]);
+  }, [teamDetails, selectMulty.length, JoinWithMULT, totallMultipleTeams]);
 
   const renderMyTeam = useCallback(({ item }) => {
     const isSelected = selectMulty?.some(value => value._id === item._id);
@@ -171,7 +171,7 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, joinWi
               </AppText>
             </View>
             
-            {JoinWithMULT && (
+            {/* {JoinWithMULT && (
               <>
                 <View style={styles.teamCountDivider} />
                 <View style={styles.teamCountBox}>
@@ -179,11 +179,11 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, joinWi
                     Teams You Can Join
                   </AppText>
                   <AppText type={SIXTEEN} weight={POPPINS_BOLD} color={WHITE} style={{ marginTop: 5 }}>
-                    {joinWith || 0}
+                    {totallMultipleTeams}
                   </AppText>
                 </View>
               </>
-            )}
+            )} */}
           </View>
         </View>
       </View>

@@ -283,6 +283,18 @@ const MyContest = () => {
     ) || item;
     // Merge joinedContest (with nested fields) over contestListObj
     const fullContestDetails = { ...contestListObj, ...joinedContest };
+
+    console.log('🎯 [MY CONTEST] Contest data debug:', {
+      itemId: item?._id,
+      itemTeams: item?.teams,
+      itemJoinWithMULT: item?.JoinWithMULT,
+      joinedContestTeams: joinedContest?.teams,
+      joinedContestJoinWithMULT: joinedContest?.JoinWithMULT,
+      contestListObjTeams: contestListObj?.teams,
+      contestListObjJoinWithMULT: contestListObj?.JoinWithMULT,
+      finalTeams: fullContestDetails?.teams,
+      finalJoinWithMULT: fullContestDetails?.JoinWithMULT
+    });
     return (
       <ContestCard
         details={fullContestDetails}
@@ -290,13 +302,13 @@ const MyContest = () => {
         matchType={matchType}
         matchDetails={contestData}
         onPress={() => {
-          dispatch(setContestData(contestData)); // Set full match data
+          dispatch(setContestData(contestData)); 
           NavigationService.navigate(MY_CONTEST, {
             contestId: item?._id,
             matchId: contestData?._id,
             teamId: item?.teamId,
             matchType: contestData?.Type,
-            selectedContest: fullContestDetails, // Pass merged contest as param
+            selectedContest: fullContestDetails, 
           });
         }}
       />
@@ -554,7 +566,7 @@ const MyContest = () => {
                 EnteryFee: matchingContest?.EntryFee || 1,
                 Contestsize: matchingContest?.ContestSize || 100,
                 Rankdata: [{Price: matchingContest?.winning_amount || 100}],
-                JoinWithMULT: false,
+                JoinWithMULT: true,
                 teams: [], 
                 joined: 0 
               },
@@ -565,7 +577,7 @@ const MyContest = () => {
                 contest_category_id: matchingContest?.contest_category_id
               },
               Winning_percent: 10, 
-              JoinWithMULT: false,
+              JoinWithMULT: true,
               contest_type: 'ScoreCard',
               ContestType: 'ScoreCard',
               EntryFee: matchingContest?.EntryFee || 1,

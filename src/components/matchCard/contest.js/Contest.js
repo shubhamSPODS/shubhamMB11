@@ -17,16 +17,16 @@ const Contest = ({ details, totalTeamCount, matchId }) => {
       return null;
     }
     
-    // Add default values for required fields
+    // Add default values for required fields, but preserve original values from API
     const contestDetails = {
-      Contestsize: 2, // Default to 2 for head to head
-      EnteryFee: 0, // Default entry fee
-      Rankdata: [{ Price: 0 }], // Default rank data
-      JoinWithMULT: false,
-      teams: 1,
-      name: 'Contest',
-      Winning_percent: 50, // Default to 50% for head to head
-      ...item // Spread item after defaults to allow overrides
+      ...item, // Spread item first to preserve original values
+      Contestsize: item?.Contestsize || 2, // Default to 2 for head to head
+      EnteryFee: item?.EnteryFee || 0, // Default entry fee
+      Rankdata: item?.Rankdata || [{ Price: 0 }], // Default rank data
+      JoinWithMULT: item?.JoinWithMULT || false,
+      teams: item?.teams || 1, // Use original teams value from API
+      name: item?.name || 'Contest',
+      Winning_percent: item?.Winning_percent || 50, // Default to 50% for head to head
     };
     
     // Calculate entry fee if not provided but winning amount exists
@@ -34,7 +34,18 @@ const Contest = ({ details, totalTeamCount, matchId }) => {
       contestDetails.EnteryFee = Math.ceil(contestDetails.winning_amount * 0.2);
     }
     
-    console.log('Rendering contest with details:', contestDetails);
+    console.log('🎯 [CONTEST] Original item from API:', {
+      itemId: item?._id,
+      itemTeams: item?.teams,
+      itemJoinWithMULT: item?.JoinWithMULT,
+      itemContestCategoryId: item?.contest_category_id
+    });
+    console.log('🎯 [CONTEST] Final contest details:', {
+      contestId: contestDetails?._id,
+      teams: contestDetails?.teams,
+      JoinWithMULT: contestDetails?.JoinWithMULT,
+      contestCategoryId: contestDetails?.contest_category_id
+    });
     
     return <ContestCard details={contestDetails} totalTeamCount={totalTeamCount} />;
   };
