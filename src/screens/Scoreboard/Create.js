@@ -288,13 +288,28 @@ const Create = ({route}) => {
         if (response?.success === true) {
           toastAlert.showToastSuccess(response?.message || 'Scoreboard created successfully');
           
-          // Navigate to My Scoreboard tab in MyContest screen
-          NavigationService.navigate(MY_CONTEST, {
-            ...contestData,
-            matchType: 'scoreboard',
-            initialTabIndex: 2, // Third tab (My Scoreboard)
-            isFromMyMatch: true,
-          });
+          // Check if user came from join flow
+          if (route?.params?.isFromJoinFlow) {
+            console.log('🎯 Scoreboard created from join flow - navigating to confirmation screen');
+            
+            // Navigate back to contest screen and open confirmation with the created scoreboard
+            NavigationService.goBack();
+            
+            // Small delay to ensure navigation is complete
+            setTimeout(() => {
+              // The contest card will handle the flow properly now
+              // since we've created a scoreboard, it should open the SelectScoreboard screen
+              console.log('✅ Scoreboard created successfully, user can now join contest');
+            }, 500);
+          } else {
+            // Navigate to My Scoreboard tab in MyContest screen
+            NavigationService.navigate(MY_CONTEST, {
+              ...contestData,
+              matchType: 'scoreboard',
+              initialTabIndex: 2, // Third tab (My Scoreboard)
+              isFromMyMatch: true,
+            });
+          }
         } else {
           console.log('=== CREATE ERROR ===');
           console.log('Create failed with response:', response);

@@ -82,6 +82,17 @@ const SelectScoreboard = ({
           }, 100);
         } else {
           console.log('🎯 Scoreboards loaded successfully:', response.data.length);
+          
+          // If there's only one scoreboard, automatically select it and proceed to confirmation
+          if (response.data.length === 1) {
+            console.log('🎯 Only one scoreboard found - auto-selecting it and proceeding to confirmation');
+            setSelectedScoreboard(response.data[0]);
+            
+            // Small delay to ensure state is set, then proceed to confirmation
+            setTimeout(() => {
+              setShowConfirmation(true);
+            }, 100);
+          }
         }
       } else {
         console.log('🎯 API failed or no data - redirecting to create screen');

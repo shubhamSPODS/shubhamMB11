@@ -38,7 +38,7 @@ import { GLORY, SINGLE, WINNER, m } from '../../helper/image';
 import NavigationService from '../../navigation/NavigationService';
 import styles from './styles';
 import { useDispatch, useSelector } from 'react-redux';
-import { SELECT_PLAYER, UPLOAD_AADHAR, VERIFY_ADHAAR_SCREEN } from '../../navigation/routes';
+import { SELECT_PLAYER, UPLOAD_AADHAR, VERIFY_ADHAAR_SCREEN, SCOREBOARD_CREATE } from '../../navigation/routes';
 import SelectScoreboard from '../../components/selectScoreboard/SelectScoreboard';
 import {
   getAllPlayerList,
@@ -61,6 +61,7 @@ import { ScoreCard } from '../ScoreCard';
 import PrimaryButton from '../../common/primaryButton';
 import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
 import { SpinnerSecond } from '../../common/SpinnerSecond';
+import { appOperation } from '../../appOperation';
 
 const FirstRoute = ({ route }) => {
   const details = route?.route?.params?.details?.details;
@@ -520,13 +521,43 @@ const LeaderBoard = () => {
       
       // Handle scoreboard contests differently
       if (isScoreboardContest) {
-        console.log('🎯 This is a scoreboard contest - opening SelectScoreboard screen directly');
+        console.log('🎯 This is a scoreboard contest - checking for existing scorecards');
         dispatch(setSelectedMatch(details ? { ...details } : {}));
         
-        // For scoreboard contests, always open the SelectScoreboard screen
-        // The SelectScoreboard component will handle checking if user has scoreboards
-        console.log('✅ Opening SelectScoreboard sheet for scoreboard contest');
-        selectScoreboard?.current?.open();
+        // Check if user has any scorecards for this match
+        try {
+          const matchId = matchDetails?._id;
+          if (!matchId) {
+            toastAlert.showToastError('Match information not found');
+            return;
+          }
+          
+          // Fetch user's scorecards for this match
+          const response = await appOperation.customer.getUserScoreCard(matchId);
+          
+          if (response?.success && response?.data && response?.data.length > 0) {
+            console.log('✅ User has scorecards - opening SelectScoreboard screen');
+            selectScoreboard?.current?.open();
+          } else {
+            console.log('📝 User has no scorecards - redirecting to create scorecard screen');
+            // Navigate to create scorecard screen with contest details
+            NavigationService.navigate(SCOREBOARD_CREATE, {
+              ...matchDetails,
+              isFromMyMatch: false,
+              contestDetails: details,
+              isFromJoinFlow: true, // Flag to indicate this is from join flow
+            });
+          }
+        } catch (error) {
+          console.error('Error checking scorecards:', error);
+          // If error occurs, redirect to create scorecard screen
+          NavigationService.navigate(SCOREBOARD_CREATE, {
+            ...matchDetails,
+            isFromMyMatch: false,
+            contestDetails: details,
+            isFromJoinFlow: true,
+          });
+        }
         return;
       }
       
