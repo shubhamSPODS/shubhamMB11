@@ -18,9 +18,7 @@ import {Alert, Platform} from 'react-native';
 
 // List of permissions to request - Only essential permissions
 const permissionsList = [
-  // Only SMS permissions for OTP auto-fill
-  PERMISSIONS.ANDROID.READ_SMS,
-  PERMISSIONS.ANDROID.RECEIVE_SMS,
+  // Removed SMS permissions to avoid warning messages
 ];
 
 const App = () => {
@@ -66,11 +64,8 @@ const App = () => {
   const requestPermission = async (permission:any) => {
     const result = await request(permission);
     if (result === RESULTS.DENIED) {
-      Alert.alert(
-        'SMS Permission Required',
-        'SMS permission is needed to automatically fill OTP codes for faster verification.',
-        [{text: 'OK'}]
-      );
+      // Permission denied - handle as needed
+      console.log('Permission denied:', permission);
     }
   };
 
