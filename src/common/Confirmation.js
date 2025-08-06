@@ -219,7 +219,9 @@ const Confirmation = ({
         }
 
         const shadow_contest_id = details?.shadow_contest_id || details?._id || '';
-        const match_contest_category_id = details?._id || '';
+        // For multiple entry contests, we need to use the actual contest instance ID
+        // This should be different from the contest_category_id
+        const match_contest_category_id = details?.match_contest_category_id || details?.contest_id || details?.shadow_contest_id || details?._id || '';
         
         console.log('Contest details for join (multiple entry contest):', {
           contest_category_id,
@@ -332,7 +334,8 @@ const Confirmation = ({
         }
 
         const shadow_contest_id = details?.shadow_contest_id || details?._id || '';
-        const match_contest_category_id = details?._id || '';
+        // For single team contests, we need to use the actual contest instance ID
+        const match_contest_category_id = details?.match_contest_category_id || details?.contest_id || details?.shadow_contest_id || details?._id || '';
 
         
         console.log('Contest details for join (single team):', {

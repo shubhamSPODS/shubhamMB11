@@ -178,6 +178,7 @@ import { appOperation } from '../../../appOperation';
       ...details,
       contest_category_id: correctContestCategoryId || '',
       inner_data_id: details?.inner_data_id || '',
+      match_contest_category_id: details?._id || details?.match_contest_category_id || '', // This is the actual contest instance ID
       winning_amount: winningAmount,
       joined: joined,
       Contestsize: contestSize,

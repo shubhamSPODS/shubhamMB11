@@ -273,6 +273,21 @@ const LeaderBoardList = ({
             data: response?.data,
             fullResponse: response
           });
+          
+          // Additional detailed logging for debugging
+          console.log('🎯 [SCOREBOARD LEADERBOARD API] Detailed Response Analysis:', {
+            responseType: typeof response,
+            hasSuccess: 'success' in response,
+            hasMessage: 'message' in response,
+            hasData: 'data' in response,
+            dataType: typeof response?.data,
+            isDataArray: Array.isArray(response?.data),
+            dataLength: response?.data?.length || 0,
+            firstItem: response?.data?.[0],
+            lastItem: response?.data?.[response?.data?.length - 1],
+            responseKeys: Object.keys(response || {}),
+            dataKeys: response?.data?.[0] ? Object.keys(response.data[0]) : []
+          });
 
           if (response?.success) {
             console.log('🎯 [SCOREBOARD LEADERBOARD API] Setting leaderboard data:', {
@@ -287,12 +302,36 @@ const LeaderBoardList = ({
               success: response?.success,
               fullResponse: response
             });
+            
+            // Additional error logging
+            console.log('🎯 [SCOREBOARD LEADERBOARD API] Error Analysis:', {
+              errorType: typeof response,
+              hasMessage: 'message' in response,
+              hasSuccess: 'success' in response,
+              messageValue: response?.message,
+              successValue: response?.success,
+              responseKeys: Object.keys(response || {}),
+              fullErrorResponse: JSON.stringify(response, null, 2)
+            });
           }
         } catch (error) {
           console.log('🎯 [SCOREBOARD LEADERBOARD API] Fetch error:', {
             error: error,
             message: error?.message,
             stack: error?.stack
+          });
+          
+          // Additional catch error logging
+          console.log('🎯 [SCOREBOARD LEADERBOARD API] Catch Error Analysis:', {
+            errorType: typeof error,
+            errorName: error?.name,
+            errorMessage: error?.message,
+            hasData: 'data' in error,
+            errorData: error?.data,
+            hasCode: 'code' in error,
+            errorCode: error?.code,
+            errorKeys: Object.keys(error || {}),
+            fullErrorObject: JSON.stringify(error, null, 2)
           });
         } finally {
           setLoading(false);
@@ -368,6 +407,17 @@ const LeaderBoardList = ({
     const username = item?.username || item?.full_name || 'Unknown User';
     const teamName = item?.team_details?.name || 'Team 1';
     
+    // Handle prediction names for scoreboard contests
+    let displayName = username;
+    if (item?.predictionNames && Array.isArray(item.predictionNames) && item.predictionNames.length > 0) {
+      // For scoreboard contests, show username + prediction names
+      const predictionNames = item.predictionNames.join(', ');
+      displayName = `${username} (${predictionNames})`;
+    } else {
+      // For regular team contests, show username + team name
+      displayName = `${username} (${teamName})`;
+    }
+    
     return (
       <TouchableOpacity
         activeOpacity={1}
@@ -390,8 +440,7 @@ const LeaderBoardList = ({
           </TouchableOpacity>
           <View style={{flex: 1.4, marginLeft: 6}}>
             <AppText>
-              {username}{' '}
-              {`(${teamName})`}
+              {displayName}
             </AppText>
             {(
               (item?.email && userData?.email && item.email === userData.email) ||
@@ -416,7 +465,7 @@ const LeaderBoardList = ({
               flex: 1,
             }}>
             <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
-              {item?.team_details?.total_points || 0}
+              {item?.team_details?.total_points || item?.totalPoints || 0}
             </AppText>
             <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
               # {item?.rank || 1}
@@ -437,6 +486,17 @@ const LeaderBoardList = ({
         // Get user and team names safely
         const username = item?.username || item?.full_name || 'You';
         const teamName = item?.team_details?.name || 'Team 1';
+        
+        // Handle prediction names for scoreboard contests
+        let displayName = username;
+        if (item?.predictionNames && Array.isArray(item.predictionNames) && item.predictionNames.length > 0) {
+          // For scoreboard contests, show username + prediction names
+          const predictionNames = item.predictionNames.join(', ');
+          displayName = `${username} (${predictionNames})`;
+        } else {
+          // For regular team contests, show username + team name
+          displayName = `${username} (${teamName})`;
+        }
         
         return (
           <TouchableOpacity
@@ -461,8 +521,7 @@ const LeaderBoardList = ({
               </TouchableOpacity>
               <View style={{flex: 1.4, marginLeft: 6}}>
                 <AppText>
-                  {username}{' '}
-                  {`(${teamName})`}
+                  {displayName}
                 </AppText>
                 <AppText
                   type={TEN}
@@ -479,7 +538,7 @@ const LeaderBoardList = ({
                   flex: 1,
                 }}>
                 <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
-                  {item?.team_details?.total_points || 0}
+                  {item?.team_details?.total_points || item?.totalPoints || 0}
                 </AppText>
                 <AppText weight={SEMI_BOLD} type={TWELVE} color={WHITE}>
                   # {item?.rank || 1}

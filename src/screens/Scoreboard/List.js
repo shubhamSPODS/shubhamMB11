@@ -40,7 +40,7 @@ const globalErrorState = {
   }
 };
 
-const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress }) => {
+const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress, index }) => {
   const predictions = item.predictions || item.data?.predictions || [];
   
   if (!predictions || predictions.length === 0) {
@@ -93,6 +93,17 @@ const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress }) => {
     }
   }
   
+  // If still no match type found, try to determine from number of predictions
+  if (!matchType && predictions.length > 0) {
+    if (predictions.length === 10) {
+      matchType = 'T10';
+    } else if (predictions.length === 20) {
+      matchType = 'T20';
+    } else if (predictions.length === 50) {
+      matchType = 'ODI';
+    }
+  }
+  
   // Fallback to T20 if still no match type found
   if (!matchType) {
     matchType = 'T20';
@@ -122,6 +133,11 @@ const ScoreboardCard = ({ item, contestData, upcomingMatches, onPress }) => {
     <TouchableOpacity style={styles.cardContainer} onPress={onPress}>
       <View style={styles.cardTopSection}>
         <View style={styles.matchInfoSection}>
+          <View style={styles.scoreboardNameContainer}>
+            <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.scoreboardNameText}>
+              Scoreboard (S{index + 1})
+            </AppText>
+          </View>
           <View style={styles.matchTypeBadge}>
             <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
               {matchType}
@@ -339,11 +355,12 @@ const List = ({ matchIdProp, contestData: contestDataProp }) => {
     fetchScoreboards();
   };
 
-  const handleScoreboardPress = (scoreboard) => {
+  const handleScoreboardPress = (scoreboard, index) => {
     console.log('🎯 ScoreboardList: Navigating to Details with data:', {
       scoreboardId: scoreboard._id,
       hasPredictions: !!scoreboard.predictions,
       predictionsLength: scoreboard.predictions?.length,
+      scoreboardIndex: index,
       contestData: effectiveContestData ? {
         _id: effectiveContestData._id,
         MatchId: effectiveContestData.MatchId,
@@ -358,7 +375,8 @@ const List = ({ matchIdProp, contestData: contestDataProp }) => {
       scoreboardData: scoreboard,
       allPredictions: scoreboard.predictions,
       contestData: effectiveContestData,
-      upcomingMatches: upcomingMatches
+      upcomingMatches: upcomingMatches,
+      scoreboardIndex: index
     });
   };
 
@@ -373,12 +391,13 @@ const List = ({ matchIdProp, contestData: contestDataProp }) => {
         ) : (
           <FlatList
             data={scoreboards}
-            renderItem={({ item }) => (
+            renderItem={({ item, index }) => (
               <ScoreboardCard
                 item={item}
                 contestData={effectiveContestData}
                 upcomingMatches={upcomingMatches}
-                onPress={() => handleScoreboardPress(item)}
+                onPress={() => handleScoreboardPress(item, index)}
+                index={index}
               />
             )}
             keyExtractor={item => item._id || item.id || Math.random().toString()}
@@ -439,6 +458,13 @@ const styles = StyleSheet.create({
   },
   matchInfoSection: {
     flex: 1,
+  },
+  scoreboardNameContainer: {
+    marginBottom: 8,
+  },
+  scoreboardNameText: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   matchTypeBadge: {
     backgroundColor: colors.primary,

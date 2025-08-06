@@ -13,7 +13,7 @@ import NavigationService from '../../navigation/NavigationService';
 import {colors} from '../../theme/color';
 import CommonImageBackground from '../../common/commonImageBackground';
 import FastImage from "@d11/react-native-fast-image";
-import {backIconMain} from '../../helper/image';
+import {backIconMain, PENCIL} from '../../helper/image';
 import {Screen} from '../../theme/dimens';
 
 const Details = ({route}) => {
@@ -28,7 +28,7 @@ const Details = ({route}) => {
     length: route.params?.details?.winningsData?.rankWinnings?.length
   });
 
-  const {scoreboardData, allPredictions, details, contestData, upcomingMatches} = route?.params || {};
+  const {scoreboardData, allPredictions, details, contestData, upcomingMatches, scoreboardIndex} = route?.params || {};
   // Find the match from upcoming matches to get its type
   const currentMatch = upcomingMatches?.find(match => 
     match._id === contestData?._id || 
@@ -57,6 +57,17 @@ const Details = ({route}) => {
       else if (seriesName.includes('T50')) matchType = 'T50';
       else if (seriesName.includes('ODI')) matchType = 'ODI';
       else if (seriesName.includes('Test')) matchType = 'Test';
+    }
+  }
+  
+  // If still no match type found, try to determine from number of predictions
+  if (!matchType && allPredictions && allPredictions.length > 0) {
+    if (allPredictions.length === 10) {
+      matchType = 'T10';
+    } else if (allPredictions.length === 20) {
+      matchType = 'T20';
+    } else if (allPredictions.length === 50) {
+      matchType = 'ODI';
     }
   }
   
@@ -122,6 +133,24 @@ const Details = ({route}) => {
               Scoreboard Details
             </AppText>
           </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={() => {
+              NavigationService.navigate('Scoreboard/Create', {
+                ...contestData,
+                isEdit: true,
+                predictionId: scoreboardData?._id || scoreboardData?.prediction_id || scoreboardData?.predictions_id,
+                predictionsData: allPredictions,
+                isFromMyMatch: true,
+              });
+            }}
+            style={styles.editButton}>
+            <FastImage
+              source={PENCIL}
+              style={styles.editIcon}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
@@ -129,10 +158,17 @@ const Details = ({route}) => {
           contentContainerStyle={styles.scrollViewContent}
           showsVerticalScrollIndicator={false}>
           <View style={styles.matchInfoContainer}>
-            <View style={styles.matchTypeBadge}>
-              <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
-                {matchType}
-              </AppText>
+            <View style={styles.scoreboardInfoSection}>
+              <View style={styles.scoreboardNameContainer}>
+                <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.scoreboardNameText}>
+                  Scoreboard (S{scoreboardIndex !== undefined ? scoreboardIndex + 1 : 1})
+                </AppText>
+              </View>
+              <View style={styles.matchTypeBadge}>
+                <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
+                  {matchType}
+                </AppText>
+              </View>
             </View>
             <View style={styles.totalRunsContainer}>
               <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.totalRunsText}>
@@ -177,6 +213,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     letterSpacing: 0.5,
   },
+  editButton: {
+    padding: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  editIcon: {
+    height: 20,
+    width: 20,
+    resizeMode: 'contain',
+  },
   matchInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -189,6 +237,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
     marginBottom: 12
+  },
+  scoreboardInfoSection: {
+    flex: 1,
+  },
+  scoreboardNameContainer: {
+    marginBottom: 8,
+  },
+  scoreboardNameText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   matchTypeBadge: {
     backgroundColor: colors.primary,

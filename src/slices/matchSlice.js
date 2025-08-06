@@ -13,6 +13,7 @@ import {
   SHARE_TEAM,
 } from '../navigation/routes';
 import {getKycDetails, getUserProfile} from '../actions/profileAction';
+import {userLogout} from '../actions/authActions';
 import {customSort} from '../screens/Selectsubstitute.js/SelectSubstitute';
 import PhonePePaymentSDK from 'react-native-phonepe-pg';
 
@@ -385,7 +386,7 @@ export const joinContest = (data, matchDetails) => async dispatch => {
     const res = await appOperation.customer.joinContest(data);
     console.log('Join contest response:', res);
 
-    if (res?.code === 200 || res?.success === true) {
+    if (res?.success === true) {
       toastAlert.showToastSuccess(res?.message || 'Contest joined successfully');
       
       // Comprehensive refresh of all related data
@@ -414,7 +415,12 @@ export const joinContest = (data, matchDetails) => async dispatch => {
         }, 1000);
       }, 500);
     } else {
-      toastAlert.showToastError(res?.message || 'Failed to join contest');
+      // Handle specific error message for already joined team
+      if (res?.message && res.message.includes('You cannot join contest mulitple times with single team')) {
+        toastAlert.showToastError('You have already joined the contest from this team');
+      } else {
+        toastAlert.showToastError(res?.message || 'Failed to join contest');
+      }
     }
   } catch (error) {
     console.error('Join contest error:', error);
@@ -503,8 +509,16 @@ export const joinScoreboardContest = (scoreboardId, matchDetails, contestDetails
       fullResponse: res
     });
 
-    if (res?.code === 200 || res?.success === true) {
-      toastAlert.showToastSuccess(res?.message || 'Scoreboard contest joined successfully');
+    if (res?.success === true) {
+      console.log('🎯 [JOIN SCOREBOARD CONTEST] Showing success toast with message:', res?.message);
+      
+      // Handle different response structures
+      const successMessage = res?.message || 
+                           res?.fullResponse?.message || 
+                           'Scoreboard contest joined successfully';
+      
+      // Show toast immediately after successful response
+      toastAlert.showToastSuccess(successMessage);
       
       // Comprehensive refresh of all related data
       console.log('🔄 Refreshing contest data after successful scoreboard join');
@@ -528,11 +542,38 @@ export const joinScoreboardContest = (scoreboardId, matchDetails, contestDetails
         }, 1000);
       }, 500);
     } else {
-      toastAlert.showToastError(res?.message || 'Failed to join scoreboard contest');
+      // Handle specific error message for already joined scoreboard
+      if (res?.message && res.message.includes('You cannot join contest mulitple times with single team')) {
+        toastAlert.showToastError('You have already joined the contest from this scoreboard');
+      } else if (res?.message && res.message.includes('All selected predictions are already joined')) {
+        toastAlert.showToastError('All selected scoreboards are already joined to this contest');
+      } else {
+        toastAlert.showToastError(res?.message || 'Failed to join scoreboard contest');
+      }
     }
   } catch (error) {
     console.error('Join scoreboard contest error:', error);
-    toastAlert.showToastError(error?.message || 'Failed to join scoreboard contest');
+    
+    // Handle specific error for already joined predictions
+    let errorMessage = '';
+    if (error?.data && typeof error.data === 'string') {
+      try {
+        const parsedData = JSON.parse(error.data);
+        errorMessage = parsedData.message || '';
+      } catch (parseError) {
+        console.log('Failed to parse error.data:', parseError);
+      }
+    }
+    
+    if (!errorMessage) {
+      errorMessage = error?.message || '';
+    }
+    
+    if (errorMessage.includes('All selected predictions are already joined')) {
+      toastAlert.showToastError('All selected scoreboards are already joined to this contest');
+    } else {
+      toastAlert.showToastError(errorMessage || 'Failed to join scoreboard contest');
+    }
   } finally {
     dispatch(setLoading(false));
   }
@@ -620,6 +661,7 @@ export const getContestList = (outputObject, id) => async dispatch => {
             ...contestItem,
             ...(details || {}),
             _id: contestItem._id,
+            match_contest_category_id: contestItem._id, // This is the actual contest instance ID
             JoinWithMULT: details?.JoinWithMULT || contestItem?.JoinWithMULT || false,
             teams: details?.teams || contestItem?.teams || 1
           };
@@ -1229,6 +1271,23 @@ export const payoutWithdraw = data => async dispatch => {
       toastAlert.showToastError(res.message);
     }
   } catch (e) {
+  } finally {
+    dispatch(setLoading(false));
+  }
+};
+
+export const deleteAccount = () => async dispatch => {
+  dispatch(setLoading(true));
+  try {
+    const res = await appOperation.customer.deleteaccount();
+    if (res?.success) {
+      toastAlert.showToastError(res.message);
+      dispatch(userLogout());
+    } else {
+      toastAlert.showToastError(res.message);
+    }
+  } catch (e) {
+    toastAlert.showToastError(e?.message || 'Something went wrong');
   } finally {
     dispatch(setLoading(false));
   }

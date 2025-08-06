@@ -236,10 +236,33 @@ const MyContest = () => {
   }, [index, effectiveMatchId, dispatch]);
 
   const renderItem = ({item}) => {
+    // Find the actual contest instance from the API response data
+    const actualContestInstance = contestList?.data?.find(category => 
+      category?.data?.some(contestData => 
+        contestData.contest_category_id === item?.contest_category_id &&
+        contestData.shadow_contest_id === item?.shadow_contest_id
+      )
+    )?.data?.find(contestData => 
+      contestData.contest_category_id === item?.contest_category_id &&
+      contestData.shadow_contest_id === item?.shadow_contest_id
+    );
+
+    console.log('🎯 [RENDER ITEM] Found actual contest instance:', {
+      found: !!actualContestInstance,
+      actualContestId: actualContestInstance?._id,
+      itemId: item?._id,
+      contestCategoryId: item?.contest_category_id,
+      shadowContestId: item?.shadow_contest_id
+    });
+
     return (
       <ContestCard
         details={{
           ...item,
+          ...(actualContestInstance && { 
+            _id: actualContestInstance._id, // This is the actual contest instance ID
+            match_contest_category_id: actualContestInstance._id // This is the actual contest instance ID
+          }),
           contest_category_details: item.contest_category_details || []
         }}
         totalTeamCount={myTeam?.length}
@@ -294,18 +317,41 @@ const MyContest = () => {
       categoryDetails: contestCategoryDetails
     });
 
+    // Find the actual contest instance from the API response data
+    const actualContestInstance = contestList?.data?.find(category => 
+      category?.data?.some(contestData => 
+        contestData.contest_category_id === item?.contest_category_id &&
+        contestData.shadow_contest_id === item?.shadow_contest_id
+      )
+    )?.data?.find(contestData => 
+      contestData.contest_category_id === item?.contest_category_id &&
+      contestData.shadow_contest_id === item?.shadow_contest_id
+    );
+
+    console.log('🎯 [RENDER CONTEST] Found actual contest instance:', {
+      found: !!actualContestInstance,
+      actualContestId: actualContestInstance?._id,
+      itemId: item?._id,
+      contestCategoryId: item?.contest_category_id,
+      shadowContestId: item?.shadow_contest_id
+    });
+
     // Prefer using the contest object from myContest (if available)
     const joinedContest = myContest?.find(c => c._id === item._id || c.contest_category_id === item.contest_category_id);
     const contestListObj = (contestList?.data || []).find(
       c => c._id === item._id || c.contest_category_id === item.contest_category_id
     ) || item;
     
-    // Merge all data sources with priority: categoryDetails > contestListObj > joinedContest > item
+    // Merge all data sources with priority: actualContestInstance > categoryDetails > contestListObj > joinedContest > item
     const fullContestDetails = { 
       ...item,
       ...contestListObj, 
       ...joinedContest,
       ...contestCategoryDetails, // This should have JoinWithMULT and teams
+      ...(actualContestInstance && { 
+        _id: actualContestInstance._id, // This is the actual contest instance ID
+        match_contest_category_id: actualContestInstance._id // This is the actual contest instance ID
+      }),
       // Ensure JoinWithMULT and teams are preserved from category details
       JoinWithMULT: contestCategoryDetails?.JoinWithMULT || item?.JoinWithMULT,
       teams: contestCategoryDetails?.teams || item?.teams

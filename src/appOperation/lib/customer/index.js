@@ -31,9 +31,7 @@ export default appOperation => ({
       data?.object,
       CUSTOMER_TYPE,
     ).then(response => {
-      console.log('🎯 [API] getContestList response for matchId:', data?.matchid, {
-        fullResponse: response?.data[0]?.contest_category_details
-      });
+      console.log('🎯 [API] getContestList response for matchId>>>>:', data?.matchid, response?.data[0]?.data);
       return response;
     }).catch(error => {
       console.error('🎯 getContestList error:', error);
@@ -229,7 +227,7 @@ export default appOperation => ({
       CUSTOMER_TYPE,
     ),
   joinContest: data =>
-    appOperation.post(`match/join-contest`, data, CUSTOMER_TYPE),
+    appOperation.post(`match/v2/join-contest`, data, CUSTOMER_TYPE),
 
   joinScoreboardContest: data =>
     appOperation.post(`match/scoreboard-join`, data, CUSTOMER_TYPE),

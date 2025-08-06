@@ -23,6 +23,7 @@ import {
   UserIcon,
   rightArrow,
   right_arrow,
+  deleteIcon,
 } from '../helper/image';
 import {TouchableOpacityView} from '../common/TouchableOpacityView';
 import {NewColor, colors} from '../theme/color';
@@ -53,6 +54,7 @@ import PrimaryButton from '../common/primaryButton';
 import SecondaryButton from '../common/secondaryButton';
 import {userLogout} from '../actions/authActions';
 import {useDispatch, useSelector} from 'react-redux';
+import {deleteAccount} from '../slices/matchSlice';
 
 import {getUserProfile} from '../actions/profileAction';
 import {IMAGE_BASE_URL} from '../helper/utility';
@@ -120,6 +122,12 @@ export const datathree = [
     title: 'Fair Play Policy',
     source: rightArrow,
   },
+  {
+    id: 12,
+    FastImage: deleteIcon,
+    title: 'Delete My Account',
+    source: rightArrow,
+  },
 ];
 const CustomDrawer = () => {
   const dispatch = useDispatch();
@@ -129,10 +137,12 @@ const CustomDrawer = () => {
   const [select, setSelect] = React.useState('');
   const [random, setRandom] = React.useState(0);
   const [mdlVisibile, setMdlVisible] = React.useState(false);
+  const [deleteAccountModal, setDeleteAccountModal] = React.useState(false);
   const onSubmit = (id: any, title: any) => {
     setSelect(id);
     if (id == '1') return NavigationService.navigate(MYBATTLEREFEREARN);
     if (id == '3') return NavigationService.navigate(DESK_HELP);
+    if (id == '12') return setDeleteAccountModal(true);
     if (id >= '4' || id == '11')
       return NavigationService.navigate(WEB_URL, {
         titleNames: id == 7 ? 'HowToPlay' : title,
@@ -288,6 +298,43 @@ const CustomDrawer = () => {
             />
             <SecondaryButton
               onPress={() => setMdlVisible(false)}
+              title="CANCEL"
+              WHITE={WHITE}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        isVisible={deleteAccountModal}
+        style={{ margin: 0 }}
+        animationIn="fadeIn"
+        animationOut={'fadeOut'}
+        hasBackdrop={true}
+        onBackdropPress={() => setDeleteAccountModal(false)}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: NewColor.linerBlacklightEight,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <View style={styles.modalBox}>
+            <AppText
+              style={styles.modalText}
+              type={TWENTY}
+              weight={POPPINS_SEMI_BOLD}>
+              Your account will be deleted within 7 days.{'\n'}Are you sure you want to delete your account?
+            </AppText>
+            <PrimaryButton
+              onPress={() => {
+                dispatch(deleteAccount());
+                setDeleteAccountModal(false);
+              }}
+              title="DELETE ACCOUNT"
+            />
+            <SecondaryButton
+              onPress={() => setDeleteAccountModal(false)}
               title="CANCEL"
               WHITE={WHITE}
             />

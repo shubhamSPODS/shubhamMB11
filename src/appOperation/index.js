@@ -115,6 +115,17 @@ export class AppOperation {
           body: data,
           bodyData: bodyData
         });
+        
+        // Additional request logging
+        console.log('🎯 [SCOREBOARD LEADERBOARD API] Request Details:', {
+          url: url,
+          method: method,
+          headersKeys: Object.keys(headers || {}),
+          hasBody: !!data,
+          bodyType: typeof data,
+          bodyKeys: data ? Object.keys(data) : [],
+          fullBody: JSON.stringify(data, null, 2)
+        });
       }
 
       fetch(uri, { method, headers, body: bodyData })
@@ -143,6 +154,23 @@ export class AppOperation {
                     message: jsonData?.message,
                     dataLength: jsonData?.data?.length || 0,
                     fullResponse: jsonData
+                  });
+                  
+                  // Additional response data logging
+                  console.log('🎯 [SCOREBOARD LEADERBOARD API] Response Data Analysis:', {
+                    responseType: typeof jsonData,
+                    hasSuccess: 'success' in jsonData,
+                    hasMessage: 'message' in jsonData,
+                    hasData: 'data' in jsonData,
+                    successValue: jsonData?.success,
+                    messageValue: jsonData?.message,
+                    dataType: typeof jsonData?.data,
+                    isDataArray: Array.isArray(jsonData?.data),
+                    dataLength: jsonData?.data?.length || 0,
+                    responseKeys: Object.keys(jsonData || {}),
+                    firstDataItem: jsonData?.data?.[0],
+                    lastDataItem: jsonData?.data?.[jsonData?.data?.length - 1],
+                    fullResponseString: JSON.stringify(jsonData, null, 2)
                   });
                 }
                 

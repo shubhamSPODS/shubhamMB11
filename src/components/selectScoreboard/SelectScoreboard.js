@@ -175,10 +175,29 @@ const SelectScoreboard = ({
     const previewOvers = predictions.slice(0, 5);
     const totalRuns = predictions.reduce((sum, over) => sum + (over.runs || 0), 0);
     
-    const matchType = item.match_details?.Type || 
+    // Try to get match type from multiple sources
+    let matchType = item.match_details?.Type || 
                      item.matchDetails?.Type || 
                      item.Type || 
-                     'T20';
+                     item.match_details?.match_type ||
+                     item.matchDetails?.match_type ||
+                     item.match_type;
+    
+    // If no match type found, try to determine from number of predictions
+    if (!matchType && predictions.length > 0) {
+      if (predictions.length === 10) {
+        matchType = 'T10';
+      } else if (predictions.length === 20) {
+        matchType = 'T20';
+      } else if (predictions.length === 50) {
+        matchType = 'ODI';
+      }
+    }
+    
+    // Fallback to T20 if still no match type found
+    if (!matchType) {
+      matchType = 'T20';
+    }
     
     return (
       <View style={styles.scoreboardItemContainer}>
@@ -207,6 +226,11 @@ const SelectScoreboard = ({
         >
           <View style={styles.cardTopSection}>
             <View style={styles.matchInfoSection}>
+              <View style={styles.scoreboardNameContainer}>
+                <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.scoreboardNameText}>
+                  Scoreboard (S{index + 1})
+                </AppText>
+              </View>
               <View style={styles.matchTypeBadge}>
                 <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.matchTypeText}>
                   {matchType}
@@ -510,6 +534,13 @@ const styles = StyleSheet.create({
   },
   matchInfoSection: {
     flex: 1,
+  },
+  scoreboardNameContainer: {
+    marginBottom: 8,
+  },
+  scoreboardNameText: {
+    fontSize: 18,
+    fontWeight: 'bold',
   },
   matchTypeBadge: {
     backgroundColor: colors.primary,

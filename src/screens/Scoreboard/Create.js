@@ -117,9 +117,11 @@ const Create = ({route}) => {
   console.log('teams length:', contestData?.teams?.length);
 
   useEffect(() => {
-    if (isEdit && predictionsData?.predictions) {
+    if (isEdit && predictionsData) {
       const initialPredictions = Array(totalOvers).fill('0');
-      predictionsData.predictions.forEach(prediction => {
+      // Handle both direct array and nested predictions structure
+      const predictionsArray = Array.isArray(predictionsData) ? predictionsData : predictionsData?.predictions || [];
+      predictionsArray.forEach(prediction => {
         initialPredictions[prediction.over_number - 1] = prediction.runs.toString();
       });
       setPredictions(initialPredictions);
@@ -139,7 +141,10 @@ const Create = ({route}) => {
 
   const updatePrediction = (index, value) => {
     const newPredictions = [...predictions];
-    newPredictions[index] = value;
+    // Ensure the value is a valid number and doesn't exceed 40
+    const runs = parseInt(value) || 0;
+    const limitedRuns = Math.min(runs, 40);
+    newPredictions[index] = limitedRuns.toString();
     setPredictions(newPredictions);
   };
 
@@ -167,7 +172,10 @@ const Create = ({route}) => {
           value={predictions[index]}
           onChangeText={text => {
             if (/^\d*$/.test(text)) {
-              updatePrediction(index, text);
+              // Limit maximum runs to 40 per over
+              const runs = parseInt(text) || 0;
+              const limitedRuns = Math.min(runs, 40);
+              updatePrediction(index, limitedRuns.toString());
             }
           }}
           onFocus={() => handleInputFocus(index)}
@@ -251,31 +259,74 @@ const Create = ({route}) => {
         
         if (response?.success === true) {
           toastAlert.showToastSuccess(response?.message || 'Scoreboard updated successfully');
-          NavigationService.navigate('Scoreboard/Details', {
-            scoreboardData: {
-              ...response.data,
-              _id: predictionId,
-            },
-            allPredictions: predictionsData,
-            isUpdated: true,
+          
+          // Navigate back to My Scoreboard tab in MyContest screen
+          NavigationService.navigate(MY_CONTEST, {
+            ...contestData,
+            matchType: 'scoreboard',
+            initialTabIndex: 2, // Third tab (My Scoreboard)
+            isFromMyMatch: true,
           });
         } else {
           console.log('=== UPDATE ERROR ===');
           console.log('Update failed with response:', response);
-          toastAlert.showToastError(response?.message || 'Failed to update scoreboard');
+          
+          // Handle specific error for identical predictions
+          let errorMessage = '';
+          
+          // Try to extract error message from different possible locations
+          if (response?.data && typeof response.data === 'string') {
+            try {
+              const parsedData = JSON.parse(response.data);
+              errorMessage = parsedData.message || '';
+            } catch (parseError) {
+              console.log('Failed to parse response.data (UPDATE):', parseError);
+            }
+          }
+          
+          // Fallback to other error message sources
+          if (!errorMessage) {
+            errorMessage = response?.message || response?.data?.message || '';
+          }
+          
+          console.log('=== FULL ERROR RESPONSE (UPDATE) ===');
+          console.log('Response:', JSON.stringify(response, null, 2));
+          console.log('Error message extracted:', errorMessage);
+          
+          if (errorMessage.includes('identical prediction')) {
+            console.log('=== IDENTICAL PREDICTIONS ERROR (UPDATE) ===');
+            console.log('User tried to update with identical predictions:', errorMessage);
+            toastAlert.showToastError(`Can't create Identical Prediction for same match`);
+          } else {
+            toastAlert.showToastError(errorMessage || 'Failed to update scoreboard');
+          }
         }
       } else {
         // Create new scoreboard
+        // First, get existing scoreboards to determine the next name
+        let scoreboardName = 'S1';
+        try {
+          const existingScoreboardsResponse = await appOperation.customer.getUserScoreCard(matchId);
+          if (existingScoreboardsResponse?.success && existingScoreboardsResponse?.data) {
+            const existingCount = existingScoreboardsResponse.data.length;
+            scoreboardName = `S${existingCount + 1}`;
+          }
+        } catch (error) {
+          console.log('Error fetching existing scoreboards for name generation:', error);
+          // Default to S1 if we can't fetch existing scoreboards
+        }
+        
         const createData = {
           predictions: predictionsData,
           match_id: matchId,
-          contest_id: contestId,
+          name: scoreboardName,
         };
         
         console.log('=== CREATE PAYLOAD ===');
         console.log('createData:', JSON.stringify(createData, null, 2));
         console.log('Predictions count:', predictionsData?.length);
         console.log('Sample predictions:', predictionsData?.slice(0, 3));
+        console.log('Scoreboard name:', scoreboardName);
         
         const response = await appOperation.customer.createUserScoreCard(createData);
         
@@ -315,7 +366,36 @@ const Create = ({route}) => {
           console.log('Create failed with response:', response);
           console.log('Error message:', response?.message);
           console.log('Error code:', response?.code);
-          toastAlert.showToastError(response?.message || 'Failed to create scoreboard');
+          
+          // Handle specific error for identical predictions
+          let errorMessage = '';
+          
+          // Try to extract error message from different possible locations
+          if (response?.data && typeof response.data === 'string') {
+            try {
+              const parsedData = JSON.parse(response.data);
+              errorMessage = parsedData.message || '';
+            } catch (parseError) {
+              console.log('Failed to parse response.data:', parseError);
+            }
+          }
+          
+          // Fallback to other error message sources
+          if (!errorMessage) {
+            errorMessage = response?.message || response?.data?.message || '';
+          }
+          
+          console.log('=== FULL ERROR RESPONSE ===');
+          console.log('Response:', JSON.stringify(response, null, 2));
+          console.log('Error message extracted:', errorMessage);
+          
+          if (errorMessage.includes('identical prediction')) {
+            console.log('=== IDENTICAL PREDICTIONS ERROR ===');
+            console.log('User tried to create identical predictions:', errorMessage);
+            toastAlert.showToastError(`Can't create Identical Prediction for same match`);
+          } else {
+            toastAlert.showToastError(errorMessage || 'Failed to create scoreboard');
+          }
         }
       }
 
@@ -324,7 +404,36 @@ const Create = ({route}) => {
       console.error('Error submitting predictions:', error);
       console.log('Error message:', error?.message);
       console.log('Error stack:', error?.stack);
-      toastAlert.showToastError(error?.message || 'Something went wrong');
+      
+      // Handle specific error for identical predictions in catch block
+      let errorMessage = '';
+      
+      // Try to extract error message from different possible locations
+      if (error?.data && typeof error.data === 'string') {
+        try {
+          const parsedData = JSON.parse(error.data);
+          errorMessage = parsedData.message || '';
+        } catch (parseError) {
+          console.log('Failed to parse error.data:', parseError);
+        }
+      }
+      
+      // Fallback to other error message sources
+      if (!errorMessage) {
+        errorMessage = error?.message || error?.data?.message || '';
+      }
+      
+      console.log('=== FULL ERROR RESPONSE (CATCH) ===');
+      console.log('Error:', JSON.stringify(error, null, 2));
+      console.log('Error message extracted:', errorMessage);
+      
+      if (errorMessage.includes('identical prediction')) {
+        console.log('=== IDENTICAL PREDICTIONS ERROR (CATCH) ===');
+        console.log('User tried to create identical predictions:', errorMessage);
+        toastAlert.showToastError(`Can't create Identical Prediction for same match`);
+      } else {
+        toastAlert.showToastError(errorMessage || 'Something went wrong');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -373,6 +482,8 @@ const Create = ({route}) => {
             <AppText weight={POPPINS_SEMI_BOLD} color={WHITE} type={TWELVE}>Over</AppText>
             <AppText weight={POPPINS_SEMI_BOLD} color={WHITE} type={TWELVE}>Predictions</AppText>
           </View>
+          
+
 
           <ScrollView
             ref={scrollViewRef}
@@ -475,6 +586,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 15,
     marginBottom: 10,
   },
+
   scrollView: {
     flex: 1,
     marginBottom: Platform.OS === 'ios' ? 120 : 100,

@@ -72,11 +72,21 @@ export const fixedToTwo = value => {
 export const IMAGE_BASE_URL = BASE_URL;
 
 export const toastAlert = {
-  showToastSuccess: (message, duration = 2500) => { },
-  showToastError: (message, duration = 2500) => {
+  showToastSuccess: (message, duration = 2500) => {
     Platform.OS == 'ios' ?
       Toast.show({
         type: 'success',
+        text1: 'My Battle 11',
+        text2: `${message}`,
+        text2Style: { fontSize: 12, fontFamily: poppinsBold },
+        text1Style: { fontFamily: poppinsBold },
+      }) :
+      ToastAndroid.show(message, ToastAndroid.BOTTOM, ToastAndroid.LONG);
+  },
+  showToastError: (message, duration = 2500) => {
+    Platform.OS == 'ios' ?
+      Toast.show({
+        type: 'error',
         text1: 'My Battle 11',
         text2: `${message}`,
         text2Style: { fontSize: 12, fontFamily: poppinsBold },
