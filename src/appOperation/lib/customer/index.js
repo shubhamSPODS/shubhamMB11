@@ -20,11 +20,20 @@ export default appOperation => ({
   getSeriesData: () =>
     appOperation.post('TeamData/Serieslist', {}, CUSTOMER_TYPE),
   getContestList: data => {
+    console.log('🎯 [API] getContestList called with:', {
+      matchId: data?.matchid,
+      object: data?.object,
+      fullData: data
+    });
+    
     return appOperation.post(
       `match/contests/${data?.matchid}`,
       data?.object,
       CUSTOMER_TYPE,
     ).then(response => {
+      console.log('🎯 [API] getContestList response for matchId:', data?.matchid, {
+        fullResponse: response?.data[0]?.contest_category_details
+      });
       return response;
     }).catch(error => {
       console.error('🎯 getContestList error:', error);
@@ -41,13 +50,20 @@ export default appOperation => ({
     );
   },
   getContestDetailsWithRankData: (matchId, contestCategoryId) => {
-    console.log(`Fetching contest details for match ${matchId} and contest category ${contestCategoryId}`);
+    console.log(`🎯 [API] Fetching contest details for match ${matchId} and contest category ${contestCategoryId}`);
     return appOperation.get(
       `match/contests/${matchId}/${contestCategoryId}`,
       undefined,
       undefined,
       CUSTOMER_TYPE,
     ).then(response => {
+      console.log('🎯 [API] getContestDetailsWithRankData response:', {
+        success: response?.success,
+        code: response?.code,
+        message: response?.message,
+        dataLength: response?.data?.length || 0,
+        fullResponse: response
+      });
       
       if (response?.data?.length > 0) {
         const contestDetails = response.data.find(
@@ -55,15 +71,19 @@ export default appOperation => ({
         );
         
         if (contestDetails) {
-          console.log('Found contest details:', {
+          console.log('🎯 [API] Found contest details:', {
             id: contestDetails._id,
             name: contestDetails.categoryName,
             winningAmount: contestDetails.WinningAmount,
-            rankDataCount: contestDetails.Rankdata?.length
+            rankDataCount: contestDetails.Rankdata?.length,
+            JoinWithMULT: contestDetails.JoinWithMULT,
+            teams: contestDetails.teams,
+            contestSize: contestDetails.ContestSize,
+            fullContestDetails: contestDetails
           });
           
           if (contestDetails.Rankdata?.length > 0) {
-            console.log('Sample rank data (first 3 entries):', 
+            console.log('🎯 [API] Sample rank data (first 3 entries):', 
               contestDetails.Rankdata.slice(0, 3).map(rank => ({
                 startRank: rank.StartRank,
                 endRank: rank.EndRank,
@@ -72,12 +92,12 @@ export default appOperation => ({
             );
           }
         } else {
-          console.log('Contest not found in response for ID:', contestCategoryId);
+          console.log('🎯 [API] Contest not found in response for ID:', contestCategoryId);
         }
       }
       return response;
     }).catch(error => {
-      console.error('Error in getContestDetailsWithRankData:', error);
+      console.error('🎯 [API] Error in getContestDetailsWithRankData:', error);
       throw error;
     });
   },
@@ -159,14 +179,12 @@ export default appOperation => ({
       CUSTOMER_TYPE,
     ),
   getMyJoinedContest: id => {
-    console.log('🎯 getMyJoinedContest API called with id:', id);
     return appOperation.get(
       `match/my-contests/${id}`,
       undefined,
       undefined,
       CUSTOMER_TYPE,
     ).then(response => {
-      console.log('🎯 getMyJoinedContest API response:', response);
       return response;
     }).catch(error => {
       throw error;
@@ -291,8 +309,10 @@ export default appOperation => ({
       appOperation.post(`match/createUserScoreCard`, data, CUSTOMER_TYPE),
     updateUserScoreCard: data =>
       appOperation.put(`match/updateUserScoreCard`, data, CUSTOMER_TYPE),
-    getUserScoreCard: matchId =>
-      appOperation.get(`match/userScoreCard/${matchId}`, undefined, undefined, CUSTOMER_TYPE),
+      getUserScoreCard: matchId =>
+    appOperation.get(`match/userScoreCard/${matchId}`, undefined, undefined, CUSTOMER_TYPE),
+  checkScoreboardContestJoined: (matchId, contestId) =>
+    appOperation.get(`match/check-scoreboard-contest-joined/${matchId}/${contestId}`, undefined, undefined, CUSTOMER_TYPE),
   getScoreboardLeaderboard: data =>
     appOperation.post(`match/scoreboard-leaderboard`, data, CUSTOMER_TYPE),
 });

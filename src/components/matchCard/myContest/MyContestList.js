@@ -96,14 +96,7 @@ const MyContestList = ({ item, isScoreboard = false }) => {
     // Use the specific contest's contest_category_id, not a generic one
     let contestCategoryId = item?.contest_category_id || item?.data?.contest_category_id;
     const matchId = matchDetails?._id;
-    
-    console.log('🎯 MyContestList fetchRankData: Contest category ID extraction:', {
-      itemContestCategoryId: item?.contest_category_id,
-      itemDataContestCategoryId: item?.data?.contest_category_id,
-      finalContestCategoryId: contestCategoryId,
-      itemId: item?._id,
-      isScoreboardContest
-    });
+
     
     if (!contestCategoryId || !matchId) {
       console.log('Missing contestCategoryId or matchId for rank data fetch in MyContestList:', {

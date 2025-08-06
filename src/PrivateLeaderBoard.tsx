@@ -320,21 +320,30 @@ const PrivateLeaderBoard = () => {
                 setIsAdd(true);
             }
         } else if (totalTeamCount > 1) {
-            if (details?.teamDetails?.length == myTeam?.length) {
-                dispatch(setAllPlayers([]))
-                let data = { cid: matchDetails?.SeriesId };
-                let isNavigate = true
-                dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
-                dispatch(setIsContestEntry(true));
-                dispatch(setSelectedMatch({ ...details }));
-                dispatch(setContestData(matchDetails))
-                NavigationService.navigate(SELECT_PLAYER, {
-                    matchDetails,
-                    isEditMode: false,
-                    privateContest: true
-                });
-            } else {
+            // Check if this is a multiple entry contest
+            const isMultipleEntryContest = details?.JoinWithMULT;
+            
+            if (isMultipleEntryContest) {
+                // For multiple entry contests, always show team selection
                 selectTeam?.current?.open();
+            } else {
+                // For single entry contests, check if user has used all teams
+                if (details?.teamDetails?.length == myTeam?.length) {
+                    dispatch(setAllPlayers([]))
+                    let data = { cid: matchDetails?.SeriesId };
+                    let isNavigate = true
+                    dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
+                    dispatch(setIsContestEntry(true));
+                    dispatch(setSelectedMatch({ ...details }));
+                    dispatch(setContestData(matchDetails))
+                    NavigationService.navigate(SELECT_PLAYER, {
+                        matchDetails,
+                        isEditMode: false,
+                        privateContest: true
+                    });
+                } else {
+                    selectTeam?.current?.open();
+                }
             }
         }
     };
@@ -526,8 +535,8 @@ const PrivateLeaderBoard = () => {
                     matchDetails={matchDetails}
                     onClose={() => selectTeam?.current?.close()}
                     teamDetails={details?.teamDetails}
+                    totallMultipleTeams={details?.teams || 1}
                     JoinWithMULT={details?.JoinWithMULT}
-                    joinWith={details.teams}
                     selectTeam={selectTeam}
                     privateContesttrue={true}
                 />

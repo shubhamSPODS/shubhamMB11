@@ -123,21 +123,6 @@ const Confirmation = ({
   // Calculate amount to pay
   const payAmount = Math.max(0, totalEntryFee - totalUsableBonus);
   
-  // Debug logging for fee calculation
-  console.log('🎯 [CONFIRMATION] Fee calculation:', {
-    isScoreboardContest,
-    isActuallyScoreboardContest,
-    supportsMultipleEntries,
-    selectedScoreboard: Array.isArray(selectedScoreboard) ? selectedScoreboard.length : 1,
-    numberOfEntries,
-    singleEntryFee,
-    totalEntryFee,
-    totalUsableBonus,
-    payAmount,
-    totalBalance,
-    contestType: details?.ContestType,
-    contestTypeAlt: details?.contest_type
-  });
   
   const { _id: contestListId, } = contestData ?? '';
 
@@ -236,14 +221,15 @@ const Confirmation = ({
         const shadow_contest_id = details?.shadow_contest_id || details?._id || '';
         const match_contest_category_id = details?._id || '';
         
-        console.log('Contest details for join (multiple teams):', {
+        console.log('Contest details for join (multiple entry contest):', {
           contest_category_id,
           details_id: details?._id,
           details_shadow_id: details?.shadow_contest_id,
           details_match_contest_id: details?.match_contest_category_id,
           details_inner_id: details?.inner_data_id,
           shadow_contest_id,
-          match_contest_category_id
+          match_contest_category_id,
+          selectedTeamsCount: selectMulty.length
         });
 
         if (!shadow_contest_id) {
@@ -258,18 +244,25 @@ const Confirmation = ({
           return;
         }
 
-        const arofobj = selectMulty.map((team, index) => {
+        // Check if only one team is selected
+        if (selectMulty.length === 1) {
+          // Send single team payload even for multiple entry contests
+          const team = selectMulty[0];
           const teamId = team?._id;
           const teamMatchId = team?.match_id || matchDetails?._id;
           const teamMatchIdAlt = team?.matchid || matchDetails?.matchid;
           const cid = matchDetails?.SeriesId || '';
 
           if (!teamId || !teamMatchId || !cid) {
-            console.error('Invalid team data:', { team, matchDetails });
-            return null;
+            console.error('Invalid single team data:', { team, matchDetails });
+            toastAlert.showToastError('Invalid team data');
+            return;
           }
 
-          return {
+          // Check if user has already joined this contest
+          const existingContestEntryId = details?.teamDetails?.length > 0 ? details?._id : null;
+
+          const joinData = {
             cid,
             match_id: teamMatchId,
             matchid: teamMatchIdAlt,
@@ -277,25 +270,60 @@ const Confirmation = ({
             contest_category_id: contest_category_id,
             shadow_contest_id,
             match_contest_category_id,
-            teamName: `T${index + 1}`, 
+            teamName: 'T1', 
             method: 'wallet',
-            amount: singleEntryFee
+            amount: singleEntryFee,
+            ...(existingContestEntryId && { existing_contest_entry_id: existingContestEntryId })
           };
-        }).filter(Boolean);
 
-        if (arofobj.length === 0) {
-          toastAlert.showToastError('Invalid team data');
-          return;
+          console.log('Joining multiple entry contest with single team:', joinData);
+          dispatch(joinContest(joinData, matchDetails));
+          handleClose();
+        } else {
+          // Send multiple teams payload
+          const arofobj = selectMulty.map((team, index) => {
+            const teamId = team?._id;
+            const teamMatchId = team?.match_id || matchDetails?._id;
+            const teamMatchIdAlt = team?.matchid || matchDetails?.matchid;
+            const cid = matchDetails?.SeriesId || '';
+
+            if (!teamId || !teamMatchId || !cid) {
+              console.error('Invalid team data:', { team, matchDetails });
+              return null;
+            }
+
+            return {
+              cid,
+              match_id: teamMatchId,
+              matchid: teamMatchIdAlt,
+              teams_id: [teamId],
+              contest_category_id: contest_category_id,
+              shadow_contest_id,
+              match_contest_category_id,
+              teamName: `T${index + 1}`, 
+              method: 'wallet',
+              amount: singleEntryFee
+            };
+          }).filter(Boolean);
+
+          if (arofobj.length === 0) {
+            toastAlert.showToastError('Invalid team data');
+            return;
+          }
+
+          // Check if user has already joined this contest
+          const existingContestEntryId = details?.teamDetails?.length > 0 ? details?._id : null;
+
+          const joinData = {
+            mutiple: true,
+            arofobj,
+            ...(existingContestEntryId && { existing_contest_entry_id: existingContestEntryId })
+          };
+
+          console.log('Joining contest with multiple teams:', joinData);
+          dispatch(joinContest(joinData, matchDetails));
+          handleClose();
         }
-
-        const joinData = {
-          mutiple: true,
-          arofobj
-        };
-
-        console.log('Joining contest with multiple teams:', joinData);
-        dispatch(joinContest(joinData, matchDetails));
-        handleClose();
       } else {
         if (!match_id || !_id || !matchDetails?.SeriesId) {
           console.error('Invalid single team data:', { match_id, _id, seriesId: matchDetails?.SeriesId });
@@ -329,6 +357,9 @@ const Confirmation = ({
           return;
         }
 
+        // Check if user has already joined this contest
+        const existingContestEntryId = details?.teamDetails?.length > 0 ? details?._id : null;
+
         const joinData = {
           cid: matchDetails?.SeriesId,
           match_id: match_id || matchDetails?._id,
@@ -339,7 +370,8 @@ const Confirmation = ({
           match_contest_category_id,
           teamName: 'T1', 
           method: 'wallet',
-          amount: singleEntryFee
+          amount: singleEntryFee,
+          ...(existingContestEntryId && { existing_contest_entry_id: existingContestEntryId })
         };
 
         console.log('Joining contest with single team:', joinData);

@@ -111,6 +111,7 @@ import {
   DICE,
   transactionIcon,
   profileCard,
+  CricketIcon,
 } from '../helper/image';
 import FastImage from "@d11/react-native-fast-image";
 import ReferAndEarn from '../screens';
@@ -385,10 +386,10 @@ const CricketTab = () => {
                   borderColor: focused ? colors.playerDetailsLinerTwo : colors.gray,
                 }}>
                   <FastImage
-                    source={DICE}
+                    source={CricketIcon}
                     style={{
-                      width: 35,
-                      height: 35,
+                      width: 45,
+                      height: 45,
                       tintColor: focused ? colors.white : colors.gray,
                     }}
                     resizeMode="contain"

@@ -80,6 +80,7 @@ const AddMoney = () => {
     kycDetails?.voter_verified == 1 ||
     kycDetails?.adhar_verified == 1;
   const isUserVerifiedPanding = kycDetails?.adhar_verified == 2;
+  
   // if (Platform.OS === 'android') {
   //   PhonePePaymentSDK.getUpiAppsForAndroid()
   //     .then(upiApps => {

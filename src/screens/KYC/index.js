@@ -126,15 +126,6 @@ const KYC = () => {
   ];
 
   const isVerified = id => {
-    console.log(`Checking verification for id ${id}:`, {
-      mobile: kycDetails?.mobile_verified,
-      email: kycDetails?.email_verified,
-      selfie: kycDetails?.selfie_verified,
-      pan: kycDetails?.pan_verified,
-      bank: kycDetails?.bank_verified,
-      adhar: kycDetails?.adhar_verified
-    });
-
     if (id == 0) {
       return kycDetails?.mobile_verified == 1 || kycDetails?.mobile_verified === '1';
     } else if (id == 1) {

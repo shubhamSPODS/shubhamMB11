@@ -81,8 +81,6 @@ export const getUserWallet = () => async dispatch => {
 export const getKycDetails = () => async dispatch => {
   try {
     const res = await appOperation.customer.getKycDetails();
-    // console.log('KYC API Response:', JSON.stringify(res, null, 2));
-    // console.log('KYC Data:', JSON.stringify(res?.data, null, 2));
     
     if (res?.code === 200 || res?.success) {
       // Ensure all verification statuses are numbers
@@ -96,7 +94,7 @@ export const getKycDetails = () => async dispatch => {
         adhar_verified: Number(res?.data?.adhar_verified || 0),
         upi_verified: Number(res?.data?.upi_verified || 0)
       };
-      // console.log('Normalized KYC Data:', JSON.stringify(normalizedData, null, 2));
+      
       dispatch(setKycDetails(normalizedData));
     } else {
       console.error('Failed to get KYC details:', res?.message);

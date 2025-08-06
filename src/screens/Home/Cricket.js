@@ -30,8 +30,18 @@ import { BASE_URL } from '../../helper/utility';
 import { TabView, TabBar } from 'react-native-tab-view';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../../theme/color';
+import moment from 'moment';
 
 const search = element => getDate(element).hour < 0;
+
+// Helper function to sort matches by StartDateTime IST
+const sortMatchesByStartDate = (matches) => {
+  return matches.sort((a, b) => {
+    const dateA = new Date(a?.StartDateTime);
+    const dateB = new Date(b?.StartDateTime);
+    return dateA - dateB; // Ascending order - earlier dates first
+  });
+};
 
 const MemoizedMatchCard = React.memo(({ item, route, onPressScoreboard }) => (
   <MatchCard 
@@ -100,11 +110,13 @@ const Cricket = ({ random, setRefreshingTwo }) => {
   ]);
 
   const teamsMatches = useMemo(() => {
-      return upcomingMatches.filter(match => match.teams && match.teams.length > 0);
+      const filteredMatches = upcomingMatches.filter(match => match.teams && match.teams.length > 0);
+      return sortMatchesByStartDate(filteredMatches);
   }, [upcomingMatches]);
   
   const scoreboardMatches = useMemo(() => {
-      return upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
+      const filteredMatches = upcomingMatches.filter(match => match.scorecard && match.scorecard.length > 0);
+      return sortMatchesByStartDate(filteredMatches);
   }, [upcomingMatches]);
 
   const getFilteredMatches = useCallback(() => {

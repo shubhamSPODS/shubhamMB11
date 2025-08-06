@@ -258,7 +258,7 @@ const SelectScoreboard = ({
     );
   };
 
-  const handleJoinContest = () => {
+  const handleJoinContest = async () => {
     if (finalSupportsMultipleEntries) {
       if (selectedScoreboards.length === 0) {
         toastAlert.showToastError('Please select at least one scoreboard to join the contest');
@@ -271,14 +271,37 @@ const SelectScoreboard = ({
       }
     }
 
-    console.log('🎯 Opening confirmation for scoreboard contest:', {
-      scoreboards: finalSupportsMultipleEntries ? selectedScoreboards.map(sb => sb._id) : [selectedScoreboard._id],
-      contest: contestDetails._id,
-      match: matchDetails._id,
-      supportsMultipleEntries: finalSupportsMultipleEntries
-    });
+    // Check if user has already joined this contest with any scoreboard
+    try {
+      const matchId = matchDetails?._id;
+      const contestId = contestDetails?._id;
+      
+      if (!matchId) {
+        toastAlert.showToastError('Match information not found');
+        return;
+      }
+      
+      if (!contestId) {
+        toastAlert.showToastError('Contest information not found');
+        return;
+      }
+      
+      // Note: checkScoreboardContestJoined API is not working (404 error), so we skip this check
+      // and proceed directly to join the contest
+      console.log('🎯 [SELECT SCOREBOARD] Skipping contest join check (API not available)');
+      
+      console.log('🎯 Opening confirmation for scoreboard contest:', {
+        scoreboards: finalSupportsMultipleEntries ? selectedScoreboards.map(sb => sb._id) : [selectedScoreboard._id],
+        contest: contestDetails._id,
+        match: matchDetails._id,
+        supportsMultipleEntries: finalSupportsMultipleEntries
+      });
 
-    setShowConfirmation(true);
+      setShowConfirmation(true);
+    } catch (error) {
+      console.error('Error checking contest join status:', error);
+      toastAlert.showToastError('Failed to check contest join status. Please try again.');
+    }
   };
 
   const handleConfirmationSuccess = () => {

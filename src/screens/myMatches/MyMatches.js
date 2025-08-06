@@ -46,6 +46,15 @@ import PrimaryButton from '../../common/primaryButton';
 import {HomeTopHeader} from '../../common/HomeTopHeader';
 import MatchCardContest from '../../components/matchCard/MatchCardContest';
 
+// Helper function to sort matches by StartDateTime IST
+const sortMatchesByStartDate = (matches) => {
+  return matches.sort((a, b) => {
+    const dateA = new Date(a?.StartDateTime);
+    const dateB = new Date(b?.StartDateTime);
+    return dateA - dateB; // Ascending order - earlier dates first
+  });
+};
+
 export const RenderTabBar = props => {
   return (
     <TabBar
@@ -420,7 +429,8 @@ const MyMatches = () => {
       );
     }
     
-    return filtered;
+    // Sort matches by StartDateTime IST (earliest first)
+    return sortMatchesByStartDate(filtered);
   };
 
   const renderItem = ({item, matchType}) => {

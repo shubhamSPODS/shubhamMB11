@@ -486,16 +486,8 @@ const LeaderBoard = () => {
 
   const isPastTime = inputDate < currentDate;
   const onJoinContest = async () => {
-    console.log('🔍 LeaderBoard onJoinContest called with:', {
-      details,
-      totalTeamCount,
-      kycVerified: kycDetails?.adhar_verified,
-      matchDetails
-    });
-    
     // Check if match is live and lineup is not out
     if (matchDetails?.Status === 'Live' && matchDetails?.game_state !== 2) {
-      console.log('🚫 Blocking contest join - match is Live but lineup is not out');
       toastAlert.showToastError('Cannot join contest while match is live');
       return;
     }
@@ -506,13 +498,6 @@ const LeaderBoard = () => {
                                 details?.ContestType === 'Scoreboard' ||
                                 details?.contest_type === 'Scoreboard';
                                 
-    console.log('🎯 Checking if scoreboard contest in LeaderBoard:', {
-      detailsContestType: details?.ContestType,
-      detailsContestTypeLower: details?.contest_type,
-      isScoreboardContest,
-      fullDetails: details
-    });
-    
     if (kycDetails?.adhar_verified == 0) {
       // NavigationService.navigate(VERIFY_ADHAAR_SCREEN);
       NavigationService.navigate(UPLOAD_AADHAR);
@@ -526,7 +511,6 @@ const LeaderBoard = () => {
       
       // Handle scoreboard contests differently
       if (isScoreboardContest) {
-        console.log('🎯 This is a scoreboard contest - checking for existing scorecards');
         dispatch(setSelectedMatch(details ? { ...details } : {}));
         
         // Check if user has any scorecards for this match
@@ -541,10 +525,8 @@ const LeaderBoard = () => {
           const response = await appOperation.customer.getUserScoreCard(matchId);
           
           if (response?.success && response?.data && response?.data.length > 0) {
-            console.log('✅ User has scorecards - opening SelectScoreboard screen');
             selectScoreboard?.current?.open();
           } else {
-            console.log('📝 User has no scorecards - redirecting to create scorecard screen');
             // Navigate to create scorecard screen with contest details
             NavigationService.navigate(SCOREBOARD_CREATE, {
               ...matchDetails,
@@ -567,10 +549,8 @@ const LeaderBoard = () => {
       }
       
       // Original team-based contest logic
-      console.log('🚀 Proceeding with team-based contest logic in LeaderBoard');
       
       if (totalTeamCount === 0) {
-        console.log('📍 LeaderBoard Path: totalTeamCount === 0 - navigating to SELECT_PLAYER');
         dispatch(setAllPlayers([]));
         let data = { cid: matchDetails?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));

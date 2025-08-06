@@ -1353,7 +1353,7 @@ const CreateContest = () => {
           onClose={() => selectTeam?.current?.close()}
           selectTeam={selectTeam}
           teamDetails={details?.teamDetails}
-          joinWith={details.teams}
+          totallMultipleTeams={details?.teams || 1}
           JoinWithMULT={details?.JoinWithMULT}
         />
       </RBSheet>

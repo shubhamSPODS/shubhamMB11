@@ -40,9 +40,8 @@ import Confirmation from '../../../common/Confirmation';
 import { NewColor, colors } from '../../../theme/color';
 import { appOperation } from '../../../appOperation';
 
-const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
+  const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
   if (!details) {
-    console.log('Contest details:', details);
     return null;
   }
 
@@ -59,7 +58,10 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
   const selectTeam = useRef();
   const selectScoreboard = useRef();
   const myTeam = useSelector(state => state?.match?.myTeams);
-  const contestData = useSelector(state => state?.match?.contestData);
+  const contestData = useSelector(state => {
+    const data = state?.match?.contestData;
+    return data;
+  });
   const { _id, SeriesId } = contestData ?? '';
   const { contestCategories } = useSelector(state => state.match);
   
@@ -95,27 +97,6 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
                               contestDetails?.ContestType === 'ScoreCard' ||
                               contestDetails?.contest_type === 'ScoreCard';
 
-  // Debug logging for contest details
-  console.log('🎯 [CONTEST CARD] Contest details debug:', {
-    contestId: details?._id,
-    contestCategoryId: details?.contest_category_id,
-    detailsJoinWithMULT: details?.JoinWithMULT,
-    detailsTeams: details?.teams,
-    matchDetailsContestDetails: matchDetails?.contest_details?.map(contest => ({
-      contestId: contest?._id,
-      contestCategoryId: contest?.contest_category_id,
-      JoinWithMULT: contest?.JoinWithMULT,
-      teams: contest?.teams
-    })),
-    finalJoinWithMultiple: JoinWithMultiple,
-    finalTotalMultipleTeams: totalMultipleTeams,
-    isScoreboardContest,
-    supportsMultipleEntries,
-    matchType,
-    contestType: details?.ContestType,
-    contestTypeAlt: details?.contest_type
-  });
-
   // Fetch rank data if not available
   const fetchRankData = async () => {
     if (rankData.length > 0 || isLoadingRankData) return;
@@ -124,13 +105,11 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
     const matchId = contestData?._id;
     
     if (!contestCategoryId || !matchId) {
-      console.log('Missing contestCategoryId or matchId for rank data fetch');
       return;
     }
 
     try {
       setIsLoadingRankData(true);
-      console.log('Fetching rank data for contest:', { contestCategoryId, matchId });
       
       const response = await appOperation.customer.getContestDetailsWithRankData(matchId, contestCategoryId);
       
@@ -147,7 +126,6 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
             EndRank: Number(rank?.EndRank || 0)
           }));
           setRankData(formattedRankData);
-          console.log('Successfully fetched rank data:', formattedRankData);
         }
       }
     } catch (error) {
@@ -185,21 +163,10 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
     let correctContestCategoryId = details?.contest_category_id || details?.data?.contest_category_id;
     
     
-    console.log('Navigating to LEADERBOARD with:', {
-      contestDetails: contestDetails,
-      Rankdata: rankData,
-      contest_category_id: correctContestCategoryId,
-      isScoreboardContest,
-      matchType
-    });
-
-    console.log('Available contestCategories:', contestCategories?.length);
-    
     const contestCategory = contestCategories?.find(
       cat => cat?._id === correctContestCategoryId
     );
-    
-    // Use the fetched rank data or fallback to existing sources
+
     const finalRankData = rankData.length > 0 ? rankData : (
       details?.data?.Rankdata ||
       details?.Rankdata ||
@@ -229,13 +196,6 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
       ContestType: isScoreboardContest ? 'ScoreCard' : 'Teams'
     };
     
-    console.log('Final Rankdata being passed:', safeDetails.Rankdata?.length);
-    
-    console.log('Final contest details with Rankdata:', {
-      rankData: safeDetails.Rankdata,
-      length: safeDetails.Rankdata?.length
-    });
-
     NavigationService.navigate(LEADERBOARD, {
       details: {
         details: safeDetails,
@@ -255,19 +215,15 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
   };
 
   const onJoinContest = async () => {
-    console.log('🔍 ContestCard onJoinContest called with:', {
-      matchType,
-      contestDetails: details,
-      totalTeamCount,
-      kycVerified: contestData?.kycDetails?.adhar_verified
-    });
     
     // Check if match is live and lineup is not out
     if (contestData?.Status === 'Live' && contestData?.game_state !== 2) {
-      console.log('🚫 Blocking contest join - match is Live but lineup is not out');
       toastAlert.showToastError('Cannot join contest while match is live');
       return;
     }
+    
+    // Use utility function for consistent logging
+    const aadharStatus = contestData?.kycDetails?.adhar_verified == 0 ? 'PENDING' : 'VERIFIED';
     
     if (contestData?.kycDetails?.adhar_verified == 0) {
       NavigationService.navigate(VERIFY_ADHAAR_SCREEN)
@@ -283,38 +239,47 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
                                   contestDetails?.ContestType === 'ScoreCard' ||
                                   contestDetails?.contest_type === 'ScoreCard';
                                   
-      console.log('🎯 Checking if scoreboard contest:', {
-        matchType,
-        detailsContestType: details?.ContestType,
-        detailsContestTypeLower: details?.contest_type,
-        contestDetailsContestType: contestDetails?.ContestType,
-        contestDetailsContestTypeLower: contestDetails?.contest_type,
-        isScoreboardContest,
-        supportsMultipleEntries,
-        contestSize: details?.ContestSize || contestDetails?.ContestSize,
-        selectScoreboardRef: !!selectScoreboard?.current
-      });
-      
       if (isScoreboardContest) {
-        console.log('🎯 Joining scoreboard contest - checking for existing scorecards');
         dispatch(setSelectedMatch(details ? { ...details } : {}));
         
-        // Check if user has any scorecards for this match
+        // Check if user has already joined this contest with any scoreboard
         try {
           const matchId = contestData?._id;
+          const contestId = details?._id;
+          
           if (!matchId) {
             toastAlert.showToastError('Match information not found');
             return;
           }
           
-          // Fetch user's scorecards for this match
-          const response = await appOperation.customer.getUserScoreCard(matchId);
+          if (!contestId) {
+            toastAlert.showToastError('Contest information not found');
+            return;
+          }
           
-          if (response?.success && response?.data && response?.data.length > 0) {
-            console.log('✅ User has scorecards - opening SelectScoreboard screen');
+          // Note: checkScoreboardContestJoined API is not working (404 error), so we skip this check
+          // and proceed directly to check for existing scoreboards
+          
+          // If not already joined, check if user has any scorecards for this match
+          let response;
+          try {
+            response = await appOperation.customer.getUserScoreCard(matchId);
+          } catch (error) {
+            console.error('🎯 [JOIN CONTEST] Error calling getUserScoreCard:', error);
+            // Try alternative API
+            try {
+              response = await appOperation.customer.getMyScoreboardContests(matchId);
+            } catch (secondError) {
+              console.error('🎯 [JOIN CONTEST] Error calling getMyScoreboardContests:', secondError);
+              response = { success: false, data: [] };
+            }
+          }
+          
+          const hasScoreboards = response?.success && response?.data && response?.data.length > 0;
+          
+          if (hasScoreboards) {
             selectScoreboard?.current?.open();
           } else {
-            console.log('📝 User has no scorecards - redirecting to create scorecard screen');
             // Navigate to create scorecard screen with contest details
             NavigationService.navigate(SCOREBOARD_CREATE, {
               ...contestData,
@@ -337,10 +302,8 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
       }
       
       // Original team-based contest logic
-      console.log('🚀 Proceeding with team-based contest logic');
       
       if (totalTeamCount === 0) {
-        console.log('📍 Path: totalTeamCount === 0 - navigating to SELECT_PLAYER');
         dispatch(setAllPlayers([]))
         let data = { cid: contestData?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));
@@ -352,9 +315,7 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
         dispatch(setSelectedMatch(details ? { ...details } : {}));
 
       } else if (totalTeamCount === 1) {
-        console.log('📍 Path: totalTeamCount === 1');
         if (details?.teamDetails?.length) {
-          console.log('📍 Sub-path: has teamDetails - navigating to SELECT_PLAYER');
           dispatch(setAllPlayers([]))
           let data = { cid: contestData?.SeriesId };
           let isNavigate = true
@@ -366,28 +327,38 @@ const ContestCard = ({ details, totalTeamCount, matchType, matchDetails }) => {
             isEditMode: false,
           });
         } else {
-          console.log('📍 Sub-path: no teamDetails - showing confirmation');
           setIsAdd(true);
           dispatch(setSelectedMatch(details ? { ...details } : {}));
           setSaveTeamName(myTeam?.[0]?.name || '')
         }
-      }
-      if (details?.teamDetails?.length == myTeam?.length) {
-        console.log('📍 Path: teamDetails.length == myTeam.length - navigating to SELECT_PLAYER');
-        dispatch(setAllPlayers([]))
-        let data = { cid: contestData?.SeriesId };
-        let isNavigate = true
-        dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
-        dispatch(setIsContestEntry(true));
-        dispatch(setSelectedMatch(details ? { ...details } : {}));
-        NavigationService.navigate(SELECT_PLAYER, {
-          matchDetails: contestData || {},
-          isEditMode: false,
-        });
       } else {
-        console.log('📍 Path: default else - opening selectTeam sheet');
-        dispatch(setSelectedMatch(details ? { ...details } : {}));
-        selectTeam?.current?.open();
+        // For multiple teams scenario
+        
+        // Check if this is a multiple entry contest
+        const isMultipleEntryContest = JoinWithMultiple || details?.JoinWithMULT;
+        
+        if (isMultipleEntryContest) {
+          // For multiple entry contests, always show team selection
+          dispatch(setSelectedMatch(details ? { ...details } : {}));
+          selectTeam?.current?.open();
+        } else {
+          // For single entry contests, check if user has used all teams
+          if (details?.teamDetails?.length == myTeam?.length) {
+            dispatch(setAllPlayers([]))
+            let data = { cid: contestData?.SeriesId };
+            let isNavigate = true
+            dispatch(getAllPlayerList(_id, data, false, {}, isNavigate));
+            dispatch(setIsContestEntry(true));
+            dispatch(setSelectedMatch(details ? { ...details } : {}));
+            NavigationService.navigate(SELECT_PLAYER, {
+              matchDetails: contestData || {},
+              isEditMode: false,
+            });
+          } else {
+            dispatch(setSelectedMatch(details ? { ...details } : {}));
+            selectTeam?.current?.open();
+          }
+        }
       }
     }
   };

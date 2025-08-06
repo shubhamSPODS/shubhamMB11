@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
   Alert,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import RBSheet from 'react-native-raw-bottom-sheet';
 import {useDispatch, useSelector} from 'react-redux';
@@ -87,6 +88,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import {LiveTime} from '../../common/LiveTime';
 import {SceneMap, TabBar, TabView} from 'react-native-tab-view';
 import List from '../Scoreboard/List';
+import appOperation from '../../Backend/Backend';
+import SelectScoreboard from '../../components/selectScoreboard/SelectScoreboard';
 
 
 const MyContest = () => {
@@ -95,6 +98,7 @@ const MyContest = () => {
   const route = useRoute();
   const filterSheet = useRef();
   const AleartLive = useRef();
+  const selectScoreboard = useRef();
   
   const isLoading = useSelector(state => state.auth.isLoading);
   const contestData = useSelector(state => state?.match?.contestData);
@@ -265,36 +269,56 @@ const MyContest = () => {
   }, [dispatch, isHome, match_id, _id]);
 
   const renderMyContest = ({item}) => {
-    console.log('🎯 renderMyContest called with item:', item);
-    console.log('🎯 renderMyContest item details:', {
-      _id: item?._id,
-      contest_category_id: item?.contest_category_id,
-      joined: item?.joined,
-      teamDetails: item?.teamDetails?.length || 0
-    });
     return <MyContestList item={item} matchDetails={route?.params} />;
   };
 
   const renderContest = ({item}) => {
+    console.log('🎯 [RENDER CONTEST] Processing item:', {
+      itemId: item?._id,
+      itemContestCategoryId: item?.contest_category_id,
+      itemJoinWithMULT: item?.JoinWithMULT,
+      itemTeams: item?.teams
+    });
+
+    // Find the contest category details from the API response
+    const contestCategoryDetails = contestList?.data?.find(category => 
+      category?.contest_category_details?.some(detail => 
+        detail._id === item?.contest_category_id
+      )
+    )?.contest_category_details?.find(detail => 
+      detail._id === item?.contest_category_id
+    );
+
+    console.log('🎯 [RENDER CONTEST] Found category details:', {
+      found: !!contestCategoryDetails,
+      categoryDetails: contestCategoryDetails
+    });
+
     // Prefer using the contest object from myContest (if available)
     const joinedContest = myContest?.find(c => c._id === item._id || c.contest_category_id === item.contest_category_id);
     const contestListObj = (contestList?.data || []).find(
       c => c._id === item._id || c.contest_category_id === item.contest_category_id
     ) || item;
-    // Merge joinedContest (with nested fields) over contestListObj
-    const fullContestDetails = { ...contestListObj, ...joinedContest };
+    
+    // Merge all data sources with priority: categoryDetails > contestListObj > joinedContest > item
+    const fullContestDetails = { 
+      ...item,
+      ...contestListObj, 
+      ...joinedContest,
+      ...contestCategoryDetails, // This should have JoinWithMULT and teams
+      // Ensure JoinWithMULT and teams are preserved from category details
+      JoinWithMULT: contestCategoryDetails?.JoinWithMULT || item?.JoinWithMULT,
+      teams: contestCategoryDetails?.teams || item?.teams
+    };
 
-    console.log('🎯 [MY CONTEST] Contest data debug:', {
-      itemId: item?._id,
-      itemTeams: item?.teams,
-      itemJoinWithMULT: item?.JoinWithMULT,
-      joinedContestTeams: joinedContest?.teams,
-      joinedContestJoinWithMULT: joinedContest?.JoinWithMULT,
-      contestListObjTeams: contestListObj?.teams,
-      contestListObjJoinWithMULT: contestListObj?.JoinWithMULT,
-      finalTeams: fullContestDetails?.teams,
-      finalJoinWithMULT: fullContestDetails?.JoinWithMULT
+    console.log('🎯 [RENDER CONTEST] Final contest details:', {
+      contestId: fullContestDetails?._id,
+      contestCategoryId: fullContestDetails?.contest_category_id,
+      JoinWithMULT: fullContestDetails?.JoinWithMULT,
+      teams: fullContestDetails?.teams,
+      isMultipleEntry: fullContestDetails?.JoinWithMULT === true || fullContestDetails?.teams > 1
     });
+
     return (
       <ContestCard
         details={fullContestDetails}
@@ -787,7 +811,7 @@ const MyContest = () => {
     third: ThirdRoute,
   }), [FirstRoute, SecondRoute, ThirdRoute]);
 
-  const handleCreatePress = () => {
+  const handleCreatePress = async () => {
     // Check if match is live and lineup is not out
     if (contestData?.Status === 'Live' && contestData?.game_state !== 2) {
       console.log('🚫 Blocking team creation - match is Live but lineup is not out');
@@ -796,10 +820,29 @@ const MyContest = () => {
     }
     
     if (matchType === 'scoreboard') {
-      NavigationService.navigate(SCOREBOARD_CREATE, {
-        ...contestData,
-        isFromMyMatch,
-      });
+      try {
+        // Check if user already has scoreboards for this match
+        const response = await appOperation.customer.getUserScoreCard(_id);
+        
+        if (response?.success && response?.data && response?.data.length > 0) {
+          console.log('✅ User has existing scoreboards - opening SelectScoreboard screen');
+          // Open the SelectScoreboard RBSheet directly
+          selectScoreboard?.current?.open();
+        } else {
+          console.log('📝 User has no scoreboards - navigating to create scoreboard screen');
+          NavigationService.navigate(SCOREBOARD_CREATE, {
+            ...contestData,
+            isFromMyMatch,
+          });
+        }
+      } catch (error) {
+        console.error('Error checking existing scoreboards:', error);
+        // If error occurs, navigate to create screen
+        NavigationService.navigate(SCOREBOARD_CREATE, {
+          ...contestData,
+          isFromMyMatch,
+        });
+      }
     } else {
       dispatch(getTab(''));
       dispatch(setAllPlayers([]));
@@ -1118,6 +1161,29 @@ const MyContest = () => {
             setPrize={setPrize}
             contest={contest}
             setContest={setContest}
+          />
+        </RBSheet>
+        
+        <RBSheet
+          ref={selectScoreboard}
+          closeOnDragDown={false}
+          openDuration={100}
+          height={Dimensions.get('window').height}
+          customStyles={{
+            container: {
+              backgroundColor: colors.linerWhite,
+            },
+            draggableIcon: {
+              backgroundColor: 'transparent',
+              display: 'none',
+            },
+          }}>
+          <SelectScoreboard
+            contestDetails={null} // We'll pass contest details when needed
+            matchDetails={contestData}
+            onClose={() => selectScoreboard?.current?.close()}
+            selectScoreboard={selectScoreboard}
+            supportsMultipleEntries={false}
           />
         </RBSheet>
         {(() => {

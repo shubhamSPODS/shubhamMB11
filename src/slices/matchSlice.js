@@ -427,6 +427,20 @@ export const joinContest = (data, matchDetails) => async dispatch => {
 export const joinScoreboardContest = (scoreboardId, matchDetails, contestDetails) => async dispatch => {
   try {
 
+    console.log('🎯 [JOIN SCOREBOARD CONTEST] Input parameters:', {
+      scoreboardId,
+      matchDetails: {
+        _id: matchDetails?._id,
+        matchId: matchDetails?.matchId
+      },
+      contestDetails: {
+        _id: contestDetails?._id,
+        contest_category_id: contestDetails?.contest_category_id,
+        shadow_contest_id: contestDetails?.shadow_contest_id,
+        fullDetails: contestDetails
+      }
+    });
+
     if (!scoreboardId) {
       toastAlert.showToastError('Scoreboard ID is required');
       return;
@@ -442,23 +456,52 @@ export const joinScoreboardContest = (scoreboardId, matchDetails, contestDetails
     // Handle multiple scoreboard IDs (comma-separated)
     const scoreboardIds = scoreboardId.includes(',') ? scoreboardId.split(',') : [scoreboardId];
     
+    // Validate scoreboard IDs
+    const validScoreboardIds = scoreboardIds.filter(id => id && id.trim() !== '');
+    
+    if (validScoreboardIds.length === 0) {
+      toastAlert.showToastError('No valid scoreboard IDs found');
+      return;
+    }
+    
+    // Use shadow_contest_id as the primary ID, fallback to contest_category_id, then _id
+    const matchContestCategoryId = contestDetails.shadow_contest_id || contestDetails.contest_category_id || contestDetails._id;
+    
+    // Get shadow_contest_id from contest details
+    const shadowContestId = contestDetails.shadow_contest_id;
+    
     const data = {
-      predictions_id: scoreboardIds,
-      match_contest_category_id: contestDetails._id
+      predictions_id: validScoreboardIds,
+      match_contest_category_id: matchContestCategoryId,
+      shadow_contest_id: shadowContestId
     };
     
     console.log('🎯 [JOIN SCOREBOARD CONTEST] API Payload:', {
       scoreboardId,
       scoreboardIds,
+      validScoreboardIds,
       data,
       contestDetails: {
         _id: contestDetails._id,
         contest_category_id: contestDetails.contest_category_id,
         shadow_contest_id: contestDetails.shadow_contest_id
-      }
+      },
+      finalPayload: data,
+      selectedContestId: matchContestCategoryId,
+      shadowContestId: shadowContestId,
+      contestIdSource: contestDetails.shadow_contest_id ? 'shadow_contest_id' : 
+                       contestDetails.contest_category_id ? 'contest_category_id' : '_id'
     });
     
     const res = await appOperation.customer.joinScoreboardContest(data);
+
+    console.log('🎯 [JOIN SCOREBOARD CONTEST] API Response:', {
+      code: res?.code,
+      success: res?.success,
+      message: res?.message,
+      data: res?.data,
+      fullResponse: res
+    });
 
     if (res?.code === 200 || res?.success === true) {
       toastAlert.showToastSuccess(res?.message || 'Scoreboard contest joined successfully');
@@ -543,13 +586,36 @@ export const getContestList = (outputObject, id) => async dispatch => {
           return { ...category, data: [] };
         }
 
+        console.log('🎯 [CATEGORY PROCESSING] Processing category:', {
+          categoryName: category?.categoryName,
+          dataLength: category?.data?.length,
+          detailsLength: category?.contest_category_details?.length
+        });
+
         const detailsMap = category.contest_category_details.reduce((map, detail) => {
           map[detail._id] = detail;
           return map;
         }, {});
 
+        console.log('🎯 [DETAILS MAP] Created details map:', {
+          mapKeys: Object.keys(detailsMap),
+          sampleDetail: detailsMap[Object.keys(detailsMap)[0]]
+        });
+
         const transformedData = category.data.map(contestItem => {
           const details = detailsMap[contestItem.contest_category_id];
+          
+          // Log the mapping process for debugging
+          console.log('🎯 [DATA TRANSFORM] Mapping contest item:', {
+            contestItemId: contestItem._id,
+            contestCategoryId: contestItem.contest_category_id,
+            detailsFound: !!details,
+            detailsJoinWithMULT: details?.JoinWithMULT,
+            detailsTeams: details?.teams,
+            originalJoinWithMULT: contestItem?.JoinWithMULT,
+            originalTeams: contestItem?.teams
+          });
+          
           const transformedItem = {
             ...contestItem,
             ...(details || {}),
@@ -557,6 +623,21 @@ export const getContestList = (outputObject, id) => async dispatch => {
             JoinWithMULT: details?.JoinWithMULT || contestItem?.JoinWithMULT || false,
             teams: details?.teams || contestItem?.teams || 1
           };
+          
+          // Log the final transformed item for Rs. 9000 contests
+          const winningAmount = Number(transformedItem?.winning_amount || transformedItem?.WinningAmount || 0);
+          if (winningAmount === 9000) {
+            console.log('🎯 [Rs. 9000 Contest Transform] Final transformed item:', {
+              contestId: transformedItem._id,
+              contestCategoryId: transformedItem.contest_category_id,
+              winningAmount: winningAmount,
+              JoinWithMULT: transformedItem.JoinWithMULT,
+              teams: transformedItem.teams,
+              isMultipleEntry: transformedItem.JoinWithMULT === true || transformedItem.teams > 1,
+              fullTransformedItem: transformedItem
+            });
+          }
+          
           return transformedItem;
         });
 
@@ -740,6 +821,7 @@ export const getAdharVerify = data => async dispatch => {
   try {
     dispatch(setLoading(true));
     const res = await appOperation.customer.adharverify(data);
+    
     if (res?.success) {
       dispatch(setAdharVerify(res.data));
       toastAlert.showToastError(res.message);
@@ -960,6 +1042,7 @@ export const addharVerifiy =
     dispatch(setLoading(true));
     try {
       const res = await appOperation.customer.addharSendOtp(data);
+      
       if (res?.success) {
         filterSheet?.current?.open();
         dispatch(setAdharDetails(res.data));
@@ -1012,6 +1095,7 @@ export const addharVerifiyOtp = (data, filterSheet) => async dispatch => {
   dispatch(setLoading(true));
   try {
     const res = await appOperation.customer.adhaarOtpVerifiry(data);
+    
     if (res?.success) {
       toastAlert.showToastError(res.message);
       filterSheet?.current?.close();

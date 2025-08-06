@@ -23,8 +23,9 @@ const Contest = ({ details, totalTeamCount, matchId }) => {
       Contestsize: item?.Contestsize || 2, // Default to 2 for head to head
       EnteryFee: item?.EnteryFee || 0, // Default entry fee
       Rankdata: item?.Rankdata || [{ Price: 0 }], // Default rank data
-      JoinWithMULT: item?.JoinWithMULT || false,
-      teams: item?.teams || 1, // Use original teams value from API
+      // Preserve original JoinWithMULT and teams values - don't override with defaults
+      JoinWithMULT: item?.JoinWithMULT,
+      teams: item?.teams,
       name: item?.name || 'Contest',
       Winning_percent: item?.Winning_percent || 50, // Default to 50% for head to head
     };
@@ -44,7 +45,8 @@ const Contest = ({ details, totalTeamCount, matchId }) => {
       contestId: contestDetails?._id,
       teams: contestDetails?.teams,
       JoinWithMULT: contestDetails?.JoinWithMULT,
-      contestCategoryId: contestDetails?.contest_category_id
+      contestCategoryId: contestDetails?.contest_category_id,
+      isMultipleEntry: contestDetails?.JoinWithMULT === true || contestDetails?.teams > 1
     });
     
     return <ContestCard details={contestDetails} totalTeamCount={totalTeamCount} />;

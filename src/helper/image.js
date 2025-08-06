@@ -18,6 +18,7 @@ export const WATCH = require('../../assets/images/watch.png');
 export const POOL = require('../../assets/images/pool.png');
 export const PRIZE = require('../../assets/images/prize.png');
 export const SECURE = require('../../assets/images/secure.png');
+export const CricketIcon = require('../../assets/images/c3.png');
 
 
 
