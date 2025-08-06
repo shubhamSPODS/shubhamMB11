@@ -9,6 +9,7 @@ import Toast from 'react-native-toast-message';
 import { colors } from '../theme/color';
 import { AppText, POPPINS_MEDIUM, POPPINS_SEMI_BOLD } from '../common/AppText';
 export const BASE_URL = "https://app.mybattle11.com/"
+// export const BASE_URL = "http://192.168.1.14:4013/"
 export const shareToAny = (message) => {
   const shareOptions = {
     message: message,

@@ -112,6 +112,8 @@ import {
   transactionIcon,
   profileCard,
   CricketIcon,
+  LiveMatches,
+  Transactions,
 } from '../helper/image';
 import FastImage from "@d11/react-native-fast-image";
 import ReferAndEarn from '../screens';
@@ -429,7 +431,7 @@ const CricketTab = () => {
                 />
               ) : null}
               <FastImage
-                source={require('../../assets/images/watch.png')}
+                source={LiveMatches}
                 style={{
                   width: 25,
                   height: 25,
@@ -578,7 +580,7 @@ const LudoTab = () => {
                 />
               ) : null}
               <FastImage
-                source={transactionIcon}
+                source={Transactions}
                 style={{
                   width: 25,
                   height: 25,

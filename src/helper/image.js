@@ -19,6 +19,8 @@ export const POOL = require('../../assets/images/pool.png');
 export const PRIZE = require('../../assets/images/prize.png');
 export const SECURE = require('../../assets/images/secure.png');
 export const CricketIcon = require('../../assets/images/c3.png');
+export const LiveMatches = require('../../assets/images/LiveMatches.png');
+export const Transactions = require('../../assets/images/Txn.png');
 
 
 
