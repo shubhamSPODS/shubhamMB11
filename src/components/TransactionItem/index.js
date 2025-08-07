@@ -21,7 +21,7 @@ const STATUS_COLORS = {
 const TransactionItem = ({ item }) => {
     // Determine if this is a winning or deduction transaction based on transaction_type
     const isWinning = item.transaction_type === 'prize';
-    const isDeduction = item.transaction_type === 'fee';
+    const isDeduction = item.transaction_type === 'fee' || item.transaction_type === 'contest_charge_deducted';
     
     // Set amount color based on transaction type
     const amountColor = isWinning ? colors.green : isDeduction ? colors.lightRed : '#FFFFFF';
@@ -56,6 +56,10 @@ const TransactionItem = ({ item }) => {
     const getTransactionTitle = () => {
         if (item.transaction_type === 'prize') return 'Prize Won';
         if (item.transaction_type === 'fee') return 'Fee Deducted';
+        if (item.transaction_type === 'contest_charge_deducted') {
+            // For fantasy transactions, show match title if available
+            return item.match_title ? `Contest Fee - ${item.match_title}` : 'Contest Fee';
+        }
         return item.description || 'Transaction';
     };
 
@@ -124,7 +128,7 @@ const styles = StyleSheet.create({
     },
     title: {
         color: colors.white,
-        fontSize: 14,
+        fontSize: 12,
         marginBottom: 4,
     },
     date: {
@@ -135,7 +139,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     amount: {
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: '600',
     },
 });

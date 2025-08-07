@@ -99,6 +99,8 @@ export const SCOREBOARD_CREATE = 'Scoreboard/Create';
 export const SCOREBOARD_LIST = 'Scoreboard/List';
 export const SCOREBOARD_DETAILS = 'Scoreboard/Details';
 export const SCOREBOARD_MATCH = 'Scoreboard/Match';
+export const TRANSACTIONS_SCREEN = 'TRANSACTIONS_SCREEN';
+export const LUDO_TRANSACTIONS_SCREEN = 'LUDO_TRANSACTIONS_SCREEN';
 
 
 

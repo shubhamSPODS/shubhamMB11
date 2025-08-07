@@ -87,6 +87,8 @@ import {
   SCOREBOARD_DETAILS,
   GAME_WEB_VIEW,
   SCOREBOARD_MATCH,
+  TRANSACTIONS_SCREEN,
+  LUDO_TRANSACTIONS_SCREEN,
 } from './routes';
 import NavigationService from './NavigationService';
 import {useSelector, useDispatch} from 'react-redux';
@@ -188,6 +190,7 @@ import PaymentScreen from '../screens/PaymentScreen';
 import HomeScreen from '../screens/HomeScreen';
 import MyBalance from '../screens/MyBalance';
 import TransactionsScreen from '../screens/Transactions';
+import LudoTransactionsScreen from '../screens/LudoTransactions';
 import LudoGameMode from '../screens/Ludo/LudoGameMode';
 import LudoHowToPlay from '../screens/Ludo/LudoHowToPlay';
 import GameTable from '../screens/GameTable';
@@ -560,7 +563,7 @@ const LudoTab = () => {
       />
       <Tab.Screen
         name={'Transactions'}
-        component={TransactionsScreen}
+        component={LudoTransactionsScreen}
         options={{
           tabBarIcon: ({focused}) => (
             <>
@@ -582,8 +585,8 @@ const LudoTab = () => {
               <FastImage
                 source={Transactions}
                 style={{
-                  width: 25,
-                  height: 25,
+                  width: 26,
+                  height: 26,
                   tintColor: focused ? colors.brownYellow : colors.gray,
                 }}
                 resizeMode="contain"
@@ -856,7 +859,8 @@ const RootStackScreen = () => (
       headerShown: false,
       animation: 'slide_from_right',
     }}>
-    <Stack.Screen name="Transactions" component={TransactionsScreen} />
+    <Stack.Screen name={TRANSACTIONS_SCREEN} component={TransactionsScreen} />
+    <Stack.Screen name={LUDO_TRANSACTIONS_SCREEN} component={LudoTransactionsScreen} />
     <Stack.Screen
       name={AUTH_LOADING_SCREEN}
       component={AuthLoading}
@@ -1151,6 +1155,52 @@ const BottomMainTab = () => {
                 weight={POPPINS_MEDIUM}
                 type={TEN}>
                 Refer & Earn
+              </AppText>
+            </>
+          ),
+        }}
+      />
+      <BottomTab.Screen
+        name={TRANSACTIONS_SCREEN}
+        component={TransactionsScreen}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[
+                    colors.playerDetailsLinerOne,
+                    colors.playerDetailsLinerTwo,
+                  ]}
+                />
+              ) : (
+                <></>
+              )}
+              <FastImage
+                tintColor={focused ? colors.brownYellow : colors.gray}
+                source={Transactions}
+                style={{
+                  width: 26,
+                  height: 26,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Transactions
               </AppText>
             </>
           ),

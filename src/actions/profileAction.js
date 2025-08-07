@@ -17,6 +17,7 @@ import {
   setTransactionsDeposit,
   setTransactionsWithdrawals,
   setLudoTransactions,
+  setFantasyTransactions,
   setUserData,
   setAppVersion,
   setUserWalletData,
@@ -27,7 +28,7 @@ import { setCreateWallet } from '../slices/matchSlice';
 
 export const getUserProfile =
   (isNavigate = true, isUpdate = false) =>
-    async (dispatch: Dispatch<any>) => {
+    async (dispatch) => {
       try {
         dispatch(setLoading(true));
         const response = await appOperation.customer.get_profile();
@@ -50,7 +51,7 @@ export const getUserProfile =
         dispatch(setLoading(false));
       }
     };
-export const createWalletAPI = id => async (dispatch: Dispatch<any>) => {
+export const createWalletAPI = id => async (dispatch) => {
   try {
     dispatch(setLoading(true));
     const response = await appOperation.customer.walletcreate(id);
@@ -105,7 +106,7 @@ export const getKycDetails = () => async dispatch => {
   }
 };
 
-export const getBannerList = () => async (dispatch: Dispatch<any>) => {
+export const getBannerList = () => async (dispatch) => {
   try {
     dispatch(setLoading(true));
     const response = await appOperation.customer.getBannerList();
@@ -119,7 +120,7 @@ export const getBannerList = () => async (dispatch: Dispatch<any>) => {
   }
 };
 
-export const getRefferalList = () => async (dispatch: Dispatch<any>) => {
+export const getRefferalList = () => async (dispatch) => {
   try {
     dispatch(setLoading(true));
     const response = await appOperation.customer.getrefferalList();
@@ -183,7 +184,7 @@ export const updateKyc = data => async dispatch => {
     dispatch(setLoading(false));
   }
 };
-export const getTransactionsDeposit = (type) => async (dispatch: Dispatch<any>) => {
+export const getTransactionsDeposit = (type) => async (dispatch) => {
   try {
     dispatch(setLoading(true));
     const response = await appOperation.customer.alltransactions(type);
@@ -197,7 +198,7 @@ export const getTransactionsDeposit = (type) => async (dispatch: Dispatch<any>) 
   }
 };
 
-export const getLudoTransactions = () => async (dispatch: Dispatch<any>) => {
+export const getLudoTransactions = () => async (dispatch) => {
   try {
     console.log('🎯 [LUDO TRANSACTIONS] Starting API call to /user/ludo-transactions...');
     dispatch(setLoading(true));
@@ -231,6 +232,44 @@ export const getLudoTransactions = () => async (dispatch: Dispatch<any>) => {
   } finally {
     dispatch(setLoading(false));
     console.log('🎯 [LUDO TRANSACTIONS] API call completed');
+  }
+};
+
+export const getFantasyTransactions = () => async (dispatch) => {
+  try {
+    console.log('🎯 [FANTASY TRANSACTIONS] Starting API call to /user/transactions/contests...');
+    dispatch(setLoading(true));
+    
+    const response = await appOperation.customer.alltransactions('contests');
+    console.log('🎯 [FANTASY TRANSACTIONS] API Response:', {
+      success: response?.success,
+      message: response?.message,
+      dataLength: response?.data?.length || 0,
+      fullResponse: response,
+      dataInRes: response?.data[0]
+    });
+    
+    if (response?.success) {
+      console.log('🎯 [FANTASY TRANSACTIONS] Dispatching to Redux store:', {
+        transactionsCount: response?.data?.length || 0,
+        firstTransaction: response?.data?.[0],
+        lastTransaction: response?.data?.[response?.data?.length - 1]
+      });
+      dispatch(setFantasyTransactions(response?.data));
+    } else {
+      console.log('🎯 [FANTASY TRANSACTIONS] API call failed:', response?.message);
+    }
+  } catch (e) {
+    console.error('🎯 [FANTASY TRANSACTIONS] Error:', e);
+    console.error('🎯 [FANTASY TRANSACTIONS] Error details:', {
+      code: e?.code,
+      message: e?.message,
+      data: e?.data
+    });
+    logError(e);
+  } finally {
+    dispatch(setLoading(false));
+    console.log('🎯 [FANTASY TRANSACTIONS] API call completed');
   }
 };
 
