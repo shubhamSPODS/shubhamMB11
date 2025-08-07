@@ -69,6 +69,23 @@ import { appOperation } from '../../../appOperation';
   const joined = Number(details?.joined || 0);
   const percentage = (joined / (contestSize || 1)) * 100;
   const spotsLeft = Math.max(0, contestSize - joined);
+  
+  console.log('🎯 [CONTEST CARD] Spots calculation:', {
+    contestSize,
+    joined,
+    percentage,
+    spotsLeft,
+    contestDetails: {
+      ContestSize: contestDetails?.ContestSize,
+      Contestsize: contestDetails?.Contestsize,
+      contest_category_id: contestDetails?.contest_category_id
+    },
+    details: {
+      joined: details?.joined,
+      contest_category_id: details?.contest_category_id,
+      _id: details?._id
+    }
+  });
   const winningAmount = Number(details?.winning_amount || contestDetails?.WinningAmount || 0);
   const entryFee = Number(details?.EntryFee || details?.EnteryFee || contestDetails?.EnteryFee || 0);
   const winningPercent = Number(contestDetails?.Winning_percent || 0);

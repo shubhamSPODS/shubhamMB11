@@ -165,38 +165,20 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         const parseData = JSON.parse(e?.data);
           
           if (parseData?.upcoming) {
-            // Log complete WebSocket response for debugging
             console.log('🔍 Complete WebSocket Response:', JSON.stringify(parseData, null, 2));
             
-            // Log each match's contestadded status and game state
-            parseData.upcoming.forEach((match, index) => {
-              console.log(`📊 Match ${index + 1}:`, {
-                id: match._id,
-                name: match.Team1vsTeam2,
-                contestadded: match.contestadded,
-                game_state: match.game_state,
-                game_state_str: match.game_state_str,
-                hasTeams: !!match.teams,
-                teamsLength: match.teams?.length,
-                hasScorecard: !!match.scorecard,
-                scorecardLength: match.scorecard?.length
-              });
-            });
             
-            // Filter out matches where contestadded is false
+
             const filteredUpcoming = parseData.upcoming.filter(match => match.contestadded !== false);
             
-            // Handle game state changes for live matches
             parseData.upcoming.forEach(match => {
               const isRainDelay = match.game_state === 4 || match.game_state === 11;
               const isPlayOngoing = match.game_state === 3;
               const isLiveMatch = match.Status === 'Live' || match.Status === 'live';
               
               
-              // If it's a live match with rain delay, restart contest joining
               if (isLiveMatch && isRainDelay) {
                 console.log(`🌧️ Rain delay detected for live match: ${match.Team1vsTeam2}`);
-                // Restart contest joining for this match
                 if (match.teams && match.teams.length > 0) {
                   const contests = match.teams.map(contest => ({
                     ...contest,
@@ -215,7 +197,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
                 }
               }
               
-              // If play is ongoing, log the status
               if (isLiveMatch && isPlayOngoing) {
                 console.log(`▶️ Play ongoing for live match: ${match.Team1vsTeam2}`);
               }
@@ -232,7 +213,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
             
             const contestUpdates = [];
             filteredUpcoming.forEach(match => {
-              // Fetch contests for matches with teams data
               if (match.teams && match.teams.length > 0) {
                 const contests = match.teams.map(contest => ({
                   ...contest,
@@ -242,7 +222,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
                 contestUpdates.push({ contests, matchId: match._id });
               }
               
-              // Also fetch contests for matches with scorecard data
               if (match.scorecard && match.scorecard.length > 0) {
                 const scoreboardContests = match.scorecard.map(contest => ({
                   ...contest,
@@ -255,7 +234,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
             
             if (contestUpdates.length > 0) {
               contestUpdates.forEach(update => {
-                // Only call getContestList if we have actual contest data
                 if (update.contests.length > 0) {
                   dispatch(getContestList(update.contests, update.matchId));
                 }
@@ -291,11 +269,8 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     }
   }, [_id, dispatch, setRefreshingTwo]);
 
-  // Refresh contest data when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      console.log('🔄 Cricket screen focused - refreshing contest data');
-      // Refresh contest data for all matches
       upcomingMatches.forEach(match => {
         if (match.teams && match.teams.length > 0) {
           dispatch(getContestList(match.teams, match._id));
@@ -317,7 +292,7 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     dispatch(setContestData(item));
                   
     const navigationParams = {
-      matchId: item._id, // This is the correct matchId for scoreboard matches
+      matchId: item._id, 
       matchType: currentTab,
       TeamA: item.TeamA,
       TeamB: item.TeamB,
@@ -325,8 +300,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       contestId: item.contestId,
     };
   
-                  
-    console.log('🎯 Navigating to MY_CONTEST from Cricket.js');
     NavigationService.navigate(MY_CONTEST, navigationParams);
   }, [dispatch]);
 
@@ -334,28 +307,23 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     const filteredMatches = getFilteredMatches();
     
     return filteredMatches.map(match => {
-      // Get all contests for this match from the Redux store
       const allContestsForMatch = contestList?.data || [];
       
     
       
-      // Flatten the contest data structure and filter by match ID
       const flattenedContests = allContestsForMatch.reduce((acc, category) => {
         if (category?.data && Array.isArray(category.data)) {
-          // Add matchId to each contest for proper filtering
           const contestsWithMatchId = category.data.map(contest => ({
             ...contest,
-            matchid: match._id // Ensure matchid is set for filtering
+            matchid: match._id 
           }));
           acc.push(...contestsWithMatchId);
         }
         return acc;
       }, []);
       
-      // Also check if contests are stored in a different structure
       const alternativeContests = allContestsForMatch.reduce((acc, category) => {
         if (category && typeof category === 'object' && !Array.isArray(category)) {
-          // Check if this category has contest data directly
           if (category.contest_category_id || category.winning_amount || category.WinningAmount) {
             acc.push({
               ...category,
@@ -366,18 +334,15 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         return acc;
       }, []);
       
-      // Combine both flattened and alternative contests
       const allAvailableContests = [...flattenedContests, ...alternativeContests];
       
      
-      // Filter contests for this specific match
       const matchContests = allAvailableContests.filter(contest => 
         contest.matchid === match._id || 
         contest.matchId === match._id ||
         contest.match_id === match._id
       );
       
-      // Find the highest paid contest from Redux store
       let highestPaidContest = null;
       if (matchContests.length > 0) {
         highestPaidContest = matchContests.reduce((prev, current) => {
@@ -387,10 +352,8 @@ const Cricket = ({ random, setRefreshingTwo }) => {
         });
       }
       
-      // Fallback to original teams/scorecard data based on current tab
       if (!highestPaidContest) {
         if (index === 0 && match.teams && match.teams.length > 0) {
-          // For Teams tab, use teams data
           highestPaidContest = match.teams.reduce((prev, current) => {
             const prevEntryFee = Number(prev?.EntryFee || 0);
             const currentEntryFee = Number(current?.EntryFee || 0);
@@ -398,7 +361,6 @@ const Cricket = ({ random, setRefreshingTwo }) => {
           });
          
         } else if (index === 1 && match.scorecard && match.scorecard.length > 0) {
-          // For Scoreboard tab, use scorecard data
           highestPaidContest = match.scorecard.reduce((prev, current) => {
             const prevEntryFee = Number(prev?.EntryFee || 0);
             const currentEntryFee = Number(current?.EntryFee || 0);
@@ -413,8 +375,8 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       return {
         ...match,
         contest_details: highestPaidContest ? [highestPaidContest] : [],
-        teams: match.teams || [], // Keep original teams data for fallback
-        scorecard: match.scorecard || [], // Keep original scorecard data for fallback
+        teams: match.teams || [],
+        scorecard: match.scorecard || [],
       };
     });
   }, [getFilteredMatches, contestList?.data, index]);

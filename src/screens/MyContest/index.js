@@ -148,6 +148,7 @@ const MyContest = () => {
       try {
         const scoreboardContests = await dispatch(getMyScoreboardContests(effectiveMatchId));
         setMyScoreboardContests(scoreboardContests || []);
+        setScoreboardContestsLoaded(true);
       } catch (error) {
         console.error('Error fetching scoreboard contests:', error);
       }
@@ -211,8 +212,14 @@ const MyContest = () => {
         // Fetch scoreboard contests if matchType is scoreboard
         if (matchType === 'scoreboard' && effectiveMatchId) {
           try {
+            console.log('🎯 [FOCUS EFFECT] Fetching scoreboard contests for matchId:', effectiveMatchId);
             const scoreboardContests = await dispatch(getMyScoreboardContests(effectiveMatchId));
+            console.log('🎯 [FOCUS EFFECT] Scoreboard contests fetched:', {
+              count: scoreboardContests?.length || 0,
+              contests: scoreboardContests?.map(sb => ({ id: sb._id, name: sb.name, match_id: sb.match_id }))
+            });
             setMyScoreboardContests(scoreboardContests || []);
+            setScoreboardContestsLoaded(true);
           } catch (error) {
             console.error('Error fetching scoreboard contests:', error);
           }
@@ -292,6 +299,16 @@ const MyContest = () => {
   }, [dispatch, isHome, match_id, _id]);
 
   const renderMyContest = ({item}) => {
+    console.log('🎯 [RENDER MY CONTEST] Processing item:', {
+      itemId: item?._id,
+      contestCategoryId: item?.contest_category_id,
+      joined: item?.joined,
+      joined_with: item?.joined_with,
+      teamDetails: item?.teamDetails,
+      teamDetailsLength: item?.teamDetails?.length,
+      teamNames: item?.teamDetails?.map(team => ({ name: team.name, teamid: team.teamid }))
+    });
+    
     return <MyContestList item={item} matchDetails={route?.params} />;
   };
 
@@ -300,7 +317,8 @@ const MyContest = () => {
       itemId: item?._id,
       itemContestCategoryId: item?.contest_category_id,
       itemJoinWithMULT: item?.JoinWithMULT,
-      itemTeams: item?.teams
+      itemTeams: item?.teams,
+      itemJoined: item?.joined
     });
 
     // Find the contest category details from the API response
@@ -342,6 +360,14 @@ const MyContest = () => {
       c => c._id === item._id || c.contest_category_id === item.contest_category_id
     ) || item;
     
+    console.log('🎯 [RENDER CONTEST] Data sources:', {
+      itemJoined: item?.joined,
+      joinedContestJoined: joinedContest?.joined,
+      contestListObjJoined: contestListObj?.joined,
+      itemId: item?._id,
+      itemContestCategoryId: item?.contest_category_id
+    });
+    
     // Merge all data sources with priority: actualContestInstance > categoryDetails > contestListObj > joinedContest > item
     const fullContestDetails = { 
       ...item,
@@ -354,7 +380,9 @@ const MyContest = () => {
       }),
       // Ensure JoinWithMULT and teams are preserved from category details
       JoinWithMULT: contestCategoryDetails?.JoinWithMULT || item?.JoinWithMULT,
-      teams: contestCategoryDetails?.teams || item?.teams
+      teams: contestCategoryDetails?.teams || item?.teams,
+      // Preserve the joined count from item (which should have the updated count for scoreboard contests)
+      joined: item?.joined
     };
 
     console.log('🎯 [RENDER CONTEST] Final contest details:', {
@@ -362,6 +390,7 @@ const MyContest = () => {
       contestCategoryId: fullContestDetails?.contest_category_id,
       JoinWithMULT: fullContestDetails?.JoinWithMULT,
       teams: fullContestDetails?.teams,
+      joined: fullContestDetails?.joined,
       isMultipleEntry: fullContestDetails?.JoinWithMULT === true || fullContestDetails?.teams > 1
     });
 
@@ -468,6 +497,7 @@ const MyContest = () => {
   const [removeTabs, setRemoveTabs] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [myScoreboardContests, setMyScoreboardContests] = useState([]);
+  const [scoreboardContestsLoaded, setScoreboardContestsLoaded] = useState(false);
 
   useEffect(() => {
     if (matchId) {
@@ -503,11 +533,51 @@ const MyContest = () => {
   }, [handleRefresh, route?.params?.isFromMyMatch]);
 
   const FirstRoute = React.useCallback(() => {
+    console.log('🎯 [FIRST ROUTE] Rendering with:', {
+      matchType,
+      myScoreboardContestsLength: myScoreboardContests.length,
+      scoreboardContestsLoaded,
+      contestDataId: contestData?._id
+    });
+    
     const contestDataForList = useMemo(() => {
       if (matchType === 'teams') {
         return contestData?.teams;
       } else if (matchType === 'scoreboard') {
-        return contestData?.scorecard;
+        // For scoreboard contests, update the joined count based on user's scoreboards
+        const scorecardContests = contestData?.scorecard || [];
+        console.log('🎯 [CONTEST TAB] Processing scoreboard contests:', {
+          scorecardContestsLength: scorecardContests.length,
+          myScoreboardContestsLength: myScoreboardContests.length,
+          scoreboardContestsLoaded,
+          matchId: contestData?._id,
+          myScoreboardContests: myScoreboardContests.map(sb => ({ id: sb._id, name: sb.name, match_id: sb.match_id }))
+        });
+        
+
+        
+        return scorecardContests.map(contest => {
+          // Find matching scoreboards for this contest
+          const matchingScoreboards = myScoreboardContests.filter(scoreboard => 
+            scoreboard.match_id === contestData?._id
+          );
+          
+          console.log('🎯 [CONTEST TAB] Contest processing:', {
+            contestId: contest._id,
+            contestCategoryId: contest.contest_category_id,
+            originalJoined: contest.joined,
+            matchingScoreboardsLength: matchingScoreboards.length,
+            updatedJoined: matchingScoreboards.length,
+            matchId: contestData?._id,
+            scoreboardMatchIds: myScoreboardContests.map(sb => sb.match_id)
+          });
+          
+          // Update the joined count
+          return {
+            ...contest,
+            joined: matchingScoreboards.length
+          };
+        });
       } else {
         return allContestList
           ? allContestList
@@ -515,7 +585,17 @@ const MyContest = () => {
           ? contestList.data[0].data
           : transformedData;
       }
-    }, [matchType, contestData, allContestList, contestList, transformedData]);
+    }, [matchType, contestData, allContestList, contestList, transformedData, myScoreboardContests, scoreboardContestsLoaded]);
+    
+    console.log('🎯 [FIRST ROUTE] contestDataForList calculated:', {
+      length: contestDataForList?.length || 0,
+      isScoreboard: matchType === 'scoreboard',
+      contests: contestDataForList?.map(c => ({ 
+        id: c._id, 
+        joined: c.joined,
+        contest_category_id: c.contest_category_id 
+      }))
+    });
 
     // Create a unique key that changes when contest data is updated
     const contestDataKey = useMemo(() => {
@@ -525,8 +605,8 @@ const MyContest = () => {
         dataLength: cat.data?.length,
         joinedCount: cat.data?.reduce((sum, contest) => sum + (contest.joined || 0), 0)
       })));
-      return `contest-${effectiveMatchId}-${dataHash}`;
-    }, [contestList?.data, effectiveMatchId]);
+      return `contest-${effectiveMatchId}-${dataHash}-${myScoreboardContests.length}-${scoreboardContestsLoaded}`;
+    }, [contestList?.data, effectiveMatchId, myScoreboardContests.length, scoreboardContestsLoaded]);
 
     return (
       <View style={flexOne}>
@@ -558,13 +638,20 @@ const MyContest = () => {
         />
       </View>
     );
-  }, [matchType, contestData, allContestList, contestList, transformedData, MyCreateContestData, renderContest, renderMyCreateContest, isLoading, onRefresh]);
+  }, [matchType, contestData, allContestList, contestList, transformedData, myScoreboardContests, scoreboardContestsLoaded, MyCreateContestData, renderContest, renderMyCreateContest, isLoading, onRefresh]);
 
   const SecondRoute = React.useCallback(() => {
     console.log('🎯 SecondRoute rendering - matchType:', matchType);
     console.log('🎯 SecondRoute myContest data:', {
       myContestLength: myContest?.length || 0,
-      myContestData: myContest,
+      myContestData: myContest?.map(item => ({
+        _id: item._id,
+        contest_category_id: item.contest_category_id,
+        joined: item.joined,
+        joined_with: item.joined_with,
+        teamDetailsLength: item.teamDetails?.length,
+        teamNames: item.teamDetails?.map(team => ({ name: team.name, teamid: team.teamid }))
+      })),
       isFromMyMatch: route?.params?.isFromMyMatch
     });
     
@@ -610,58 +697,55 @@ const MyContest = () => {
       
       const transformScoreboardContests = () => {
         const contestGroups = {};
-        myScoreboardContests.forEach((scoreboard, index) => {
-          // For scoreboard contests, we should use shadow_contest_id as the key
-          const contestId = scoreboard.shadow_contest_id || scoreboard.contest_id;
-          if (!contestGroups[contestId]) {
-            const matchingContest = contestData?.scorecard?.find(c => 
-              c.shadow_contest_id === contestId || 
-              c._id === contestId
-            );
-            console.log('🔍 Looking for contest with ID:', contestId);
-            console.log('🔍 Available scorecard contests:', contestData?.scorecard?.map(c => ({
-              _id: c._id,
-              shadow_contest_id: c.shadow_contest_id,
-              contest_category_id: c.contest_category_id
-            })));
-            console.log('🔍 Found matching contest:', matchingContest);
-            
-            contestGroups[contestId] = {
-              _id: matchingContest?._id || contestId,
-              contest_category_id: matchingContest?.contest_category_id,
-              shadow_contest_id: contestId, // Use shadow_contest_id consistently
-              scoreboardDetails: [],
-              data: {
-                WinningAmount: matchingContest?.winning_amount || 100,
-                EnteryFee: matchingContest?.EntryFee || 1,
-                Contestsize: matchingContest?.ContestSize || 100,
-                Rankdata: [{Price: matchingContest?.winning_amount || 100}],
-                JoinWithMULT: true,
-                teams: [], 
-                joined: 0 
-              },
-              contest_details: {
-                joined: 0,
-                winning_amount: matchingContest?.winning_amount || 100,
-                shadow_contest_id: contestId, // Use shadow_contest_id consistently
-                contest_category_id: matchingContest?.contest_category_id
-              },
-              Winning_percent: 10, 
-              JoinWithMULT: true,
-              contest_type: 'ScoreCard',
-              ContestType: 'ScoreCard',
-              EntryFee: matchingContest?.EntryFee || 1,
-              ContestSize: matchingContest?.ContestSize || 100,
-              winning_amount: matchingContest?.winning_amount || 100,
-              ...matchingContest
-            };
-          }
+        
+        // Get available scorecard contests from contestData
+        const availableScorecardContests = contestData?.scorecard || [];
+        console.log('📋 Available scorecard contests:', availableScorecardContests);
+        
+        // If we have scoreboards but no contest association, create a default contest group
+        if (myScoreboardContests.length > 0 && availableScorecardContests.length > 0) {
+          // Use the first available scorecard contest as the default
+          const defaultContest = availableScorecardContests[0];
+          const contestId = defaultContest.shadow_contest_id || defaultContest._id;
           
-          if (scoreboard.joined) {
+          console.log('📋 Creating default contest group with contestId:', contestId);
+          
+          contestGroups[contestId] = {
+            _id: defaultContest._id,
+            contest_category_id: defaultContest.contest_category_id,
+            shadow_contest_id: contestId,
+            scoreboardDetails: [],
+            data: {
+              WinningAmount: defaultContest.winning_amount || 100,
+              EnteryFee: defaultContest.EntryFee || 1,
+              Contestsize: defaultContest.ContestSize || 100,
+              Rankdata: [{Price: defaultContest.winning_amount || 100}],
+              JoinWithMULT: true,
+              teams: [], 
+              joined: 0 
+            },
+            contest_details: {
+              joined: 0,
+              winning_amount: defaultContest.winning_amount || 100,
+              shadow_contest_id: contestId,
+              contest_category_id: defaultContest.contest_category_id
+            },
+            Winning_percent: 10, 
+            JoinWithMULT: true,
+            contest_type: 'ScoreCard',
+            ContestType: 'ScoreCard',
+            EntryFee: defaultContest.EntryFee || 1,
+            ContestSize: defaultContest.ContestSize || 100,
+            winning_amount: defaultContest.winning_amount || 100,
+            ...defaultContest
+          };
+          
+          // Add all scoreboards to this contest group
+          myScoreboardContests.forEach((scoreboard, index) => {
             contestGroups[contestId].contest_details.joined += 1;
             contestGroups[contestId].scoreboardDetails.push({
               _id: scoreboard._id,
-              name: `S${contestGroups[contestId].scoreboardDetails.length + 1}`,
+              name: scoreboard.name || `S${index + 1}`,
               scoreboardData: scoreboard,
               teamid: scoreboard._id,
               rank: scoreboard.ranks || 0,
@@ -669,16 +753,142 @@ const MyContest = () => {
             });
             
             contestGroups[contestId].data.joined = contestGroups[contestId].contest_details.joined;
-          }
-        });
+          });
+        } else {
+          // Fallback: create contest groups based on available contests
+          availableScorecardContests.forEach((contest, contestIndex) => {
+            const contestId = contest.shadow_contest_id || contest._id;
+            
+            contestGroups[contestId] = {
+              _id: contest._id,
+              contest_category_id: contest.contest_category_id,
+              shadow_contest_id: contestId,
+              scoreboardDetails: [],
+              data: {
+                WinningAmount: contest.winning_amount || 100,
+                EnteryFee: contest.EntryFee || 1,
+                Contestsize: contest.ContestSize || 100,
+                Rankdata: [{Price: contest.winning_amount || 100}],
+                JoinWithMULT: true,
+                teams: [], 
+                joined: 0 
+              },
+              contest_details: {
+                joined: 0,
+                winning_amount: contest.winning_amount || 100,
+                shadow_contest_id: contestId,
+                contest_category_id: contest.contest_category_id
+              },
+              Winning_percent: 10, 
+              JoinWithMULT: true,
+              contest_type: 'ScoreCard',
+              ContestType: 'ScoreCard',
+              EntryFee: contest.EntryFee || 1,
+              ContestSize: contest.ContestSize || 100,
+              winning_amount: contest.winning_amount || 100,
+              ...contest
+            };
+            
+            // If this is the first contest, add all scoreboards to it
+            if (contestIndex === 0) {
+              myScoreboardContests.forEach((scoreboard, index) => {
+                contestGroups[contestId].contest_details.joined += 1;
+                contestGroups[contestId].scoreboardDetails.push({
+                  _id: scoreboard._id,
+                  name: scoreboard.name || `S${index + 1}`,
+                  scoreboardData: scoreboard,
+                  teamid: scoreboard._id,
+                  rank: scoreboard.ranks || 0,
+                  totalpoints: scoreboard.total_points || 0
+                });
+                
+                contestGroups[contestId].data.joined = contestGroups[contestId].contest_details.joined;
+              });
+            }
+          });
+        }
         
-        return Object.values(contestGroups).filter(contest => contest.contest_details.joined > 0).map(contest => {
+        // If we still have no contest groups but have scoreboards, create a default one
+        if (Object.keys(contestGroups).length === 0 && myScoreboardContests.length > 0) {
+          console.log('📋 No available contests found, creating default contest group');
+          
+          const defaultContestId = 'default-scoreboard-contest';
+          contestGroups[defaultContestId] = {
+            _id: defaultContestId,
+            contest_category_id: 'default-scoreboard-category',
+            shadow_contest_id: defaultContestId,
+            scoreboardDetails: [],
+            data: {
+              WinningAmount: 100,
+              EnteryFee: 1,
+              Contestsize: 100,
+              Rankdata: [{Price: 100}],
+              JoinWithMULT: true,
+              teams: [], 
+              joined: 0 
+            },
+            contest_details: {
+              joined: 0,
+              winning_amount: 100,
+              shadow_contest_id: defaultContestId,
+              contest_category_id: 'default-scoreboard-category'
+            },
+            Winning_percent: 10, 
+            JoinWithMULT: true,
+            contest_type: 'ScoreCard',
+            ContestType: 'ScoreCard',
+            EntryFee: 1,
+            ContestSize: 100,
+            winning_amount: 100
+          };
+          
+          // Add all scoreboards to this default contest group
+          myScoreboardContests.forEach((scoreboard, index) => {
+            contestGroups[defaultContestId].contest_details.joined += 1;
+            contestGroups[defaultContestId].scoreboardDetails.push({
+              _id: scoreboard._id,
+              name: scoreboard.name || `S${index + 1}`,
+              scoreboardData: scoreboard,
+              teamid: scoreboard._id,
+              rank: scoreboard.ranks || 0,
+              totalpoints: scoreboard.total_points || 0
+            });
+            
+            contestGroups[defaultContestId].data.joined = contestGroups[defaultContestId].contest_details.joined;
+          });
+        }
+        
+        const result = Object.values(contestGroups).filter(contest => contest.contest_details.joined > 0).map(contest => {
           contest.teamDetails = contest.scoreboardDetails;
           return contest;
         });
+        
+        console.log('📋 Transformed scoreboard contests:', {
+          inputScoreboards: myScoreboardContests.length,
+          availableContests: availableScorecardContests.length,
+          outputContests: result.length,
+          result: result.map(contest => ({
+            contestId: contest._id,
+            joined: contest.contest_details.joined,
+            scoreboards: contest.scoreboardDetails.map(s => s.name)
+          }))
+        });
+        
+        return result;
       };
 
       const transformedContests = transformScoreboardContests();
+
+      console.log('📋 Final transformed contests for rendering:', {
+        transformedContestsLength: transformedContests?.length || 0,
+        transformedContests: transformedContests?.map(contest => ({
+          contestId: contest._id,
+          contestCategoryId: contest.contest_category_id,
+          joined: contest.contest_details?.joined,
+          scoreboardsCount: contest.scoreboardDetails?.length,
+          scoreboardNames: contest.scoreboardDetails?.map(s => s.name)
+        }))
+      });
 
       return (
         <View
@@ -690,8 +900,18 @@ const MyContest = () => {
           <FlatList
             data={transformedContests}
             showsVerticalScrollIndicator={false}
-            renderItem={({item}) => <MyContestList item={item} matchDetails={route?.params} isScoreboard={true} />}
+            renderItem={({item}) => {
+              console.log('📋 Rendering scoreboard contest item:', {
+                itemId: item?._id,
+                contestCategoryId: item?.contest_category_id,
+                joined: item?.contest_details?.joined,
+                scoreboardsCount: item?.scoreboardDetails?.length,
+                scoreboardNames: item?.scoreboardDetails?.map(s => s.name)
+              });
+              return <MyContestList item={item} matchDetails={route?.params} isScoreboard={true} />;
+            }}
             ListEmptyComponent={() => {
+              console.log('📋 No transformed contests to show - showing empty component');
               return (
                 <View style={{ marginTop: 30, alignItems: 'center' }}>
                   <AppText
@@ -720,76 +940,80 @@ const MyContest = () => {
       );
     }
 
-            // Use alternative data source if API returns only one contest
-        const contestDataToShow = myContest?.length <= 1 && joinedContests?.length > 0 ? joinedContests : myContest;
-        console.log('🎯 Using contest data:', {
-          myContestLength: myContest?.length || 0,
-          joinedContestsLength: joinedContests?.length || 0,
-          finalDataLength: contestDataToShow?.length || 0,
-          usingAlternative: myContest?.length <= 1 && joinedContests?.length > 0
-        });
-        
-        return (
-          <>
-            {route?.params?.isFromMyMatch == true ? (
-              <View
-                style={{
-                  width: Screen.Width - 10,
-                  alignSelf: 'center',
-                  marginTop: 5,
-                }}>
-                <FlatList
-                  data={contestDataToShow}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={renderMyContest}
-                  ListHeaderComponent={renderMyCreateContest}
-                  ListEmptyComponent={() => {
-                    return (
-                      <View style={{marginTop: 30}}>
-                        <EmptyComponent />
-                      </View>
-                    );
-                  }}
-                  keyExtractor={(item, index) => item?._id || index.toString()}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={false}
-                      onRefresh={() => handleRefresh('my contest')}
-                    />
-                  }
+    // For teams contests, prioritize myContest data from Redux (which has correct teamDetails)
+    // Only use alternative approach if myContest is empty
+    const contestDataToShow = myContest && myContest.length > 0 ? myContest : 
+                              (joinedContests && joinedContests.length > 0 ? joinedContests : []);
+    
+    console.log('🎯 Using contest data:', {
+      myContestLength: myContest?.length || 0,
+      joinedContestsLength: joinedContests?.length || 0,
+      finalDataLength: contestDataToShow?.length || 0,
+      usingMyContest: myContest && myContest.length > 0,
+      usingAlternative: !myContest || myContest.length === 0
+    });
+    
+    return (
+      <>
+        {route?.params?.isFromMyMatch == true ? (
+          <View
+            style={{
+              width: Screen.Width - 10,
+              alignSelf: 'center',
+              marginTop: 5,
+            }}>
+            <FlatList
+              data={contestDataToShow}
+              showsVerticalScrollIndicator={false}
+              renderItem={renderMyContest}
+              ListHeaderComponent={renderMyCreateContest}
+              ListEmptyComponent={() => {
+                return (
+                  <View style={{marginTop: 30}}>
+                    <EmptyComponent />
+                  </View>
+                );
+              }}
+              keyExtractor={(item, index) => item?._id || index.toString()}
+              refreshControl={
+                <RefreshControl
+                  refreshing={false}
+                  onRefresh={() => handleRefresh('my contest')}
                 />
-              </View>
-            ) : (
-              <View
-                style={{
-                  width: Screen.Width - 10,
-                  alignSelf: 'center',
-                  marginTop: 5,
-                }}>
-                <FlatList
-                  data={contestDataToShow}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={renderMyContest}
-                  ListHeaderComponent={renderMyCreateContest}
-                  ListEmptyComponent={() => {
-                    return (
-                      <View style={{marginTop: 30}}>
-                        <EmptyComponent />
-                      </View>
-                    );
-                  }}
-                  keyExtractor={(item, index) => item?._id || index.toString()}
-                  refreshControl={
-                    <RefreshControl
-                      refreshing={false}
-                      onRefresh={() => handleRefresh('my contest')}
-                    />
-                  }
+              }
+            />
+          </View>
+        ) : (
+          <View
+            style={{
+              width: Screen.Width - 10,
+              alignSelf: 'center',
+              marginTop: 5,
+            }}>
+            <FlatList
+              data={contestDataToShow}
+              showsVerticalScrollIndicator={false}
+              renderItem={renderMyContest}
+              ListHeaderComponent={renderMyCreateContest}
+              ListEmptyComponent={() => {
+                return (
+                  <View style={{marginTop: 30}}>
+                    <EmptyComponent />
+                  </View>
+                );
+              }}
+              keyExtractor={(item, index) => item?._id || index.toString()}
+              refreshControl={
+                <RefreshControl
+                  refreshing={false}
+                  onRefresh={() => handleRefresh('my contest')}
                 />
-              </View>
-            )}
-          </>
-        );
+              }
+            />
+          </View>
+        )}
+      </>
+    );
   }, [matchType, myContest, renderMyContest, renderMyCreateContest, route?.params?.isFromMyMatch, handleRefresh, myScoreboardContests, contestData, isLoading, onRefresh]);
 
   const ThirdRoute = React.useCallback(() => {

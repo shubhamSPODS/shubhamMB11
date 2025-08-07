@@ -183,6 +183,7 @@ export default appOperation => ({
       undefined,
       CUSTOMER_TYPE,
     ).then(response => {
+      console.log('🎯 getMyJoinedContest API response:', response);
       return response;
     }).catch(error => {
       throw error;

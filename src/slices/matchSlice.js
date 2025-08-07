@@ -249,7 +249,25 @@ export const getMyJoinedContest = data => async dispatch => {
         const arrayfilter = res.arr.filter(
           e => e?.contest_category_id === dataItem?.contest_category_id,
         );
-        const processedItem = {...dataItem, teamDetails: arrayfilter};
+        
+        // Calculate joined count based on arr array length, not data array
+        const joinedCount = arrayfilter.length;
+        
+        const processedItem = {
+          ...dataItem, 
+          teamDetails: arrayfilter,
+          joined: joinedCount, // Use the correct joined count
+          joined_with: joinedCount // Also update joined_with for consistency
+        };
+        
+        console.log('🎯 [GET MY JOINED CONTEST] Processed item:', {
+          contestCategoryId: dataItem?.contest_category_id,
+          originalJoined: dataItem?.joined,
+          arrLength: arrayfilter.length,
+          newJoined: joinedCount,
+          teamDetails: arrayfilter.map(team => ({ name: team.name, teamid: team.teamid }))
+        });
+        
         return processedItem;
       });
       res.data = updatedData;
@@ -259,6 +277,7 @@ export const getMyJoinedContest = data => async dispatch => {
       console.error('❌ Failed to fetch my joined contests:', res);
     }
   } catch (e) {
+    console.error('❌ Error in getMyJoinedContest:', e);
   }
 };
 export const setcreateContest =
@@ -710,48 +729,21 @@ export const getContestList = (outputObject, id) => async dispatch => {
           return map;
         }, {});
 
-        console.log('🎯 [DETAILS MAP] Created details map:', {
-          mapKeys: Object.keys(detailsMap),
-          sampleDetail: detailsMap[Object.keys(detailsMap)[0]]
-        });
 
         const transformedData = category.data.map(contestItem => {
           const details = detailsMap[contestItem.contest_category_id];
           
-          // Log the mapping process for debugging
-          console.log('🎯 [DATA TRANSFORM] Mapping contest item:', {
-            contestItemId: contestItem._id,
-            contestCategoryId: contestItem.contest_category_id,
-            detailsFound: !!details,
-            detailsJoinWithMULT: details?.JoinWithMULT,
-            detailsTeams: details?.teams,
-            originalJoinWithMULT: contestItem?.JoinWithMULT,
-            originalTeams: contestItem?.teams
-          });
           
           const transformedItem = {
             ...contestItem,
             ...(details || {}),
             _id: contestItem._id,
-            match_contest_category_id: contestItem._id, // This is the actual contest instance ID
+            match_contest_category_id: contestItem._id, 
             JoinWithMULT: details?.JoinWithMULT || contestItem?.JoinWithMULT || false,
             teams: details?.teams || contestItem?.teams || 1
           };
           
-          // Log the final transformed item for Rs. 9000 contests
-          const winningAmount = Number(transformedItem?.winning_amount || transformedItem?.WinningAmount || 0);
-          if (winningAmount === 9000) {
-            console.log('🎯 [Rs. 9000 Contest Transform] Final transformed item:', {
-              contestId: transformedItem._id,
-              contestCategoryId: transformedItem.contest_category_id,
-              winningAmount: winningAmount,
-              JoinWithMULT: transformedItem.JoinWithMULT,
-              teams: transformedItem.teams,
-              isMultipleEntry: transformedItem.JoinWithMULT === true || transformedItem.teams > 1,
-              fullTransformedItem: transformedItem
-            });
-          }
-          
+
           return transformedItem;
         });
 

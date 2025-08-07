@@ -82,7 +82,50 @@ const MyContestList = ({ item, isScoreboard = false }) => {
   const contestSize = getContestData('Contestsize') || getContestData('ContestSize') || getContestData('contest_size');
   const joined = getContestData('joined') || item?.contest_details?.joined || 0;
   
+  console.log('🎯 [MY CONTEST LIST] Contest data processing:', {
+    itemId: item?._id,
+    contestCategoryId: item?.contest_category_id,
+    dataSources: {
+      itemData: item?.data,
+      itemContestDetails: item?.contest_details,
+      itemDirect: item
+    },
+    calculatedValues: {
+      winningAmount,
+      entryFee,
+      contestSize,
+      joined,
+      percentage: contestSize > 0 ? (joined / contestSize) * 100 : 0
+    }
+  });
+  
   const percentage = contestSize > 0 ? (joined / contestSize) * 100 : 0;
+
+  // If contest size is missing, try to get it from contest list
+  const getContestSizeFromList = () => {
+    if (contestSize > 0) return contestSize;
+    
+    // Try to find the contest in the contest list
+    const contestList = useSelector(state => state?.match?.contestList);
+    const allContests = contestList?.data || [];
+    
+    for (const category of allContests) {
+      if (category?.data) {
+        for (const contest of category.data) {
+          if (contest?.contest_category_id === item?.contest_category_id && 
+              contest?.shadow_contest_id === item?.shadow_contest_id) {
+            console.log('🎯 [MY CONTEST LIST] Found contest in list with size:', contest?.ContestSize || contest?.Contestsize);
+            return contest?.ContestSize || contest?.Contestsize || 100;
+          }
+        }
+      }
+    }
+    
+    console.log('🎯 [MY CONTEST LIST] No contest found in list, using default size');
+    return 100; // Default fallback
+  };
+
+  const finalContestSize = getContestSizeFromList();
 
   // Fetch rank data if not available
   const fetchRankData = async () => {
@@ -177,17 +220,29 @@ const MyContestList = ({ item, isScoreboard = false }) => {
       matchDetailsMatchId: matchDetails?.MatchId
     });
 
-    NavigationService.navigate(LEADERBOARD, {
+    const contestDetailsForNavigation = {
       details: {
         details: {
           ...item,
           Rankdata: finalRankData,
-          contest_category_id: correctContestCategoryId
+          contest_category_id: correctContestCategoryId,
+          // Add the contest details at the top level for easier access
+          winning_amount: winningAmount,
+          Contestsize: finalContestSize,
+          joined: joined,
+          EnteryFee: entryFee,
+          JoinWithMULT: item?.data?.JoinWithMULT || item?.JoinWithMULT,
+          Winning_percent: item?.Winning_percent,
+          teams: item?.data?.teams,
+          contest_type: isScoreboardContest ? 'ScoreCard' : 'Teams',
+          ContestType: isScoreboardContest ? 'ScoreCard' : 'Teams',
+          _id: item?._id
         },
+        // Also keep the old structure for backward compatibility
         winning_amount: winningAmount,
         JoinWithMULT: item?.data?.JoinWithMULT || item?.JoinWithMULT,
         EnteryFee: entryFee,
-        Contestsize: contestSize,
+        Contestsize: finalContestSize, // Use the correct contest size
         joined: joined,
         contest_category_id: correctContestCategoryId,
         shadow_contest_id: item?.contest_details?.shadow_contest_id || item?.shadow_contest_id,
@@ -211,7 +266,34 @@ const MyContestList = ({ item, isScoreboard = false }) => {
       shadow_contest_id: item?.contest_details?.shadow_contest_id || item?.shadow_contest_id,
       isScoreboard: isScoreboard,
       totalTeamCount: isScoreboard ? item?.scoreboardDetails?.length || 0 : item?.teamDetails?.length || 0
+    };
+
+    console.log('🎯 MyContestList Navigation: Contest details being passed:', {
+      contestSize: finalContestSize,
+      joined,
+      percentage,
+      winningAmount,
+      entryFee,
+      contestDetails: contestDetailsForNavigation.details.details
     });
+
+    console.log('🎯 MyContestList Navigation: Full navigation object structure:', {
+      details: {
+        hasDetails: !!contestDetailsForNavigation.details,
+        hasDetailsDetails: !!contestDetailsForNavigation.details.details,
+        detailsKeys: Object.keys(contestDetailsForNavigation.details),
+        detailsDetailsKeys: Object.keys(contestDetailsForNavigation.details.details),
+        detailsDetailsStructure: contestDetailsForNavigation.details.details
+      },
+      otherParams: {
+        firstTeamName: contestDetailsForNavigation.firstTeamName,
+        secondTeamName: contestDetailsForNavigation.secondTeamName,
+        progressBarWidth: contestDetailsForNavigation.progressBarWidth,
+        matchDetails: contestDetailsForNavigation.matchDetails
+      }
+    });
+
+    NavigationService.navigate(LEADERBOARD, contestDetailsForNavigation);
   };
   let teamArray = Array(Number(item?.joined_with ?? 0)).fill(0);
 
@@ -357,12 +439,12 @@ const MyContestList = ({ item, isScoreboard = false }) => {
             </View>
             <View style={styles.flex}>
               <AppText color={BLACKOPACITY} weight={LATO_BOLD} type={TEN}>
-                {numberWithCommas(contestSize)} spots
+                {numberWithCommas(finalContestSize)} spots
               </AppText>
               <AppText
                 style={{ color: '#37CC4C', fontSize: 10 }}
                 weight={LATO_BOLD}>
-                {Math.max(0, contestSize - joined)}{' '}
+                {Math.max(0, finalContestSize - joined)}{' '}
                 spots left
               </AppText>
             </View>
@@ -457,11 +539,11 @@ const MyContestList = ({ item, isScoreboard = false }) => {
                   </View>
                 );
               }) :
-              item?.teamDetails?.map((item, index) => {
+              item?.teamDetails?.map((teamItem, index) => {
                 return (
                   <View key={index} style={styles.grayContainer}>
                     <AppText style={{ marginTop: 1 }} color={WHITE} type={TEN}>
-                      {item.name}
+                      {teamItem.name}
                     </AppText>
                   </View>
                 );
@@ -522,15 +604,15 @@ const MyContestList = ({ item, isScoreboard = false }) => {
                   );
                 }) :
                 // Team expanded view (existing)
-                myTeamsData?.map((item) => {
-                  const match = item?.name.match(/\d+/);
+                myTeamsData?.map((teamItem) => {
+                  const match = teamItem?.name.match(/\d+/);
                   const teamNumber = match ? match[0] : '';
-                  const captain = item?.players?.find(item => item.caption);
-                  const viceCaptain = item?.players?.find(item => item?.vice_caption);
+                  const captain = teamItem?.players?.find(player => player.caption);
+                  const viceCaptain = teamItem?.players?.find(player => player?.vice_caption);
                   return (
                     <TouchableOpacityView
-                      key={item._id}
-                      onPress={() => onCardClick(item)}
+                      key={teamItem._id}
+                      onPress={() => onCardClick(teamItem)}
                       style={{
                         paddingVertical: 10,
                         backgroundColor: '#343434',
@@ -549,7 +631,7 @@ const MyContestList = ({ item, isScoreboard = false }) => {
                         </AppText>
                         <TouchableOpacityView
                           style={{ padding: 5 }}
-                          onPress={() => onEdit(item)}>
+                          onPress={() => onEdit(teamItem)}>
                           <FastImage
                             resizeMode='contain'
                             style={{

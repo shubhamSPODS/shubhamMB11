@@ -304,7 +304,19 @@ const LeaderBoard = () => {
   const route = useRoute();
   const wsRefTwo = useRef(null);
   const dispatch = useDispatch();
-  const details = route?.params?.details?.details ?? {};
+  
+  // Extract details from the correct structure
+  const routeParams = route?.params;
+  const details = routeParams?.details?.details ?? routeParams?.details ?? {};
+  
+  console.log('🎯 [LEADERBOARD] Route params structure:', {
+    hasRouteParams: !!routeParams,
+    hasDetails: !!routeParams?.details,
+    hasDetailsDetails: !!routeParams?.details?.details,
+    detailsKeys: routeParams?.details ? Object.keys(routeParams.details) : [],
+    detailsDetailsKeys: routeParams?.details?.details ? Object.keys(routeParams.details.details) : [],
+    finalDetails: details
+  });
   
   const contestDetails = {
     winning_amount: Number(
@@ -337,6 +349,15 @@ const LeaderBoard = () => {
     ContestType: details?.ContestType || details?.data?.ContestType || '',
     ...details 
   };
+
+  console.log('🎯 [LEADERBOARD] Contest details processed:', {
+    winning_amount: contestDetails.winning_amount,
+    Contestsize: contestDetails.Contestsize,
+    joined: contestDetails.joined,
+    EnteryFee: contestDetails.EnteryFee,
+    spotsLeft: Math.max(0, contestDetails.Contestsize - contestDetails.joined),
+    percentage: contestDetails.Contestsize > 0 ? (contestDetails.joined / contestDetails.Contestsize) * 100 : 0
+  });
 
   // Check if this contest supports multiple entries
   const supportsMultipleEntries = contestDetails?.ContestSize > 1 || 
@@ -599,6 +620,15 @@ const LeaderBoard = () => {
   };
   const sheet = useRef(null);
   const renderTop = () => {
+    console.log('🎯 [LEADERBOARD RENDER TOP] Contest details for spots:', {
+      contestSize: contestDetails?.Contestsize,
+      joined: contestDetails?.joined,
+      spotsLeft: Math.max(0, (contestDetails?.Contestsize || 0) - (contestDetails?.joined || 0)),
+      progressBarWidth: route?.params?.progressBarWidth,
+      contestDetailsKeys: Object.keys(contestDetails || {}),
+      routeParamsKeys: Object.keys(route?.params || {})
+    });
+    
     return (
       <View style={styles.container}>
         <CommonHeader
