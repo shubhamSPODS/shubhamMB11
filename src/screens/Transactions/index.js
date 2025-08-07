@@ -130,7 +130,8 @@ const TransactionsScreen = ({ navigation }) => {
                 networkActivityIndicatorVisible={true}
             />
             <HomeTopHeader
-                showBack={true}
+                showBack={false}
+                showProfile={false}
                 personClick={() => {
                     NavigationService.reset(BOTTOM_NAVIGATION_STACK);
                 }}

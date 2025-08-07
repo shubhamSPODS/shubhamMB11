@@ -33,7 +33,7 @@ const GameJoinTable = ({ route, navigation }) => {
     console.log(userData, '==userdqata');
 
     const [matchId, setMatchId] = useState('');
-    const walletBalance = Number(userData?.winning_amount || 0) + Number(userData?.cash_bonus || 0) + Number(userData?.totaldeposit || 0);
+    const walletBalance = (Number(userData?.winning_amount || 0) + Number(userData?.cash_bonus || 0) + Number(userData?.totaldeposit || 0)).toFixed(2);
     const socket = useRef(null);
     const [countdown, setCountdown] = useState(4);
     const [isCountdownActive, setIsCountdownActive] = useState(false);
@@ -47,7 +47,7 @@ const GameJoinTable = ({ route, navigation }) => {
     const isRummy = gameRoute === 'Rummy';
     const gameIcon = isRummy ? POOL : DICE;
     const [isWaitingForUnity, setIsWaitingForUnity] = useState(false);
-    const balanceAfterJoin = walletBalance - routeData?.bet;
+    const balanceAfterJoin = (Number(walletBalance) - Number(routeData?.bet || 0)).toFixed(2);
     const getUserToken = async () => {
         try {
             const token = await AsyncStorage.getItem(USER_TOKEN_KEY);
@@ -121,7 +121,7 @@ const GameJoinTable = ({ route, navigation }) => {
         });
     };
     const handleJoinTable = async () => {
-        if (walletBalance === 0) {
+        if (Number(walletBalance) === 0) {
             toastAlert.showToastError('Match not found.');
             return;
         }

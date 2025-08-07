@@ -25,7 +25,7 @@ import {
   WHITE,
 } from './AppText';
 
-const HomeTopHeader = ({ personClick, walletIcon, showBack }) => {
+const HomeTopHeader = ({ personClick, walletIcon, showBack, showProfile = true }) => {
   const [random, setRandom] = useState('')
   const userData = useSelector(state => {
     return state.profile.userData;
@@ -45,36 +45,38 @@ const HomeTopHeader = ({ personClick, walletIcon, showBack }) => {
       <View>
         <View
           style={styles.topContainer}>
-          <TouchableOpacityView
-            style={{ height: 28, width: 28, }}
-            onPress={personClick}>
-            {showBack ? (
-              <FastImage
-                source={back}
-                style={styles.personImage}
-                resizeMode="contain"
-                tintColor={WHITE}
-              />
-            ) : (
-              <>
+          {showProfile && (
+            <TouchableOpacityView
+              style={{ height: 28, width: 28, }}
+              onPress={personClick}>
+              {showBack ? (
                 <FastImage
-                  resizeMode="contain"
-                  source={
-                    userData?.logo
-                      ? { uri: `${IMAGE_BASE_URL}${userData?.logo}` }
-                      : UserIcon
-                  }
+                  source={back}
                   style={styles.personImage}
+                  resizeMode="contain"
+                  tintColor={WHITE}
                 />
-                <View style={styles.userfilter}>
+              ) : (
+                <>
                   <FastImage
-                    source={ThreeIcon}
-                    resizeMode='contain'
-                    style={{ height: 10, width: 10 }} />
-                </View>
-              </>
-            )}
-          </TouchableOpacityView>
+                    resizeMode="contain"
+                    source={
+                      userData?.logo
+                        ? { uri: `${IMAGE_BASE_URL}${userData?.logo}` }
+                        : UserIcon
+                    }
+                    style={styles.personImage}
+                  />
+                  <View style={styles.userfilter}>
+                    <FastImage
+                      source={ThreeIcon}
+                      resizeMode='contain'
+                      style={{ height: 10, width: 10 }} />
+                  </View>
+                </>
+              )}
+            </TouchableOpacityView>
+          )}
           <FastImage
             source={myBattleTextImg}
             style={styles.combineIcon}
