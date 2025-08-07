@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -25,8 +25,9 @@ import PrimaryButton from '../../common/primaryButton';
 import { appOperation } from '../../appOperation';
 import { toastAlert } from '../../helper/utility';
 import { SpinnerSecond } from '../../common/SpinnerSecond';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Confirmation from '../../common/Confirmation';
+import { checkDuplicateTeams } from '../../slices/matchSlice';
 
 const SelectScoreboard = ({ 
   contestDetails, 
@@ -35,11 +36,14 @@ const SelectScoreboard = ({
   selectScoreboard,
   supportsMultipleEntries = false
 }) => {
+  const dispatch = useDispatch();
   const [scoreboards, setScoreboards] = useState([]);
   const [selectedScoreboard, setSelectedScoreboard] = useState(null);
   const [selectedScoreboards, setSelectedScoreboards] = useState([]); // For multiple selection
   const [loading, setLoading] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [registeredScoreboards, setRegisteredScoreboards] = useState([]);
+  const [isLoadingRegisteredScoreboards, setIsLoadingRegisteredScoreboards] = useState(true);
   const contestData = useSelector(state => state?.match?.contestData);
   
   // Check if this contest supports multiple entries (use prop or fallback to contest details)
@@ -51,6 +55,53 @@ const SelectScoreboard = ({
   useEffect(() => {
     fetchUserScoreboards();
   }, []);
+
+  // Fetch registered scoreboards for this contest
+  useEffect(() => {
+    const fetchRegisteredScoreboards = async () => {
+      if (!matchDetails?._id || !contestDetails?.shadow_contest_id) {
+        console.log('🎯 [SELECT SCOREBOARD] Missing data for fetching registered scoreboards');
+        return;
+      }
+      setIsLoadingRegisteredScoreboards(true);
+      try {
+        console.log('🎯 [SELECT SCOREBOARD] Fetching registered scoreboards...');
+        const result = await dispatch(checkDuplicateTeams(matchDetails._id, contestDetails.shadow_contest_id));
+        if (result?.success) {
+          // Handle both array and single object responses
+          let scoreboards = result.data || [];
+          if (!Array.isArray(scoreboards)) {
+            scoreboards = [scoreboards];
+          }
+          console.log('🎯 [SELECT SCOREBOARD] Registered scoreboards found:', scoreboards);
+          console.log('🎯 [SELECT SCOREBOARD] Registered scoreboards structure:', scoreboards.map(scoreboard => ({
+            id: scoreboard._id,
+            prediction_id: scoreboard.prediction_id,
+            prediction_id_type: typeof scoreboard.prediction_id,
+            scoreboard_name: scoreboard.scoreboardName || 'Unknown'
+          })));
+          
+          // Debug: Log all available scoreboards to see which ones should be filtered
+          console.log('🎯 [SELECT SCOREBOARD] All available scoreboards for comparison:', scoreboards.map(scoreboard => ({
+            _id: scoreboard._id,
+            name: scoreboard.name,
+            prediction_id: scoreboard.prediction_id
+          })));
+          
+          setRegisteredScoreboards(scoreboards);
+        } else {
+          console.log('🎯 [SELECT SCOREBOARD] No registered scoreboards found or error:', result);
+          setRegisteredScoreboards([]);
+        }
+      } catch (error) {
+        console.error('🎯 [SELECT SCOREBOARD] Error fetching registered scoreboards:', error);
+        setRegisteredScoreboards([]);
+      } finally {
+        setIsLoadingRegisteredScoreboards(false);
+      }
+    };
+    fetchRegisteredScoreboards();
+  }, [matchDetails, contestDetails, dispatch]);
 
   const fetchUserScoreboards = async () => {
     try {
@@ -146,6 +197,77 @@ const SelectScoreboard = ({
            scoreboard._id;
   };
 
+  // Filter scoreboards to exclude already registered ones
+  const filteredScoreboards = useMemo(() => {
+    console.log('🎯 [SELECT SCOREBOARD] Filtering scoreboards:', {
+      totalScoreboards: scoreboards?.length || 0,
+      registeredScoreboardsCount: registeredScoreboards?.length || 0,
+      isLoadingRegisteredScoreboards
+    });
+
+    // Don't show scoreboards until we've checked for registered ones
+    if (isLoadingRegisteredScoreboards) {
+      console.log('🎯 [SELECT SCOREBOARD] Still loading registered scoreboards, showing empty list');
+      return [];
+    }
+
+    if (!scoreboards || scoreboards.length === 0) {
+      console.log('🎯 [SELECT SCOREBOARD] No scoreboards available');
+      return [];
+    }
+
+    const filtered = scoreboards.filter(scoreboard => {
+      const scoreboardIdToCheck = getScoreboardId(scoreboard);
+      
+      // Check if scoreboard is already registered for this contest via API
+      const isAlreadyRegistered = registeredScoreboards?.some(registeredScoreboard => {
+        // For scoreboards, we need to check prediction_id instead of scoreboard_id
+        const registeredScoreboardId = registeredScoreboard.prediction_id || registeredScoreboard._id;
+        
+        const isRegistered = registeredScoreboardId === scoreboardIdToCheck;
+        
+        console.log('🎯 [SELECT SCOREBOARD] Checking scoreboard registration:', {
+          scoreboardIdToCheck,
+          registeredScoreboardId,
+          scoreboardName: scoreboard?.name || `Scoreboard ${scoreboardIdToCheck}`,
+          isRegistered,
+          registeredScoreboard: registeredScoreboard
+        });
+        
+        if (isRegistered) {
+          console.log('🎯 [SELECT SCOREBOARD] Scoreboard already registered:', {
+            scoreboardId: scoreboardIdToCheck,
+            scoreboardName: scoreboard?.name || `Scoreboard ${scoreboardIdToCheck}`,
+            registeredScoreboard: registeredScoreboard
+          });
+        }
+        
+        return isRegistered;
+      });
+
+      if (isAlreadyRegistered) {
+        console.log('🎯 [SELECT SCOREBOARD] Filtering out scoreboard:', {
+          reason: 'Already registered via API',
+          scoreboardId: scoreboardIdToCheck,
+          scoreboardName: scoreboard?.name || `Scoreboard ${scoreboardIdToCheck}`
+        });
+      }
+
+      return !isAlreadyRegistered;
+    });
+
+    console.log('🎯 [SELECT SCOREBOARD] Filtered scoreboards:', {
+      originalCount: scoreboards?.length || 0,
+      filteredCount: filtered?.length || 0,
+      availableScoreboards: filtered?.map(scoreboard => ({ 
+        id: getScoreboardId(scoreboard), 
+        name: scoreboard?.name || `Scoreboard ${getScoreboardId(scoreboard)}` 
+      }))
+    });
+
+    return filtered;
+  }, [scoreboards, registeredScoreboards, isLoadingRegisteredScoreboards]);
+
   const handleScoreboardSelection = (scoreboard) => {
     if (finalSupportsMultipleEntries) {
       // Multiple selection mode
@@ -170,6 +292,12 @@ const SelectScoreboard = ({
   };
 
   const renderScoreboardItem = ({ item, index }) => {
+    console.log('🎯 [SELECT SCOREBOARD] Rendering scoreboard:', {
+      scoreboardId: getScoreboardId(item),
+      scoreboardName: item?.name || `Scoreboard ${getScoreboardId(item)}`,
+      index: index + 1
+    });
+    
     const isSelected = isScoreboardSelected(item);
     const predictions = item.predictions || [];
     const previewOvers = predictions.slice(0, 5);
@@ -228,7 +356,7 @@ const SelectScoreboard = ({
             <View style={styles.matchInfoSection}>
               <View style={styles.scoreboardNameContainer}>
                 <AppText weight={POPPINS_BOLD} color={WHITE} style={styles.scoreboardNameText}>
-                  Scoreboard (S{index + 1})
+                  {item?.name || `Scoreboard ${index + 1}`}
                 </AppText>
               </View>
               <View style={styles.matchTypeBadge}>
@@ -349,16 +477,42 @@ const SelectScoreboard = ({
     }
   };
 
-  const EmptyComponent = () => (
-    <View style={styles.emptyContainer}>
-      <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptyText}>
-        No scoreboards found for this match
-      </AppText>
-      <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptySubText}>
-        Redirecting to create scoreboard...
-      </AppText>
-    </View>
-  );
+  const EmptyComponent = () => {
+    // Check if we have scoreboards but they're all filtered out
+    const hasScoreboardsButFiltered = scoreboards.length > 0 && filteredScoreboards.length === 0;
+    
+    return (
+      <View style={styles.emptyContainer}>
+        <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptyText}>
+          {hasScoreboardsButFiltered 
+            ? 'All scoreboards are already joined in this contest'
+            : 'No scoreboards found for this match'
+          }
+        </AppText>
+        <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.emptySubText}>
+          {hasScoreboardsButFiltered 
+            ? 'Redirecting to create new scoreboard...'
+            : 'Redirecting to create scoreboard...'
+          }
+        </AppText>
+      </View>
+    );
+  };
+
+  // Add useEffect to handle redirect when all scoreboards are filtered out
+  useEffect(() => {
+    if (!isLoadingRegisteredScoreboards && !loading && filteredScoreboards && filteredScoreboards.length === 0 && scoreboards && scoreboards.length > 0) {
+      console.log('🎯 [SELECT SCOREBOARD] All scoreboards are already joined - redirecting to create scoreboard');
+      
+      // Immediately redirect without showing the select screen
+      onClose();
+      NavigationService.navigate('Scoreboard/Create', {
+        ...contestDetails,
+        matchDetails,
+        isFromMyMatch: true,
+      });
+    }
+  }, [isLoadingRegisteredScoreboards, loading, filteredScoreboards, scoreboards, onClose, contestDetails, matchDetails]);
 
   return (
     <AppSafeAreaView>
@@ -385,23 +539,34 @@ const SelectScoreboard = ({
           </AppText>
         </View>
 
-        {loading ? (
+        {loading || isLoadingRegisteredScoreboards ? (
           <View style={styles.loadingContainer}>
             <SpinnerSecond />
+            <AppText weight={POPPINS_MEDIUM} color={WHITE} style={styles.loadingText}>
+              {isLoadingRegisteredScoreboards ? 'Checking registered scoreboards...' : 'Loading scoreboards...'}
+            </AppText>
           </View>
         ) : (
           <>
+            {console.log('🎯 [SELECT SCOREBOARD] Rendering FlatList with filtered scoreboards:', {
+              filteredScoreboardsLength: filteredScoreboards?.length || 0,
+              filteredScoreboards: filteredScoreboards?.map(scoreboard => ({ 
+                id: getScoreboardId(scoreboard), 
+                name: scoreboard?.name || `Scoreboard ${getScoreboardId(scoreboard)}` 
+              }))
+            })}
             <FlatList
-              data={scoreboards}
+              data={filteredScoreboards}
               renderItem={renderScoreboardItem}
               keyExtractor={item => item._id}
               showsVerticalScrollIndicator={false}
               ListEmptyComponent={EmptyComponent}
               style={styles.list}
               contentContainerStyle={styles.listContent}
+              extraData={[selectedScoreboard, selectedScoreboards, registeredScoreboards]}
             />
 
-            {scoreboards.length > 0 && (
+            {filteredScoreboards.length > 0 && (
               <View style={styles.buttonContainer}>
                 <PrimaryButton
                   buttonStyle={[
@@ -629,6 +794,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
   },
   emptyContainer: {
     alignItems: 'center',

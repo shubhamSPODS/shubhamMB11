@@ -294,6 +294,23 @@ export const setcreateContest =
   };
 export const joinuserContest = data => async dispatch => {
   try {
+    // Check for duplicate teams before joining user contest
+    if (data?.match_id && data?.shadow_contest_id) {
+      const duplicateCheck = await dispatch(checkDuplicateTeams(data.match_id, data.shadow_contest_id));
+      
+      if (duplicateCheck?.success === false) {
+        console.log('🎯 [JOIN USER CONTEST] Duplicate check failed:', duplicateCheck);
+        toastAlert.showToastError(duplicateCheck?.message || 'Failed to verify team eligibility');
+        return;
+      }
+
+      if (duplicateCheck?.data?.isDuplicate === true) {
+        console.log('🎯 [JOIN USER CONTEST] Duplicate teams found:', duplicateCheck?.data);
+        toastAlert.showToastError('You have already registered teams for this contest');
+        return;
+      }
+    }
+
     const res = await appOperation.customer.joinContestUserPri(data);
     dispatch(setjoinuserContest(res));
     
@@ -328,6 +345,59 @@ export const MycreateContest = (data, condition) => async dispatch => {
     }
   } catch (e) {}
 };
+export const checkDuplicateTeams = (matchId, shadowContestId) => async dispatch => {
+  try {
+    console.log('🎯 [CHECK DUPLICATE] Action called with:', {
+      matchId,
+      shadowContestId
+    });
+
+    if (!matchId || !shadowContestId) {
+      console.error('🎯 [CHECK DUPLICATE] Missing required parameters:', {
+        matchId,
+        shadowContestId
+      });
+      return { success: false, message: 'Missing required parameters' };
+    }
+
+    const data = {
+      match_id: matchId,
+      shadow_contest_id: shadowContestId
+    };
+
+    console.log('🎯 [CHECK DUPLICATE] Calling API with data:', data);
+    const res = await appOperation.customer.checkDuplicateTeams(data);
+    console.log('🎯 [CHECK DUPLICATE] API response:', res);
+    
+    // Handle the case where API returns 404 with "User teams not found"
+    // This means no teams are registered for this contest, which is valid
+    if (res?.code === 404 && res?.data?.includes('User teams not found')) {
+      console.log('🎯 [CHECK DUPLICATE] No teams found for this contest - user can proceed');
+      return { 
+        success: true, 
+        data: [],
+        message: 'No teams registered for this contest'
+      };
+    }
+    
+    return res;
+  } catch (error) {
+    console.error('🎯 [CHECK DUPLICATE] Error:', error);
+    
+    // Handle the case where error contains "User teams not found"
+    if (error?.data?.includes('User teams not found')) {
+      console.log('🎯 [CHECK DUPLICATE] No teams found for this contest - user can proceed');
+      return { 
+        success: true, 
+        data: [],
+        message: 'No teams registered for this contest'
+      };
+    }
+    
+    return { success: false, message: error?.message || 'Failed to check duplicate teams' };
+  }
+};
+
 export const joinContest = (data, matchDetails) => async dispatch => {
   try {
     const validateData = data?.mutiple ? data?.arofobj?.[0] : data;
@@ -357,6 +427,8 @@ export const joinContest = (data, matchDetails) => async dispatch => {
       toastAlert.showToastError(`Missing required fields: ${missingFields.join(', ')}`);
       return;
     }
+
+
 
     // Additional validation for multiple teams payload
     if (data?.mutiple && data?.arofobj) {

@@ -279,6 +279,7 @@ const Confirmation = ({
           };
 
           console.log('Joining multiple entry contest with single team:', joinData);
+          
           dispatch(joinContest(joinData, matchDetails));
           handleClose();
         } else {
@@ -322,7 +323,8 @@ const Confirmation = ({
             ...(existingContestEntryId && { existing_contest_entry_id: existingContestEntryId })
           };
 
-          console.log('Joining contest with multiple teams:', joinData);
+                    console.log('Joining contest with multiple teams:', joinData);
+          
           dispatch(joinContest(joinData, matchDetails));
           handleClose();
         }
@@ -377,7 +379,8 @@ const Confirmation = ({
           ...(existingContestEntryId && { existing_contest_entry_id: existingContestEntryId })
         };
 
-        console.log('Joining contest with single team:', joinData);
+                console.log('Joining contest with single team:', joinData);
+        
         dispatch(joinContest(joinData, matchDetails));
         handleClose();
       }

@@ -313,4 +313,27 @@ export default appOperation => ({
     appOperation.get(`match/check-scoreboard-contest-joined/${matchId}/${contestId}`, undefined, undefined, CUSTOMER_TYPE),
   getScoreboardLeaderboard: data =>
     appOperation.post(`match/scoreboard-leaderboard`, data, CUSTOMER_TYPE),
+  checkDuplicateTeams: data => {
+    console.log('🎯 [API] checkDuplicateTeams called with:', data);
+    console.log('🎯 [API] Making POST request to match/check-duplicate');
+    return appOperation.post(`match/check-duplicate`, data, CUSTOMER_TYPE).then(response => {
+      console.log('🎯 [API] checkDuplicateTeams response:', response);
+      return response;
+    }).catch(error => {
+      console.error('🎯 [API] checkDuplicateTeams error:', error);
+      
+      // Handle the case where API returns 404 with "User teams not found"
+      // This is actually a valid response indicating no teams are registered
+      if (error?.code === 404 && error?.data?.includes('User teams not found')) {
+        console.log('🎯 [API] No teams found for this contest - treating as success');
+        return {
+          success: true,
+          data: [],
+          message: 'No teams registered for this contest'
+        };
+      }
+      
+      throw error;
+    });
+  },
 });
