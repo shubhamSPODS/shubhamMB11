@@ -25,7 +25,7 @@ const HomeScreen = ({ navigation, route }) => {
         <View style={{ flex: 1, backgroundColor: NewColor.linerWhite }}>
             <HomeTopHeader personClick={() => navigation.openDrawer()} />
             <ScrollView showsVerticalScrollIndicator={false}>
-                <View style={{ marginHorizontal: 10, justifyContent: 'center', alignItems: 'center', }}>
+                <View style={styles.bannerContainer}>
                 <TouchableOpacity activeOpacity={0.9} onPress={() => {
                     navigation.navigate(CRICKET_TAB)
                 }}>
@@ -40,13 +40,13 @@ const HomeScreen = ({ navigation, route }) => {
                         source={LUDO_BANNER}
                     />
                 </TouchableOpacity>
-                <TouchableOpacity  
+                {/* <TouchableOpacity  
                 // onPress={()=>{navigation.navigate('RummyGameMode')}} 
                 activeOpacity={0.9}>
                     <Image style={styles.banner3}
                         source={RUMMY_BANNER}
                     />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
                 </View>
                 <View style={{ height: 50 }}></View>
             </ScrollView>
@@ -58,21 +58,26 @@ const HomeScreen = ({ navigation, route }) => {
 export default HomeScreen
 
 const styles = StyleSheet.create({
-   
+    bannerContainer: {
+        marginHorizontal: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
     banner1: {
-        width: FULL_WIDTH - 75,
-        height: 165,
+        width: FULL_WIDTH - 80,
+        height: 180,
         alignSelf: "center",
         resizeMode: "contain",
-        borderRadius: 10,
+        borderRadius: 12,
+        marginBottom: 25,
     },
     banner2: {
-        width: FULL_WIDTH - 65,
-        height: 200,
+        width: FULL_WIDTH - 80,
+        height: 180,
         alignSelf: "center",
         resizeMode: "contain",
-        borderRadius: 10,
-        marginStart: 5
+        borderRadius: 12,
     },
      banner3: {
         width: FULL_WIDTH - 50,
