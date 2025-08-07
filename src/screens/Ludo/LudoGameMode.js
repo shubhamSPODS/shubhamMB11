@@ -142,13 +142,12 @@ const LudoGameMode = () => {
           navigation.getParent()?.goBack()
         }
       />
-            <ScrollView>
-                <FlatList
-                    data={gameMode}
-                    keyExtractor={(item, index) => index.toString()}
-                    renderItem={renderItem}
-                />
-            </ScrollView>
+            <FlatList
+                data={gameMode}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={renderItem}
+                contentContainerStyle={{ paddingBottom: 20 }}
+            />
 
             </AppSafeAreaView>
     )

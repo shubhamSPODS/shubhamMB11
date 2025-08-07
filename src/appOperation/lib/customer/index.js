@@ -107,6 +107,13 @@ export default appOperation => ({
       {},
       CUSTOMER_TYPE,
     ),
+  ludoTransactions: () =>
+    appOperation.get(
+      `transactions`,
+      undefined,
+      undefined,
+      CUSTOMER_TYPE,
+    ),
   getAllContest: (matchId, contestId) =>
     appOperation.get(
       `match/contests/${matchId}/${contestId}`,

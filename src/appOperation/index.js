@@ -128,6 +128,20 @@ export class AppOperation {
         });
       }
 
+      // Add specific logging for transactions API
+      if (url === 'transactions') {
+        console.log('🎯 [TRANSACTIONS API] HTTP Request:', {
+          fullUrl: uri,
+          method,
+          headers,
+          hasToken: !!this.customerToken,
+          tokenType: typeof this.customerToken,
+          tokenLength: this.customerToken?.length || 0,
+          type: type,
+          isCustomerType: type === CUSTOMER_TYPE
+        });
+      }
+
       fetch(uri, { method, headers, body: bodyData })
         .then(response => {
           let status = response.status;
@@ -135,6 +149,15 @@ export class AppOperation {
           // Add specific logging for scoreboard leaderboard API response
           if (url === 'match/scoreboard-leaderboard') {
             console.log('🎯 [SCOREBOARD LEADERBOARD API] HTTP Response Status:', {
+              status,
+              ok: response.ok,
+              statusText: response.statusText
+            });
+          }
+
+          // Add specific logging for transactions API response
+          if (url === 'transactions') {
+            console.log('🎯 [TRANSACTIONS API] HTTP Response Status:', {
               status,
               ok: response.ok,
               statusText: response.statusText

@@ -20,45 +20,70 @@ import { getAdharVerify } from "../slices/matchSlice";
 
 const UploadAadhar = () => {
     const dispatch = useDispatch();
-    const [imageData, setImageData] = React.useState(null);
-    const [imageDatattwo, setImageDatatwo] = React.useState('');
+    const [imageData, setImageData] = React.useState<any>(null);
+    const [imageDatattwo, setImageDatatwo] = React.useState<any>(null);
     const [name, setName] = React.useState('');
     const [imageUrl, setImageUrl] = React.useState(null);
     const [imageUrlTwo, setImageUrlTwo] = React.useState(null);
+    const [selectedImageSlot, setSelectedImageSlot] = React.useState('first'); // 'first' or 'second'
 
-    const openPicker = async () => {
+    const openPicker = async (slot = 'first') => {
+        setSelectedImageSlot(slot);
         ImagePicker.openCamera({
             width: 1000,
             height: 1000,
             cropping: false,
+            mediaType: 'photo',
+            includeBase64: false,
+            includeExif: true,
+            forceJpg: true,
         }).then(image => {
             const data: any = {
                 uri: image.path,
                 name: image.modificationDate + '.' + image.mime.split('/')[1],
                 type: image.mime,
             };
-            if (!imageData) {
+            if (slot === 'first') {
                 setImageData(data);
             } else {
                 setImageDatatwo(data);
             }
+        }).catch(error => {
+            console.log('Camera error:', error);
+            if (error.code === 'E_PICKER_CANCELLED') {
+                console.log('User cancelled camera');
+            } else {
+                toastAlert.showToastError('Failed to capture image from camera');
+            }
         });
     };
-    const openGallery = () => {
+    const openGallery = (slot = 'first') => {
+        setSelectedImageSlot(slot);
         ImagePicker.openPicker({
             width: 1000,
             height: 1000,
             cropping: false,
+            mediaType: 'photo',
+            includeBase64: false,
+            includeExif: true,
+            forceJpg: true,
         }).then(image => {
             const data: any = {
                 uri: image.path,
                 name: image.modificationDate + '.' + image.mime.split('/')[1],
                 type: image.mime,
             };
-            if (!imageData) {
+            if (slot === 'first') {
                 setImageData(data);
             } else {
                 setImageDatatwo(data);
+            }
+        }).catch(error => {
+            console.log('Image picker error:', error);
+            if (error.code === 'E_PICKER_CANCELLED') {
+                console.log('User cancelled image picker');
+            } else {
+                toastAlert.showToastError('Failed to select image from gallery');
             }
         });
     };
@@ -125,15 +150,25 @@ const UploadAadhar = () => {
                 <KeyBoardAware style={styles.bottomContainer}>
                     <View style={styles.gallaryContainer}>
                         <View style={styles.flexBoxContainer}>
-                            <View style={styles.uploadBox}>
+                            <TouchableOpacityView 
+                                style={[
+                                    styles.uploadBox,
+                                    selectedImageSlot === 'first' && styles.selectedImageContainer
+                                ]}
+                                onPress={() => setSelectedImageSlot('first')}>
                                 <FastImage source={imageData ? { uri: imageData?.uri } : adhaarFront} resizeMode='stretch' style={styles.adhaarIcon} />
-                            </View>
-                            <View style={styles.uploadBackBox}>
+                            </TouchableOpacityView>
+                            <TouchableOpacityView 
+                                style={[
+                                    styles.uploadBackBox,
+                                    selectedImageSlot === 'second' && styles.selectedImageContainer
+                                ]}
+                                onPress={() => setSelectedImageSlot('second')}>
                                 <FastImage source={imageDatattwo ? { uri: imageDatattwo?.uri } : adhaarback} resizeMode='stretch' style={styles.adhaarIcon} />
-                            </View>
+                            </TouchableOpacityView>
                         </View>
                         <TouchableOpacityView
-                            onPress={() => openPicker()}
+                            onPress={() => openPicker(selectedImageSlot)}
                             style={styles.openGallaryContainer}>
                             <FastImage source={cameraIcon} resizeMode='contain' style={styles.cameraIconStyle} />
                             <AppText type={THIRTEEN} weight={POPPINS_MEDIUM} color={BLACKOPACITY}>
@@ -141,7 +176,7 @@ const UploadAadhar = () => {
                             </AppText>
                         </TouchableOpacityView>
                         <TouchableOpacityView
-                            onPress={() => openGallery()}
+                            onPress={() => openGallery(selectedImageSlot)}
                             style={styles.openGallaryContainer}>
                             <FastImage source={gallaryIcon} resizeMode='contain' style={styles.cameraIconStyle} />
                             <AppText type={THIRTEEN} weight={POPPINS_MEDIUM} color={BLACKOPACITY}>
@@ -226,15 +261,34 @@ const styles = StyleSheet.create({
         borderColor: colors.darkGreen,
         borderWidth: 1,
     },
+    selectedImageContainer: {
+        borderColor: colors.darkGreen,
+        borderWidth: 3,
+        backgroundColor: colors.golden,
+    },
     openGallaryContainer: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 10,
+        paddingHorizontal: 15,
         borderRadius: 10,
         borderWidth: 1,
         borderColor: colors.darkGreen,
-        height: 40,
-        marginTop: 15
+        height: 45,
+        marginTop: 15,
+        marginBottom: 10
+    },
+    buttonContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: 15,
+        gap: 15
+    },
+    selectionIndicator: {
+        alignItems: "center",
+        marginTop: 10,
+        paddingVertical: 5,
+        backgroundColor: colors.darkGreen,
+        borderRadius: 5
     },
     cameraIconStyle: {
         height: 20,

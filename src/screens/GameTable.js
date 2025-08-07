@@ -14,6 +14,9 @@ import PrimaryButton from '../common/primaryButton'
 import { toastAlert } from '../helper/utility'
 import Header from '../common/Header'
 import { universalPaddingHorizontal } from '../theme/dimens'
+import { getKycDetails } from '../actions/profileAction';
+import NavigationService from '../navigation/NavigationService';
+import { VERIFY_ADHAAR_SCREEN, UPLOAD_AADHAR } from '../navigation/routes';
 
 const GameTable = ({ route,navigation }) => {
     const [listData, setListData] = useState([]);
@@ -23,6 +26,9 @@ const GameTable = ({ route,navigation }) => {
     const userData = useSelector(state => {
         return state.profile.userData;
       });
+    const kycDetails = useSelector(state => {
+        return state.profile.kycDetails;
+    });
     const walletBalance = Number(userData?.winning_amount || 0) + Number(userData?.cash_bonus || 0) + Number(userData?.totaldeposit || 0)
 
       console.log(userData,'==userdadta');
@@ -76,6 +82,7 @@ const GameTable = ({ route,navigation }) => {
     useEffect(() => {
         updateProfile()
         getTableData();
+        dispatch(getKycDetails());
     }, [getTableData]);
     useEffect(() => {
         let data = [...listData];
@@ -91,9 +98,20 @@ const GameTable = ({ route,navigation }) => {
         if (walletBalance === 0) {
             toastAlert.showToastError('Please add money on your wallet.');
             return;
-        } else {
-            navigation.navigate('GameJoinTable', { playerDetails: item ,gameType:gameType});
         }
+
+        // Check KYC verification for Ludo games
+        if (kycDetails?.adhar_verified == 0) {
+            // Navigate to manual Aadhaar KYC screen
+            NavigationService.navigate(UPLOAD_AADHAR);
+            return;
+        } else if (kycDetails?.adhar_verified == 2) {
+            toastAlert.showToastError('Your aadhaar verification is pending please wait');
+            return;
+        }
+
+        // If KYC is verified, proceed to join table
+        navigation.navigate('GameJoinTable', { playerDetails: item ,gameType:gameType});
     }
     return (
         <AppSafeAreaView

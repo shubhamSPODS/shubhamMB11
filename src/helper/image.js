@@ -324,6 +324,8 @@ export const prize = require('../../assets/images/18.png');
 export const fee = require('../../assets/images/18.png');
 export const pending = require('../../assets/images/18.png');
 export const failed = require('../../assets/images/18.png');
+export const greenArrow = require('../../assets/images/greenArrow.png');
+export const redArrow = require('../../assets/images/redArrow.png');
 
 
 

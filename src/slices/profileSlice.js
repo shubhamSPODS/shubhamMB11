@@ -8,6 +8,7 @@ export const initialState = {
   depositTransactions: [],
   contestTransactions: [],
   withdrawalsTransactions: [],
+  ludoTransactions: [],
   walletCreateData: undefined,
   SaveActivite: undefined,
   appVersion: undefined,
@@ -39,6 +40,9 @@ export const profileSlice = createSlice({
     setTransactionsWithdrawals: (state, { payload }) => {
       state.withdrawalsTransactions = payload;
     },
+    setLudoTransactions: (state, { payload }) => {
+      state.ludoTransactions = payload;
+    },
     setWalletCreate: (state, { payload }) => {
       state.walletCreateData = payload;
     },
@@ -63,6 +67,7 @@ export const {
   setTransactionsDeposit,
   setTransactionsContest,
   setTransactionsWithdrawals,
+  setLudoTransactions,
   setKycDetails,
   setActivite,
   setWalletCreate,

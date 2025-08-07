@@ -5,54 +5,19 @@ import { NewColor } from '../../theme/color';
 import TransactionItem from '../../components/TransactionItem';
 import { AppSafeAreaView } from '../../common/AppSafeAreaView';
 import { HomeTopHeader } from '../../common/HomeTopHeader';
-import { GET_WITH_TOKEN } from '../../Backend/Backend';
+import { useDispatch, useSelector } from 'react-redux';
+import { getLudoTransactions } from '../../actions/profileAction';
+import NavigationService from '../../navigation/NavigationService';
+import { BOTTOM_NAVIGATION_STACK, BOTTOM_TAB_HOMESCREEN } from '../../navigation/routes';
 
 const TransactionsScreen = ({ navigation }) => {
-    const [selectedFilter, setSelectedFilter] = useState('All');
-    const [transactions, setTransactions] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const ludoTransactions = useSelector(state => state.profile.ludoTransactions);
+    const isLoading = useSelector(state => state.auth.isLoading);
 
     useEffect(() => {
-        const fetchTransactions = async () => {
-            try {
-                const json = await GET_WITH_TOKEN('userGames');
-                if (json.success && Array.isArray(json.data)) {
-                    const allTransactions = json.data.flatMap(game => game.transactions || []);
-                    setTransactions(allTransactions);
-                }
-            } catch (error) {
-                console.error("Failed to fetch transactions:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTransactions();
-    }, []);
-
-    const filteredData = transactions.filter(item => {
-        if (selectedFilter === 'All') {
-            return true;
-        }
-        if (selectedFilter === 'Deposit') {
-            return item.title === 'Deposit';
-        }
-        return item.title === selectedFilter;
-    });
-
-    const renderFilterButton = (title) => {
-        const isActive = selectedFilter === title;
-        return (
-            <TouchableOpacity
-                style={[styles.filterButton, isActive && styles.activeFilterButton]}
-                onPress={() => setSelectedFilter(title)}
-            >
-                <AppText weight={POPPINS_SEMI_BOLD} style={[styles.filterButtonText, isActive && styles.activeFilterButtonText]}>
-                    {title}
-                </AppText>
-            </TouchableOpacity>
-        );
-    };
+        dispatch(getLudoTransactions());
+    }, [dispatch]);
 
     return (
         <AppSafeAreaView
@@ -66,22 +31,17 @@ const TransactionsScreen = ({ navigation }) => {
             />
             <HomeTopHeader
                 showBack={true}
-                personClick={() => navigation.goBack()}
+                personClick={() => {
+                    NavigationService.reset(BOTTOM_NAVIGATION_STACK);
+                }}
                 title="Transactions"
             />
 
-            <View style={styles.filterContainer}>
-                {renderFilterButton('All')}
-                {renderFilterButton('Deposit')}
-                {renderFilterButton('Fee')}
-                {renderFilterButton('Prize')}
-            </View>
-
-            {loading ? (
+            {isLoading ? (
                 <ActivityIndicator size="large" color="#FFFFFF" style={{marginTop: 20}} />
             ) : (
                 <FlatList
-                    data={filteredData}
+                    data={ludoTransactions?.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))}
                     renderItem={({ item }) => <TransactionItem item={item} />}
                     keyExtractor={item => item.id}
                     style={styles.list}
@@ -99,26 +59,6 @@ const styles = StyleSheet.create({
     },
     list: {
         marginTop: 10,
-    },
-    filterContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        paddingVertical: 15,
-    },
-    filterButton: {
-        paddingHorizontal: 20,
-        paddingVertical: 8,
-        borderRadius: 20,
-        backgroundColor: '#3F3F3F',
-    },
-    activeFilterButton: {
-        backgroundColor: '#FFFFFF',
-    },
-    filterButtonText: {
-        color: '#FFFFFF',
-    },
-    activeFilterButtonText: {
-        color: '#000000',
     },
     emptyText: {
         textAlign: 'center',

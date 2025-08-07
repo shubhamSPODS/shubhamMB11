@@ -16,6 +16,7 @@ import {
   setTransactionsContest,
   setTransactionsDeposit,
   setTransactionsWithdrawals,
+  setLudoTransactions,
   setUserData,
   setAppVersion,
   setUserWalletData,
@@ -193,6 +194,43 @@ export const getTransactionsDeposit = (type) => async (dispatch: Dispatch<any>) 
     logError(e);
   } finally {
     dispatch(setLoading(false));
+  }
+};
+
+export const getLudoTransactions = () => async (dispatch: Dispatch<any>) => {
+  try {
+    console.log('🎯 [LUDO TRANSACTIONS] Starting API call to /user/ludo-transactions...');
+    dispatch(setLoading(true));
+    
+    const response = await appOperation.customer.ludoTransactions();
+    console.log('🎯 [LUDO TRANSACTIONS] API Response:', {
+      success: response?.success,
+      message: response?.message,
+      dataLength: response?.data?.length || 0,
+      fullResponse: response
+    });
+    
+    if (response?.success) {
+      console.log('🎯 [LUDO TRANSACTIONS] Dispatching to Redux store:', {
+        transactionsCount: response?.data?.length || 0,
+        firstTransaction: response?.data?.[0],
+        lastTransaction: response?.data?.[response?.data?.length - 1]
+      });
+      dispatch(setLudoTransactions(response?.data));
+    } else {
+      console.log('🎯 [LUDO TRANSACTIONS] API call failed:', response?.message);
+    }
+  } catch (e) {
+    console.error('🎯 [LUDO TRANSACTIONS] Error:', e);
+    console.error('🎯 [LUDO TRANSACTIONS] Error details:', {
+      code: e?.code,
+      message: e?.message,
+      data: e?.data
+    });
+    logError(e);
+  } finally {
+    dispatch(setLoading(false));
+    console.log('🎯 [LUDO TRANSACTIONS] API call completed');
   }
 };
 

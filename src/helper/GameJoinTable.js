@@ -11,17 +11,24 @@ import { PROFILE } from '../navigation/routes'
 import { DICE, POOL, PROFILE_2, SECURE, UserIcon } from './image'
 import { BASE_URL, toastAlert } from './utility'
 import io from 'socket.io-client';
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PrimaryButton from '../common/primaryButton'
 import Loader from '../components/Loader'
 import { USER_TOKEN_KEY } from '../libs/constants'
 import LinearGradient from 'react-native-linear-gradient'
 import WebView from 'react-native-webview'
+import { getKycDetails } from '../actions/profileAction';
+import NavigationService from '../navigation/NavigationService';
+import { VERIFY_ADHAAR_SCREEN, UPLOAD_AADHAR } from '../navigation/routes';
 
 const GameJoinTable = ({ route, navigation }) => {
+    const dispatch = useDispatch();
     const userData = useSelector(state => {
         return state.profile.userData;
+    });
+    const kycDetails = useSelector(state => {
+        return state.profile.kycDetails;
     });
     console.log(userData, '==userdqata');
 
@@ -52,6 +59,7 @@ const GameJoinTable = ({ route, navigation }) => {
     }
     useEffect(() => {
         getUserToken()
+        dispatch(getKycDetails());
     }, [])
 
     const setupSocketConnection = () => {
@@ -115,6 +123,16 @@ const GameJoinTable = ({ route, navigation }) => {
     const handleJoinTable = async () => {
         if (walletBalance === 0) {
             toastAlert.showToastError('Match not found.');
+            return;
+        }
+
+        // Check KYC verification for Ludo games
+        if (kycDetails?.adhar_verified == 0) {
+            // Navigate to manual Aadhaar KYC screen
+            NavigationService.navigate(UPLOAD_AADHAR);
+            return;
+        } else if (kycDetails?.adhar_verified == 2) {
+            toastAlert.showToastError('Your aadhaar verification is pending please wait');
             return;
         }
 
