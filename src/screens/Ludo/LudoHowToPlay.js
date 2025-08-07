@@ -20,7 +20,7 @@ const LudoHowToPlay = () => {
   useFocusEffect(
     React.useCallback(() => {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        navigation.goBack();
+        navigation.getParent()?.goBack();
         return true;
       });
 
@@ -86,7 +86,7 @@ const LudoHowToPlay = () => {
       />
       <HomeTopHeader
         showBack={true}
-        personClick={() => navigation.goBack()}
+        personClick={() => navigation.getParent()?.goBack()}
         title="How to Play Ludo"
       />
       <ScrollView
