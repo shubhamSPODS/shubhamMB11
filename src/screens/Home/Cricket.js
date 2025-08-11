@@ -43,6 +43,26 @@ const sortMatchesByStartDate = (matches) => {
   });
 };
 
+// Debounce function to prevent rapid state updates
+const debounce = (func, wait) => {
+  let timeout;
+  const debouncedFunc = function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+  
+  // Add cancel method for cleanup
+  debouncedFunc.cancel = () => {
+    clearTimeout(timeout);
+  };
+  
+  return debouncedFunc;
+};
+
 const MemoizedMatchCard = React.memo(({ item, route, onPressScoreboard }) => (
   <MatchCard 
     key={`${route.key}-${item._id}`}
@@ -108,6 +128,10 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     {key: 'teams', title: 'Teams'},
     {key: 'scoreboard', title: 'Scoreboard'},
   ]);
+  
+  // Add state to track WebSocket connection status
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const teamsMatches = useMemo(() => {
       const filteredMatches = upcomingMatches.filter(match => match.teams && match.teams.length > 0);
@@ -123,11 +147,28 @@ const Cricket = ({ random, setRefreshingTwo }) => {
     return index === 0 ? teamsMatches : scoreboardMatches;
   }, [index, teamsMatches, scoreboardMatches]);
 
+  // Debounced function to update matches
+  const debouncedSetUpComingMatches = useMemo(
+    () => debounce((matches) => {
+      dispatch(setUpComingMatches(matches));
+    }, 300),
+    [dispatch]
+  );
+
+  // Debounced function to update contest list
+  const debouncedGetContestList = useMemo(
+    () => debounce((contests, matchId) => {
+      dispatch(getContestList(contests, matchId));
+    }, 200),
+    [dispatch]
+  );
+
   useEffect(() => {
-    if (_id) {
+    if (_id && !isInitialized) {
+      setIsInitialized(true);
       fetchData(false); 
     }
-  }, [random, _id]);
+  }, [random, _id, isInitialized]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -135,156 +176,216 @@ const Cricket = ({ random, setRefreshingTwo }) => {
       if (itemIndex !== -1 && upcomingMatches?.length !== 0) {
         const tempArray = [...upcomingMatches];
         tempArray?.splice(itemIndex, 1);
-        dispatch(setUpComingMatches(tempArray));
+        debouncedSetUpComingMatches(tempArray);
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [upcomingMatches, dispatch]);
+  }, [upcomingMatches, debouncedSetUpComingMatches]);
+
+  // Cleanup WebSocket on unmount
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      setIsWebSocketConnected(false);
+    };
+  }, []);
+
+  // Add cleanup for debounced functions
+  useEffect(() => {
+    return () => {
+      // Clear any pending debounced calls
+      if (debouncedSetUpComingMatches.cancel) {
+        debouncedSetUpComingMatches.cancel();
+      }
+      if (debouncedGetContestList.cancel) {
+        debouncedGetContestList.cancel();
+      }
+    };
+  }, [debouncedSetUpComingMatches, debouncedGetContestList]);
 
   const fetchData = useCallback((showLoader = true) => {
     const URL = `wss://app.mybattle11.com/upcoming-matches?limit=20&skip=0&userid=${_id}`;
     
     if (showLoader) {
-    setRefreshing(true);
-    setRefreshingTwo(true);
+      setRefreshing(true);
+      setRefreshingTwo(true);
     }
     
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.close();
+    // Properly close existing WebSocket connection
+    if (wsRef.current) {
+      if (wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
+      wsRef.current = null;
     }
     
-    try {
-      wsRef.current = new WebSocket(URL);
-      
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connection established');
-      };
-      
-      wsRef.current.onmessage = e => {
-        try {
-        const parseData = JSON.parse(e?.data);
-          
-          if (parseData?.upcoming) {
-            console.log('🔍 Complete WebSocket Response:', JSON.stringify(parseData, null, 2));
-            
-            
-
-            const filteredUpcoming = parseData.upcoming.filter(match => match.contestadded !== false);
-            
-            parseData.upcoming.forEach(match => {
-              const isRainDelay = match.game_state === 4 || match.game_state === 11;
-              const isPlayOngoing = match.game_state === 3;
-              const isLiveMatch = match.Status === 'Live' || match.Status === 'live';
+    // Add delay to ensure previous connection is fully closed
+    setTimeout(() => {
+      try {
+        wsRef.current = new WebSocket(URL);
+        
+        wsRef.current.onopen = () => {
+          console.log('WebSocket connection established');
+          setIsWebSocketConnected(true);
+        };
+        
+        wsRef.current.onmessage = e => {
+          try {
+            const parseData = JSON.parse(e?.data);
               
+            if (parseData?.upcoming) {
+              console.log('🔍 Complete WebSocket Response:', JSON.stringify(parseData, null, 2));
               
-              if (isLiveMatch && isRainDelay) {
-                console.log(`🌧️ Rain delay detected for live match: ${match.Team1vsTeam2}`);
+              const filteredUpcoming = parseData.upcoming.filter(match => match.contestadded !== false);
+              
+              // Validate that we have valid match data before updating state
+              if (!Array.isArray(filteredUpcoming) || filteredUpcoming.length === 0) {
+                console.warn('⚠️ Received empty or invalid upcoming matches data');
+                return;
+              }
+              
+              // Additional validation: ensure matches have required fields
+              const validMatches = filteredUpcoming.filter(match => 
+                match && 
+                match._id && 
+                match.Team1vsTeam2 && 
+                match.StartDateTime
+              );
+              
+              if (validMatches.length === 0) {
+                console.warn('⚠️ No valid matches found in filtered data');
+                return;
+              }
+              
+              console.log('✅ Valid matches found:', validMatches.length);
+              
+              // Process live matches for contest updates
+              validMatches.forEach(match => {
+                const isRainDelay = match.game_state === 4 || match.game_state === 11;
+                const isPlayOngoing = match.game_state === 3;
+                const isLiveMatch = match.Status === 'Live' || match.Status === 'live';
+                
+                if (isLiveMatch && isRainDelay) {
+                  console.log(`🌧️ Rain delay detected for live match: ${match.Team1vsTeam2}`);
+                  if (match.teams && match.teams.length > 0) {
+                    const contests = match.teams.map(contest => ({
+                      ...contest,
+                      matchId: match._id,
+                      matchName: match.Team1vsTeam2
+                    }));
+                    debouncedGetContestList(contests, match._id);
+                  }
+                  if (match.scorecard && match.scorecard.length > 0) {
+                    const scoreboardContests = match.scorecard.map(contest => ({
+                      ...contest,
+                      matchId: match._id,
+                      matchName: match.Team1vsTeam2
+                    }));
+                    debouncedGetContestList(scoreboardContests, match._id);
+                  }
+                }
+                
+                if (isLiveMatch && isPlayOngoing) {
+                  console.log(`▶️ Play ongoing for live match: ${match.Team1vsTeam2}`);
+                }
+              });
+              
+              console.log('WebSocket upcoming matches:', {
+                total: parseData.upcoming.length,
+                filtered: filteredUpcoming.length,
+                valid: validMatches.length,
+                removed: parseData.upcoming.length - filteredUpcoming.length,
+                sampleMatch: validMatches[0]
+              });
+              
+              // Use debounced update to prevent rapid state changes
+              debouncedSetUpComingMatches(validMatches);
+              
+              // Batch contest updates to prevent multiple rapid dispatches
+              const contestUpdates = [];
+              validMatches.forEach(match => {
                 if (match.teams && match.teams.length > 0) {
                   const contests = match.teams.map(contest => ({
                     ...contest,
                     matchId: match._id,
                     matchName: match.Team1vsTeam2
                   }));
-                  dispatch(getContestList(contests, match._id));
+                  contestUpdates.push({ contests, matchId: match._id });
                 }
+                
                 if (match.scorecard && match.scorecard.length > 0) {
                   const scoreboardContests = match.scorecard.map(contest => ({
                     ...contest,
                     matchId: match._id,
                     matchName: match.Team1vsTeam2
                   }));
-                  dispatch(getContestList(scoreboardContests, match._id));
-                }
-              }
-              
-              if (isLiveMatch && isPlayOngoing) {
-                console.log(`▶️ Play ongoing for live match: ${match.Team1vsTeam2}`);
-              }
-            });
-            
-            console.log('WebSocket upcoming matches:', {
-              total: parseData.upcoming.length,
-              filtered: filteredUpcoming.length,
-              removed: parseData.upcoming.length - filteredUpcoming.length,
-              sampleMatch: parseData.upcoming[0]
-            });
-            
-            dispatch(setUpComingMatches(filteredUpcoming));
-            
-            const contestUpdates = [];
-            filteredUpcoming.forEach(match => {
-              if (match.teams && match.teams.length > 0) {
-                const contests = match.teams.map(contest => ({
-                  ...contest,
-                  matchId: match._id,
-                  matchName: match.Team1vsTeam2
-                }));
-                contestUpdates.push({ contests, matchId: match._id });
-              }
-              
-              if (match.scorecard && match.scorecard.length > 0) {
-                const scoreboardContests = match.scorecard.map(contest => ({
-                  ...contest,
-                  matchId: match._id,
-                  matchName: match.Team1vsTeam2
-                }));
-                contestUpdates.push({ contests: scoreboardContests, matchId: match._id });
-              }
-            });
-            
-            if (contestUpdates.length > 0) {
-              contestUpdates.forEach(update => {
-                if (update.contests.length > 0) {
-                  dispatch(getContestList(update.contests, update.matchId));
+                  contestUpdates.push({ contests: scoreboardContests, matchId: match._id });
                 }
               });
+              
+              // Process contest updates in batches
+              if (contestUpdates.length > 0) {
+                // Use a single timeout to batch all contest updates
+                setTimeout(() => {
+                  contestUpdates.forEach(update => {
+                    if (update.contests.length > 0) {
+                      debouncedGetContestList(update.contests, update.matchId);
+                    }
+                  });
+                }, 100);
+              }
             }
+            
+            if (parseData?.mymatches) {
+              dispatch(setMyMatchesHome(parseData.mymatches));
+            }
+          } catch (error) {
+            console.log('Error parsing WebSocket data:', error);
+            // Don't update state on parsing errors to prevent data loss
+          } finally {
+            setRefreshing(false);
+            setRefreshingTwo(false);
           }
-          
-          if (parseData?.mymatches) {
-            dispatch(setMyMatchesHome(parseData.mymatches));
-        }
-        } catch (error) {
-          console.log('Error parsing WebSocket data:', error);
-        } finally {
+        };
+        
+        wsRef.current.onerror = e => {
+          console.log('WebSocket error:', e);
+          setIsWebSocketConnected(false);
+          setRefreshing(false);
+          setRefreshingTwo(false);
+        };
+        
+        wsRef.current.onclose = e => {
+          console.log('WebSocket closed:', e);
+          setIsWebSocketConnected(false);
+          setRefreshing(false);
+          setRefreshingTwo(false);
+        };
+      } catch (error) {
+        console.log('error', error);
+        setIsWebSocketConnected(false);
         setRefreshing(false);
         setRefreshingTwo(false);
-        }
-      };
-      
-      wsRef.current.onerror = e => {
-        console.log('WebSocket error:', e);
-        setRefreshing(false);
-        setRefreshingTwo(false);
-      };
-      
-      wsRef.current.onclose = e => {
-        setRefreshing(false);
-        setRefreshingTwo(false);
-      };
-    } catch (error) {
-      console.log('error', error);
+      }
+    }, 100); // 100ms delay to ensure previous connection is closed
+  }, [_id, dispatch, setRefreshingTwo, debouncedSetUpComingMatches, debouncedGetContestList]);
+
+  // Remove the problematic useFocusEffect that was causing multiple contest list updates
+  // This was causing race conditions when WebSocket reconnects
+
+  const onRefresh = useCallback(() => {
+    // Only refresh if WebSocket is not already connected
+    if (!isWebSocketConnected) {
+      fetchData(true);
+    } else {
+      // If already connected, just reset loading state
       setRefreshing(false);
       setRefreshingTwo(false);
     }
-  }, [_id, dispatch, setRefreshingTwo]);
-
-  useFocusEffect(
-    useCallback(() => {
-      upcomingMatches.forEach(match => {
-        if (match.teams && match.teams.length > 0) {
-          dispatch(getContestList(match.teams, match._id));
-        }
-        if (match.scorecard && match.scorecard.length > 0) {
-          dispatch(getContestList(match.scorecard, match._id));
-        }
-      });
-    }, [upcomingMatches, dispatch])
-  );
-
-  const onRefresh = useCallback(() => {
-    fetchData(true); 
-  }, [fetchData]);
+  }, [fetchData, isWebSocketConnected]);
 
   const onPressScoreboard = useCallback((item, currentTab) => {
    

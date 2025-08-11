@@ -67,7 +67,35 @@ export const matchSlice = createSlice({
   initialState,
   reducers: {
     setUpComingMatches: (state, {payload}) => {
-      state.upcomingMatches = payload;
+      // Merge matches instead of completely replacing them
+      // This prevents matches from disappearing during rapid updates
+      if (Array.isArray(payload)) {
+        // Create a map of existing matches by ID for quick lookup
+        const existingMatchesMap = new Map();
+        state.upcomingMatches.forEach(match => {
+          existingMatchesMap.set(match._id, match);
+        });
+        
+        // Merge new matches with existing ones, preferring newer data
+        const mergedMatches = payload.map(newMatch => {
+          const existingMatch = existingMatchesMap.get(newMatch._id);
+          if (existingMatch) {
+            // Merge existing and new data, preferring newer data
+            return {
+              ...existingMatch,
+              ...newMatch,
+              // Preserve contest data if it exists
+              teams: newMatch.teams || existingMatch.teams || [],
+              scorecard: newMatch.scorecard || existingMatch.scorecard || [],
+            };
+          }
+          return newMatch;
+        });
+        
+        state.upcomingMatches = mergedMatches;
+      } else {
+        state.upcomingMatches = payload;
+      }
     },
     setLoading: (state, {payload}) => {
       state.isLoading = payload;
@@ -750,7 +778,57 @@ export const getContestList = (outputObject, id) => async dispatch => {
         return { ...category, data: transformedData };
       });
       
-      dispatch(setContestList({ data: newData }));
+      // Use a more robust state update that prevents race conditions
+      dispatch((dispatch, getState) => {
+        const currentState = getState();
+        const currentContestList = currentState.match.contestList;
+        
+        // Merge new contest data with existing data instead of replacing
+        let updatedContestList = { data: [] };
+        
+        if (currentContestList && currentContestList.data) {
+          // Create a map of existing contests by matchId for quick lookup
+          const existingContestsMap = new Map();
+          currentContestList.data.forEach(category => {
+            if (category.data && Array.isArray(category.data)) {
+              category.data.forEach(contest => {
+                const key = `${contest.matchid || contest.matchId || contest.match_id}_${contest._id}`;
+                existingContestsMap.set(key, contest);
+              });
+            }
+          });
+          
+          // Merge new contests with existing ones
+          updatedContestList.data = newData.map(newCategory => {
+            if (newCategory.data && Array.isArray(newCategory.data)) {
+              const mergedData = newCategory.data.map(newContest => {
+                const key = `${newContest.matchid || newContest.matchId || newContest.match_id}_${newContest._id}`;
+                const existingContest = existingContestsMap.get(key);
+                
+                if (existingContest) {
+                  // Merge existing and new contest data, preferring newer data
+                  return {
+                    ...existingContest,
+                    ...newContest,
+                  };
+                }
+                return newContest;
+              });
+              
+              return {
+                ...newCategory,
+                data: mergedData
+              };
+            }
+            return newCategory;
+          });
+        } else {
+          updatedContestList.data = newData;
+        }
+        
+        dispatch(setContestList(updatedContestList));
+      });
+      
       dispatch(setContestListTeam(res?.getuserjounedcont || []));
       
       const finalArray = {
