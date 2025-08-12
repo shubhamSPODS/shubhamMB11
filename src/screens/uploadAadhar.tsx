@@ -1,5 +1,5 @@
-import React from "react";
-import { StatusBar, StyleSheet, TextInput, View } from "react-native";
+import React, { useState, useEffect } from "react";
+import { StatusBar, StyleSheet, TextInput, View, Alert, Platform } from "react-native";
 import { AppSafeAreaView } from "../common/AppSafeAreaView";
 import CommonImageBackground from "../common/commonImageBackground";
 import Header from "../common/Header";
@@ -26,18 +26,59 @@ const UploadAadhar = () => {
     const [imageUrl, setImageUrl] = React.useState(null);
     const [imageUrlTwo, setImageUrlTwo] = React.useState(null);
     const [selectedImageSlot, setSelectedImageSlot] = React.useState('first'); // 'first' or 'second'
+    const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+    // Cleanup function for picker
+    const cleanupPicker = () => {
+        try {
+            ImagePicker.clean();
+        } catch (error) {
+            console.log('Picker cleanup error:', error);
+        }
+    };
+
+    // Cleanup on component unmount
+    useEffect(() => {
+        return () => {
+            cleanupPicker();
+        };
+    }, []);
 
     const openPicker = async (slot = 'first') => {
-        setSelectedImageSlot(slot);
-        ImagePicker.openCamera({
-            width: 1000,
-            height: 1000,
-            cropping: false,
-            mediaType: 'photo',
-            includeBase64: false,
-            includeExif: true,
-            forceJpg: true,
-        }).then(image => {
+        try {
+            if (isPickerOpen) {
+                console.log('Picker is already open, please wait...');
+                return;
+            }
+
+            setIsPickerOpen(true);
+            setSelectedImageSlot(slot);
+            
+            // Clean up any existing picker instances first
+            cleanupPicker();
+            
+            const image = await ImagePicker.openCamera({
+                width: 1000,
+                height: 1000,
+                cropping: false,
+                mediaType: 'photo',
+                includeBase64: false,
+                includeExif: true,
+                forceJpg: true,
+                // iOS specific options
+                ...(Platform.OS === 'ios' && {
+                    cropperCircleOverlay: false,
+                    cropperActiveWidgetColor: '#2196F3',
+                    cropperStatusBarColor: '#000000',
+                    cropperToolbarColor: '#000000',
+                    cropperToolbarTitle: 'Take Photo',
+                    cropperToolbarWidgetColor: '#FFFFFF',
+                    cropperRotateButtonsHidden: false,
+                    cropperCancelText: 'Cancel',
+                    cropperChooseText: 'Take Photo',
+                })
+            });
+            
             const data: any = {
                 uri: image.path,
                 name: image.modificationDate + '.' + image.mime.split('/')[1],
@@ -48,26 +89,72 @@ const UploadAadhar = () => {
             } else {
                 setImageDatatwo(data);
             }
-        }).catch(error => {
+            
+        } catch (error: any) {
             console.log('Camera error:', error);
             if (error.code === 'E_PICKER_CANCELLED') {
                 console.log('User cancelled camera');
+            } else if (error.code === 'E_PICKER_NO_CAMERA_PERMISSION') {
+                Alert.alert(
+                    'Camera Permission Required',
+                    'Please enable camera access in Settings to use this feature.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Settings', onPress: () => {
+                            if (Platform.OS === 'ios') {
+                                // Open iOS settings
+                                // You can use react-native-permissions to open settings
+                            }
+                        }}
+                    ]
+                );
             } else {
                 toastAlert.showToastError('Failed to capture image from camera');
             }
-        });
+        } finally {
+            setIsPickerOpen(false);
+            // Small delay to ensure picker is fully closed before allowing new operations
+            setTimeout(() => {
+                setIsPickerOpen(false);
+            }, 500);
+        }
     };
-    const openGallery = (slot = 'first') => {
-        setSelectedImageSlot(slot);
-        ImagePicker.openPicker({
-            width: 1000,
-            height: 1000,
-            cropping: false,
-            mediaType: 'photo',
-            includeBase64: false,
-            includeExif: true,
-            forceJpg: true,
-        }).then(image => {
+
+    const openGallery = async (slot = 'first') => {
+        try {
+            if (isPickerOpen) {
+                console.log('Picker is already open, please wait...');
+                return;
+            }
+
+            setIsPickerOpen(true);
+            setSelectedImageSlot(slot);
+            
+            // Clean up any existing picker instances first
+            cleanupPicker();
+            
+            const image = await ImagePicker.openPicker({
+                width: 1000,
+                height: 1000,
+                cropping: false,
+                mediaType: 'photo',
+                includeBase64: false,
+                includeExif: true,
+                forceJpg: true,
+                // iOS specific options
+                ...(Platform.OS === 'ios' && {
+                    cropperCircleOverlay: false,
+                    cropperActiveWidgetColor: '#2196F3',
+                    cropperStatusBarColor: '#000000',
+                    cropperToolbarColor: '#000000',
+                    cropperToolbarTitle: 'Select Photo',
+                    cropperToolbarWidgetColor: '#FFFFFF',
+                    cropperRotateButtonsHidden: false,
+                    cropperCancelText: 'Cancel',
+                    cropperChooseText: 'Select',
+                })
+            });
+            
             const data: any = {
                 uri: image.path,
                 name: image.modificationDate + '.' + image.mime.split('/')[1],
@@ -78,15 +165,37 @@ const UploadAadhar = () => {
             } else {
                 setImageDatatwo(data);
             }
-        }).catch(error => {
+            
+        } catch (error: any) {
             console.log('Image picker error:', error);
             if (error.code === 'E_PICKER_CANCELLED') {
                 console.log('User cancelled image picker');
+            } else if (error.code === 'E_PICKER_NO_LIBRARY_PERMISSION') {
+                Alert.alert(
+                    'Photo Library Permission Required',
+                    'Please enable photo library access in Settings to use this feature.',
+                    [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Settings', onPress: () => {
+                            if (Platform.OS === 'ios') {
+                                // Open iOS settings
+                                // You can use react-native-permissions to open settings
+                            }
+                        }}
+                    ]
+                );
             } else {
                 toastAlert.showToastError('Failed to select image from gallery');
             }
-        });
+        } finally {
+            setIsPickerOpen(false);
+            // Small delay to ensure picker is fully closed before allowing new operations
+            setTimeout(() => {
+                setIsPickerOpen(false);
+            }, 500);
+        }
     };
+
     const uploadImage = async () => {
         try {
             const uploadData = new FormData();
@@ -97,8 +206,10 @@ const UploadAadhar = () => {
             }
         } catch (e) {
             console.log('error in upload', e);
+            toastAlert.showToastError('Failed to upload image. Please try again.');
         }
     };
+
     const uploadImageTwo = async () => {
         try {
             const uploadData = new FormData();
@@ -109,13 +220,33 @@ const UploadAadhar = () => {
             }
         } catch (e) {
             console.log('error in upload', e);
+            toastAlert.showToastError('Failed to upload image. Please try again.');
         }
     };
 
     React.useEffect(() => {
-        uploadImage();
-        uploadImageTwo()
+        if (imageData) {
+            uploadImage();
+        }
+        if (imageDatattwo) {
+            uploadImageTwo();
+        }
     }, [imageData, imageDatattwo]);
+
+    // Prevent multiple picker operations
+    const handlePickerAction = (action: 'camera' | 'gallery', slot: string) => {
+        if (isPickerOpen) {
+            console.log('Picker is already open, please wait...');
+            return;
+        }
+        
+        if (action === 'camera') {
+            openPicker(slot);
+        } else {
+            openGallery(slot);
+        }
+    };
+
     const onSubmit = () => {
         if (!checkValidAdharCardNumber(name.replace(/\s/g, ''))) {
             toastAlert.showToastError('Please enter vaild adhaar number')
@@ -168,7 +299,7 @@ const UploadAadhar = () => {
                             </TouchableOpacityView>
                         </View>
                         <TouchableOpacityView
-                            onPress={() => openPicker(selectedImageSlot)}
+                            onPress={() => handlePickerAction('camera', selectedImageSlot)}
                             style={styles.openGallaryContainer}>
                             <FastImage source={cameraIcon} resizeMode='contain' style={styles.cameraIconStyle} />
                             <AppText type={THIRTEEN} weight={POPPINS_MEDIUM} color={BLACKOPACITY}>
@@ -176,7 +307,7 @@ const UploadAadhar = () => {
                             </AppText>
                         </TouchableOpacityView>
                         <TouchableOpacityView
-                            onPress={() => openGallery(selectedImageSlot)}
+                            onPress={() => handlePickerAction('gallery', selectedImageSlot)}
                             style={styles.openGallaryContainer}>
                             <FastImage source={gallaryIcon} resizeMode='contain' style={styles.cameraIconStyle} />
                             <AppText type={THIRTEEN} weight={POPPINS_MEDIUM} color={BLACKOPACITY}>

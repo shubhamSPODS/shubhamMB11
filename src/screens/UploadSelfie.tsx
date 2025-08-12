@@ -1,7 +1,7 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { AppSafeAreaView } from "../common/AppSafeAreaView";
 import { KeyBoardAware } from "../common/KeyboardAware";
-import { Platform, StatusBar, StyleSheet, View } from "react-native";
+import { Platform, StatusBar, StyleSheet, View, Alert } from "react-native";
 import Header from "../common/Header";
 import { universalPaddingHorizontal } from "../theme/dimens";
 import CommonImageBackground from "../common/commonImageBackground";
@@ -10,63 +10,177 @@ import FastImage from "@d11/react-native-fast-image";
 import { cameraIcon, gallaryIcon, upload } from "../helper/image";
 import RBSheet from "react-native-raw-bottom-sheet";
 import { AppText, BLACK, POPPINS_SEMI_BOLD } from "../common/AppText";
-import ImagePicker from 'react-native-image-crop-picker';
 import PrimaryButton from "../common/primaryButton";
 import { useDispatch, useSelector } from "react-redux";
 import { uploadSelfie } from "../slices/matchSlice";
 import { appOperation } from "../appOperation";
 import { toastAlert } from "../helper/utility";
 import { SpinnerSecond } from "../common/SpinnerSecond";
-const UploadSelfie = () => {
-    const selectPicker = useRef();
-    const dispatch = useDispatch();
-    const loading = useSelector((state: any) => state.match.isLoading);
-    const [imageData, setImageData] = useState(null);
-    const [imageUrl, setImageUrl] = React.useState(null);
-    const openPicker = async () => {
-        ImagePicker.openCamera({
-            width: 485,
-            height: 485,
-            cropping: true,
-        }).then(image => {
-            const data: any = {
-                uri: image.path,
-                name: image.modificationDate + '.' + image.mime.split('/')[1],
-                type: image.mime,
-            };
-            setImageData(data);
-        });
-    };
-    const openGallery = () => {
-        ImagePicker.openPicker({
-            width: 485,
-            height: 485,
-            cropping: true,
-        }).then(image => {
-            const data: any = {
-                uri: image.path,
-                name: image.modificationDate + '.' + image.mime.split('/')[1],
-                type: image.mime,
-            };
-            setImageData(data);
+import { imagePickerHelper, createImageData, openGalleryAlternative, openGalleryFinal, openGalleryMainThread, openGalleryRadical, openGalleryNative, openGalleryDelayed, openGalleryCameraFirst, openGalleryUltimate, openGalleryLastResort, openGalleryPermissionAware, openGalleryWithPermissionReset, openGalleryWithAppRestart, openGalleryWithLifecycleMonitoring } from "../helper/imagePickerHelper";
+import { AppDispatch } from "../libs/configStore";
 
-        });
+interface ImageData {
+    uri: string;
+    name: string;
+    type: string;
+}
+
+const UploadSelfie = () => {
+    const selectPicker = useRef<RBSheet>(null);
+    const dispatch = useDispatch<AppDispatch>();
+    const loading = useSelector((state: any) => state.match.isLoading);
+    const [imageData, setImageData] = useState<ImageData | null>(null);
+    const [imageUrl, setImageUrl] = React.useState<string | null>(null);
+    
+    // Cleanup on component unmount
+    useEffect(() => {
+        return () => {
+            imagePickerHelper.forceClosePicker();
+        };
+    }, []);
+
+    const openPicker = async () => {
+        try {
+            const image = await imagePickerHelper.openCamera({
+                width: 485,
+                height: 485,
+                cropping: true,
+            });
+            
+            if (image) {
+                const data = createImageData(image);
+                if (data) {
+                    setImageData(data);
+                }
+            }
+            
+        } catch (error) {
+            console.log('Camera error:', error);
+        }
     };
+
+    const openGallery = async () => {
+        try {
+            console.log('🚀 [COMPONENT] Starting openGallery function...');
+            console.log('🚀 [COMPONENT] Platform:', Platform.OS);
+            
+            // iOS-specific preparation
+            if (Platform.OS === 'ios') {
+                console.log('🚀 [COMPONENT] iOS detected, starting iOS-specific flow...');
+                
+                console.log('🚀 [COMPONENT] Calling ensurePickerReady...');
+                await imagePickerHelper.ensurePickerReady();
+                console.log('🚀 [COMPONENT] ensurePickerReady completed');
+                
+                // Try all methods in sequence until one works
+                const methods = [
+                    { name: 'Alternative', method: openGalleryAlternative },
+                    { name: 'Final Workaround', method: openGalleryFinal },
+                    { name: 'Main Thread', method: openGalleryMainThread },
+                    { name: 'Radical Fix', method: openGalleryRadical },
+                    { name: 'Native Approach', method: openGalleryNative },
+                    { name: 'Delayed Execution', method: openGalleryDelayed },
+                    { name: 'Camera First', method: openGalleryCameraFirst },
+                    { name: 'Ultimate', method: openGalleryUltimate },
+                    { name: 'Last Resort', method: openGalleryLastResort },
+                    { name: 'Permission Aware', method: openGalleryPermissionAware },
+                    { name: 'Permission Reset', method: openGalleryWithPermissionReset },
+                    { name: 'App Restart', method: openGalleryWithAppRestart },
+                    { name: 'Lifecycle Monitoring', method: openGalleryWithLifecycleMonitoring },
+                ];
+                
+                console.log(`🚀 [COMPONENT] Will try ${methods.length} different methods`);
+                
+                for (const methodInfo of methods) {
+                    try {
+                        console.log(`🚀 [COMPONENT] ========================================`);
+                        console.log(`🚀 [COMPONENT] Trying ${methodInfo.name} method...`);
+                        console.log(`🚀 [COMPONENT] ========================================`);
+                        
+                        const image = await methodInfo.method({
+                            width: 485,
+                            height: 485,
+                            cropping: true,
+                        });
+                        
+                        if (image) {
+                            console.log(`✅ [COMPONENT] ${methodInfo.name} method SUCCEEDED!`);
+                            console.log(`✅ [COMPONENT] Image received:`, image ? 'YES' : 'NO');
+                            if (image) {
+                                console.log(`✅ [COMPONENT] Image path:`, image.path);
+                                console.log(`✅ [COMPONENT] Image mime:`, image.mime);
+                            }
+                            
+                            const data = createImageData(image);
+                            if (data) {
+                                console.log(`✅ [COMPONENT] Image data created successfully`);
+                                setImageData(data);
+                            } else {
+                                console.log(`❌ [COMPONENT] Failed to create image data`);
+                            }
+                            return;
+                        } else {
+                            console.log(`⚠️ [COMPONENT] ${methodInfo.name} method returned null image`);
+                        }
+                    } catch (methodError: any) {
+                        console.log(`❌ [COMPONENT] ${methodInfo.name} method FAILED:`);
+                        console.log(`❌ [COMPONENT] Error:`, methodError);
+                        console.log(`❌ [COMPONENT] Error code:`, methodError.code);
+                        console.log(`❌ [COMPONENT] Error message:`, methodError.message);
+                        console.log(`❌ [COMPONENT] Continuing to next method...`);
+                        // Continue to next method
+                    }
+                }
+                
+                // If all methods failed
+                console.log(`❌ [COMPONENT] All ${methods.length} iOS gallery picker methods failed`);
+                throw new Error('All iOS gallery picker methods failed');
+            }
+            
+            // Use regular method for Android
+            console.log('🚀 [COMPONENT] Non-iOS platform, using standard method...');
+            const image = await imagePickerHelper.openGallery({
+                width: 485,
+                height: 485,
+                cropping: true,
+            });
+            
+            if (image) {
+                console.log('✅ [COMPONENT] Standard method succeeded');
+                const data = createImageData(image);
+                if (data) {
+                    setImageData(data);
+                }
+            }
+            
+        } catch (error: any) {
+            console.log('❌ [COMPONENT] Gallery error in component:');
+            console.log('❌ [COMPONENT] Error:', error);
+            console.log('❌ [COMPONENT] Error message:', error.message);
+            toastAlert.showToastError('Failed to open gallery. Please try again.');
+        }
+    };
+
     const uploadImage = async () => {
         try {
             const uploadData = new FormData();
-            uploadData.append('file', imageData);
+            uploadData.append('file', imageData as any);
             const res = await appOperation.customer.uploadImg(uploadData);
             if (res?.code == 200) {
                 setImageUrl(res?.data);
             }
         } catch (e) {
             console.log('error in upload', e);
+            toastAlert.showToastError('Failed to upload image. Please try again.');
         }
     };
+
     React.useEffect(() => {
-        uploadImage();
+        if (imageData) {
+            uploadImage();
+        }
     }, [imageData]);
+
     const onSubmit = () => {
         if (!imageUrl || imageUrl?.length == 0) {
             toastAlert.showToastError('Please upload your selfie')
@@ -75,9 +189,24 @@ const UploadSelfie = () => {
                 userselfies: imageUrl,
                 selfie_verified: 1,
             }
-            dispatch(uploadSelfie(data))
+            dispatch(uploadSelfie(data) as any)
         }
     }
+
+    // Prevent multiple picker operations
+    const handlePickerAction = (action: 'camera' | 'gallery') => {
+        if (imagePickerHelper.isPickerCurrentlyOpen()) {
+            console.log('Picker is already open, please wait...');
+            return;
+        }
+        
+        if (action === 'camera') {
+            openPicker();
+        } else {
+            openGallery();
+        }
+    };
+
     return (
         <AppSafeAreaView>
             <StatusBar
@@ -133,13 +262,19 @@ const UploadSelfie = () => {
                         },
                     }}>
                     <View style={styles.rbContainer}>
-                        <TouchableOpacityView onPress={() => openGallery()} style={styles.openGallary}>
+                        <TouchableOpacityView 
+                            onPress={() => handlePickerAction('gallery')} 
+                            style={styles.openGallary}
+                            disabled={imagePickerHelper.isPickerCurrentlyOpen()}>
                             <FastImage source={gallaryIcon} resizeMode='contain' style={styles.cameraIconStyle} />
                             <AppText style={{ marginTop: 3 }} color={BLACK} weight={POPPINS_SEMI_BOLD}>
                                 Use gallery
                             </AppText>
                         </TouchableOpacityView>
-                        <TouchableOpacityView onPress={() => openPicker()} style={styles.openGallary}>
+                        <TouchableOpacityView 
+                            onPress={() => handlePickerAction('camera')} 
+                            style={styles.openGallary}
+                            disabled={imagePickerHelper.isPickerCurrentlyOpen()}>
                             <FastImage source={cameraIcon} resizeMode='contain' style={styles.cameraIconStyle} />
                             <AppText style={{ marginTop: 3 }} color={BLACK} weight={POPPINS_SEMI_BOLD}>
                                 Use camera
@@ -148,59 +283,52 @@ const UploadSelfie = () => {
                     </View>
                 </RBSheet>
             </CommonImageBackground>
-            <SpinnerSecond loading={loading}/>
+            <SpinnerSecond loading={loading} style={{}}/>
         </AppSafeAreaView >
     )
 };
-export default UploadSelfie;
+
 const styles = StyleSheet.create({
     bottomContainer: {
-        paddingHorizontal: 20,
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     uploadContainer: {
-        borderWidth: 1,
-        borderColor: 'rgba(63, 139, 238, 0.3)',
-        borderRadius: 8,
-        marginTop: 10,
-        height: 250,
-        backgroundColor: "rgba(255, 255, 255, 0.4)",
-        width: "100%",
-        alignItems: "center",
+        width: 200,
+        height: 200,
         justifyContent: 'center',
-        alignSelf: "center"
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: '#ccc',
+        borderStyle: 'dashed',
+        borderRadius: 10,
     },
     image: {
-        height: 34,
-        width: 34,
-        alignSelf: 'center',
+        width: 100,
+        height: 100,
     },
     image2: {
-        height: '100%',
-        width: '100%',
-        alignSelf: 'center',
-    },
-    rbContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between"
-    },
-    openGallary: {
-        height: 40,
-        width: "48%",
-        borderWidth: 1,
-        borderColor: 'rgba(63, 139, 238, 0.3)',
-        borderRadius: 5,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center"
-    },
-    cameraIconStyle: {
-        height: 20,
-        width: 20,
-        marginRight: 10,
+        width: 200,
+        height: 200,
+        borderRadius: 10,
     },
     button: {
-        marginTop: 30,
-        marginBottom: 10
-    }
-})
+        marginTop: 20,
+    },
+    rbContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+    },
+    openGallary: {
+        alignItems: 'center',
+        padding: 10,
+    },
+    cameraIconStyle: {
+        width: 30,
+        height: 30,
+    },
+});
+
+export default UploadSelfie;

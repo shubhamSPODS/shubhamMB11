@@ -34,10 +34,10 @@ import {
   wicket_keeperIcon,
 } from '../../../helper/image';
 import styles from './styles';
-import { PLAYER_PREVIEW, SELECT_PLAYER, SELECT_SUBSTITUTE } from '../../../navigation/routes';
+import { PLAYER_PREVIEW, SELECT_PLAYER, SELECT_SUBSTITUTE } from '../../../navigation/NavigationService';
 import { useDispatch, useSelector } from 'react-redux';
 import RBSheet from 'react-native-raw-bottom-sheet';
-import SelectContest from '../selectContest/SelectContest';
+// Remove SelectContest import to break circular dependency
 import NavigationService from '../../../navigation/NavigationService';
 import { getAllPlayerList, getShareUrl, getSubsituted, getTab, setAllPlayers, setIsContestEntry } from '../../../slices/matchSlice';
 import { colors } from '../../../theme/color';
@@ -534,11 +534,12 @@ const MyTeam = React.memo(({ item, isFromSelect = false, onSelectTeam, isTeamSel
               display: 'none',
             },
           }}>
-          <SelectContest
+          {/* Temporarily commented out to break circular dependency */}
+          {/* <SelectContest
             contestDetails={contestData}
             // matchDetails={matchDetails}
             onClose={() => selectContestRef?.current?.close()}
-          />
+          /> */}
         </RBSheet>
       </Pressable>
     </>

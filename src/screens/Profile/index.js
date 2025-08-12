@@ -41,7 +41,7 @@ import { IMAGE_BASE_URL, toastAlert } from '../../helper/utility';
 import { StatusBar } from 'native-base';
 import PrimaryButton from '../../common/primaryButton';
 import { NewColor, colors } from '../../theme/color';
-import { getKycDetails, getUserProfile } from '../../actions/profileAction';
+import { getKycDetails, getUserProfile, getUserWallet } from '../../actions/profileAction';
 import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 
 
@@ -54,6 +54,47 @@ const Profile = props => {
   const SaveActivite = useSelector(state => {
     return state.profile.SaveActivite;
   });
+  const kycDetails = useSelector(state => {
+    return state.profile.kycDetails;
+  });
+  
+  // Component mount effect
+  useEffect(() => {
+    console.log('🚀 [PROFILE] Component mounted, dispatching actions...');
+    dispatch(getUserProfile(false, false));
+    dispatch(getKycDetails());
+  }, []);
+  
+  const { mobile_number, full_name } = userData ?? '';
+  
+  // Use the same calculation as the wallet tab
+  const finalTotalBalance = Math.round((userData?.winning_amount + userData?.cash_bonus + userData?.totaldeposit || 0) * 100) / 100;
+  const finalCashBonus = Math.round((userData?.cash_bonus || 0) * 100) / 100;
+  const finalWinningAmount = Math.round((userData?.winning_amount || 0) * 100) / 100;
+  
+  console.log('💰 [PROFILE] Final balance values:', {
+    finalTotalBalance,
+    finalCashBonus,
+    finalWinningAmount,
+    calculation: {
+      winning_amount: userData?.winning_amount,
+      cash_bonus: userData?.cash_bonus,
+      totaldeposit: userData?.totaldeposit,
+      sum: userData?.winning_amount + userData?.cash_bonus + userData?.totaldeposit
+    },
+    fromUserData: { 
+      total_balance: userData?.total_balance, 
+      cash_bonus: userData?.cash_bonus, 
+      winning_amount: userData?.winning_amount,
+      totaldeposit: userData?.totaldeposit
+    }
+  });
+  
+  // Log the final data1 array
+  useEffect(() => {
+    console.log('📊 [PROFILE] Data1 array updated:', data1);
+  }, [data1]);
+  
   const data = [
     {
       image: PriceCupBlue,
@@ -76,31 +117,23 @@ const Profile = props => {
       earning: `${SaveActivite?.total_sports}`,
     },
   ];
-  const kycDetails = useSelector(state => {
-    return state.profile.kycDetails;
-  });
-  const { mobile_number, full_name, total_balance, cash_bonus, winning_amount } =
-    userData ?? '';
-  useEffect(() => {
-    dispatch(getUserProfile(false, false));
-    dispatch(getKycDetails());
-  }, []);
+  
   const data1 = [
     {
       title: 'Total Balance',
-      earning: `${total_balance}`,
+      earning: finalTotalBalance > 0 ? `INR ${finalTotalBalance.toFixed(2)}` : 'INR 0.00',
       color1: '#9E96FF',
       color2: '#DF9DFE',
     },
     {
       title: 'Cash Bonus',
-      earning: `${cash_bonus}`,
+      earning: finalCashBonus > 0 ? `INR ${finalCashBonus.toFixed(2)}` : 'INR 0.00',
       color1: '#3FAC8A',
       color2: '#9CCF75',
     },
     {
       title: 'Winning Amount',
-      earning: `${winning_amount}`,
+      earning: finalWinningAmount > 0 ? `INR ${finalWinningAmount.toFixed(2)}` : 'INR 0.00',
       color1: '#FB8D89',
       color2: '#FFB879',
     },
@@ -109,6 +142,8 @@ const Profile = props => {
   const addcash = () => {
     NavigationService.navigate(ADD_MONEY_SCREEN)
   }
+  
+  // Remove refreshWalletData since we're using profile data calculation
 
   return (
     <AppSafeAreaView statusColor={'transparent'} hidden={false}>
@@ -203,10 +238,7 @@ const Profile = props => {
                           alignItems: 'center',
                         }}>
                         <AppText color={WHITE} weight={POPPINS_SEMI_BOLD}>
-                          {item.earning == `INR ${undefined}` ||
-                            item?.earning == `${undefined}`
-                            ? 'INR 00'
-                            : `INR ${Math.round(item.earning).toFixed(2)}`}
+                          {item.earning}
                         </AppText>
                         <AppText color={WHITE} type={TEN} weight={POPPINS}>
                           {item.title}

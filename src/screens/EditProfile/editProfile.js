@@ -1,5 +1,5 @@
-import { View, Image, StyleSheet, StatusBar } from 'react-native';
 import React, { useEffect, useRef, useState } from 'react';
+import { Image, Platform, StatusBar, StyleSheet, View } from 'react-native';
 import moment from 'moment';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import ImagePicker from 'react-native-image-crop-picker';
@@ -39,10 +39,11 @@ import { Primary, universalPaddingHorizontal } from '../../theme/dimens';
 import PrimaryButton from '../../common/primaryButton';
 import { editProfile } from '../../actions/profileAction';
 import { appOperation } from '../../appOperation';
-import { IMAGE_BASE_URL } from '../../helper/utility';
+import { IMAGE_BASE_URL, toastAlert } from '../../helper/utility';
 import CommonImageBackground from '../../common/commonImageBackground';
 import { colors } from '../../theme/color';
 import { NewColor } from '../../theme/color';
+import { imagePickerHelper, createImageData, openGalleryAlternative, openGalleryFinal, openGalleryMainThread, openGalleryRadical, openGalleryNative, openGalleryDelayed, openGalleryCameraFirst, openGalleryUltimate, openGalleryLastResort, openGalleryPermissionAware, openGalleryWithPermissionReset, openGalleryWithAppRestart, openGalleryWithLifecycleMonitoring } from '../../helper/imagePickerHelper';
 
 export default function EditProfile() {
   const isLoading = useSelector(state => {
@@ -62,7 +63,10 @@ export default function EditProfile() {
   const [imageUrl, setImageUrl] = useState(
     userData?.logo ? userData?.logo : null,
   );
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadComplete, setUploadComplete] = useState(false);
   const dispatch = useDispatch();
+  
   const hideDatePicker = () => {
     setIsDatePickerVisible(false);
   };
@@ -76,36 +80,153 @@ export default function EditProfile() {
   useState(() => {
     setDateOfBirth(userData?.dob ? userData?.dob : '');
   }, [userData]);
-  const openCamera = () => {
-    ImagePicker.openCamera({
-      width: 485,
-      height: 485,
-      cropping: true,
-      useFrontCamera: true,
-    }).then(image => {
-      const data = {
-        uri: image.path,
-        name: image.modificationDate + '.' + image.mime.split('/')[1],
-        type: image.mime,
-      };
-      setProfileImage(data);
-    });
+  
+  const openCamera = async () => {
+    try {
+      console.log('📸 [EDIT PROFILE] Starting camera picker...');
+      
+      const image = await imagePickerHelper.openCamera({
+        width: 485,
+        height: 485,
+        cropping: true,
+        useFrontCamera: true,
+      });
+      
+      if (image) {
+        console.log('📸 [EDIT PROFILE] Camera picker succeeded');
+        const data = createImageData(image);
+        if (data) {
+          setProfileImage(data);
+        }
+      }
+    } catch (error) {
+      console.log('❌ [EDIT PROFILE] Camera picker failed:', error);
+      toastAlert.showToastError('Failed to capture image from camera');
+    }
   };
-  const openGallery = () => {
-    ImagePicker.openPicker({
-      width: 485,
-      height: 485,
-      cropping: true,
-    }).then(image => {
-      const data = {
-        uri: image.path,
-        name: image.modificationDate + '.' + image.mime.split('/')[1],
-        type: image.mime,
-      };
-      setProfileImage(data);
-    });
+  
+  const openGallery = async () => {
+    try {
+      console.log('🚀 [EDIT PROFILE] Starting openGallery function...');
+      console.log('🚀 [EDIT PROFILE] Platform:', Platform.OS);
+      
+      // iOS-specific preparation
+      if (Platform.OS === 'ios') {
+        console.log('🚀 [EDIT PROFILE] iOS detected, starting iOS-specific flow...');
+        
+        console.log('🚀 [EDIT PROFILE] Calling ensurePickerReady...');
+        await imagePickerHelper.ensurePickerReady();
+        console.log('🚀 [EDIT PROFILE] ensurePickerReady completed');
+        
+        // Try all methods in sequence until one works
+        const methods = [
+          { name: 'Alternative', method: openGalleryAlternative },
+          { name: 'Final Workaround', method: openGalleryFinal },
+          { name: 'Main Thread', method: openGalleryMainThread },
+          { name: 'Radical Fix', method: openGalleryRadical },
+          { name: 'Native Approach', method: openGalleryNative },
+          { name: 'Delayed Execution', method: openGalleryDelayed },
+          { name: 'Camera First', method: openGalleryCameraFirst },
+          { name: 'Ultimate', method: openGalleryUltimate },
+          { name: 'Last Resort', method: openGalleryLastResort },
+          { name: 'Permission Aware', method: openGalleryPermissionAware },
+          { name: 'Permission Reset', method: openGalleryWithPermissionReset },
+          { name: 'App Restart', method: openGalleryWithAppRestart },
+          { name: 'Lifecycle Monitoring', method: openGalleryWithLifecycleMonitoring },
+        ];
+        
+        console.log(`🚀 [EDIT PROFILE] Will try ${methods.length} different methods`);
+        
+        for (const methodInfo of methods) {
+          try {
+            console.log(`🚀 [EDIT PROFILE] ========================================`);
+            console.log(`🚀 [EDIT PROFILE] Trying ${methodInfo.name} method...`);
+            console.log(`🚀 [EDIT PROFILE] ========================================`);
+            
+            const image = await methodInfo.method({
+              width: 485,
+              height: 485,
+              cropping: true,
+            });
+            
+            if (image) {
+              console.log(`✅ [EDIT PROFILE] ${methodInfo.name} method SUCCEEDED!`);
+              console.log(`✅ [EDIT PROFILE] Image received:`, image ? 'YES' : 'NO');
+              if (image) {
+                console.log(`✅ [EDIT PROFILE] Image path:`, image.path);
+                console.log(`✅ [EDIT PROFILE] Image mime:`, image.mime);
+              }
+              
+              const data = createImageData(image);
+              if (data) {
+                console.log(`✅ [EDIT PROFILE] Image data created successfully`);
+                setProfileImage(data);
+              } else {
+                console.log(`❌ [EDIT PROFILE] Failed to create image data`);
+              }
+              return;
+            } else {
+              console.log(`⚠️ [EDIT PROFILE] ${methodInfo.name} method returned null image`);
+            }
+          } catch (methodError) {
+            console.log(`❌ [EDIT PROFILE] ${methodInfo.name} method FAILED:`);
+            console.log(`❌ [EDIT PROFILE] Error:`, methodError);
+            console.log(`❌ [EDIT PROFILE] Error code:`, methodError.code);
+            console.log(`❌ [EDIT PROFILE] Error message:`, methodError.message);
+            console.log(`❌ [EDIT PROFILE] Continuing to next method...`);
+            // Continue to next method
+          }
+        }
+        
+        // If all methods failed
+        console.log(`❌ [EDIT PROFILE] All ${methods.length} iOS gallery picker methods failed`);
+        throw new Error('All iOS gallery picker methods failed');
+      }
+      
+      // Use regular method for Android
+      console.log('🚀 [EDIT PROFILE] Non-iOS platform, using standard method...');
+      const image = await imagePickerHelper.openGallery({
+        width: 485,
+        height: 485,
+        cropping: true,
+      });
+      
+      if (image) {
+        console.log('✅ [EDIT PROFILE] Standard method succeeded');
+        const data = createImageData(image);
+        if (data) {
+          setProfileImage(data);
+        }
+      }
+      
+    } catch (error) {
+      console.log('❌ [EDIT PROFILE] Gallery error in component:');
+      console.log('❌ [EDIT PROFILE] Error:', error);
+      console.log('❌ [EDIT PROFILE] Error message:', error.message);
+      toastAlert.showToastError('Failed to open gallery. Please try again.');
+    }
   };
   const handleSubmit = () => {
+    // Check if there are actual changes to save
+    const hasChanges = 
+      fullName !== userData?.full_name ||
+      email !== userData?.email ||
+      gender !== userData?.gender ||
+      dateOfBirth !== userData?.dob ||
+      teamName !== userData?.username ||
+      imageUrl !== userData?.logo;
+    
+    if (!hasChanges) {
+      toastAlert.showToastError('No changes to save');
+      return;
+    }
+    
+    // Check if image upload is complete when there's a new image
+    if (profileImage && !uploadComplete) {
+      toastAlert.showToastError('Please wait for image upload to complete before saving');
+      return;
+    }
+    
     const data = {
       full_name: fullName,
       email: email,
@@ -113,27 +234,50 @@ export default function EditProfile() {
       mobile_number: userData?.mobile_number,
       dob: dateOfBirth,
       logo: imageUrl ? imageUrl : userData?.logo,
-      logo: imageUrl ? imageUrl : userData?.logo,
       username: teamName,
       firsttime: false
     };
+    
+    console.log('💾 [EDIT PROFILE] Saving profile changes:', data);
     dispatch(editProfile(data, userData?._id));
   };
   const uploadImage = async () => {
     try {
+      setIsUploading(true);
+      setUploadComplete(false);
+      
       const uploadData = new FormData();
       uploadData.append('file', profileImage);
-      const res = await appOperation.customer.uploadImg(uploadData);
+      
+      // Start a timer for minimum 2-3 seconds
+      const minDelayPromise = new Promise(resolve => setTimeout(resolve, 2500));
+      
+      // Upload the image
+      const uploadPromise = appOperation.customer.uploadImg(uploadData);
+      
+      // Wait for both the upload and minimum delay
+      const [res] = await Promise.all([uploadPromise, minDelayPromise]);
+      
       if (res?.code == 200) {
-        console.log(res, 'resresresres');
+        console.log('✅ [EDIT PROFILE] Image upload successful:', res);
         setImageUrl(res?.data);
+        setUploadComplete(true);
+        toastAlert.showToastSuccess('Profile image updated successfully!');
+      } else {
+        console.log('❌ [EDIT PROFILE] Image upload failed:', res);
+        toastAlert.showToastError('Failed to upload image. Please try again.');
       }
     } catch (e) {
-      console.log('error in upload', e);
+      console.log('❌ [EDIT PROFILE] Image upload error:', e);
+      toastAlert.showToastError('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploading(false);
     }
   };
   useEffect(() => {
     if (profileImage) {
+      // Reset upload state when new image is selected
+      setUploadComplete(false);
       uploadImage();
     }
   }, [profileImage]);
@@ -143,6 +287,14 @@ export default function EditProfile() {
     setMobileNumber(`${userData?.mobile_number}`);
     setTeamName(userData?.username)
   }, [userData]);
+  
+  // Cleanup image picker when component unmounts
+  useEffect(() => {
+    return () => {
+      console.log('🧹 [EDIT PROFILE] Component unmounting, cleaning up image picker...');
+      imagePickerHelper.forceClosePicker();
+    };
+  }, []);
   const confimCamera = useRef();
   const onCamSelect = () => {
     confimCamera?.current?.close();
@@ -177,7 +329,7 @@ export default function EditProfile() {
               top: 10,
             }}>
             <View style={styles.avtarContainer}>
-              <Image
+              <FastImage
                 style={[styles?.avtharImage]}
                 source={
                   profileImage?.uri
@@ -187,6 +339,26 @@ export default function EditProfile() {
                       : UserIcon
                 }
               />
+              {isUploading && (
+                <View style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                  borderRadius: 50,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                  <AppText 
+                    weight={POPPINS_MEDIUM} 
+                    style={{ color: colors.white, textAlign: 'center', fontSize: 12 }}
+                  >
+                    Uploading...
+                  </AppText>
+                </View>
+              )}
               <TouchableOpacityView
                 onPress={() => {
                   confimCamera.current.open();
@@ -354,8 +526,10 @@ export default function EditProfile() {
             onPress={() => handleSubmit()}
             buttonStyle={{
               marginHorizontal: universalPaddingHorizontal,
+              opacity: isUploading ? 0.6 : 1,
             }}
-            title="SAVE"
+            title={isUploading ? "UPLOADING..." : "SAVE"}
+            disabled={isUploading}
           />
         </View>
         <DateTimePickerModal

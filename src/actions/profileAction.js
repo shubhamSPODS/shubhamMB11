@@ -35,7 +35,8 @@ export const getUserProfile =
         if (response?.success) {
           dispatch(setAppVersion(response?.version));
           isNavigate ? NavigationService.reset(BOTTOM_NAVIGATION_STACK) : null;
-          isUpdate ? NavigationService.navigate(BOTTOM_TAB_PROFILE_SCREEN) : null;
+          // Remove the problematic navigation call
+          // isUpdate ? NavigationService.navigate(BOTTOM_TAB_PROFILE_SCREEN) : null;
           dispatch(setUserData(response?.data));
          
           dispatch(setActivite(response.activity))
@@ -67,17 +68,31 @@ export const createWalletAPI = id => async (dispatch) => {
 
 export const getUserWallet = () => async dispatch => {
   try {
+    console.log('💰 [WALLET] Starting getUserWallet API call...');
     dispatch(setLoading(true));
     const response = await appOperation.customer.get_wallet();
+    console.log('💰 [WALLET] API Response:', {
+      success: response?.success,
+      code: response?.code,
+      message: response?.message,
+      data: response?.data,
+      fullResponse: response
+    });
+    
     if (response?.success) {
+      console.log('💰 [WALLET] API call successful, dispatching to Redux:', response?.data);
       dispatch(setUserWalletData(response?.data));
+    } else {
+      console.log('💰 [WALLET] API call failed:', response?.message);
     }
     dispatch(getUserProfile(false, false));
   } catch (e) {
+    console.error('💰 [WALLET] API call error:', e);
     logError(e);
     dispatch(setUserWalletData(undefined));
   } finally {
     dispatch(setLoading(false));
+    console.log('💰 [WALLET] API call completed');
   }
 };
 export const getKycDetails = () => async dispatch => {
@@ -281,7 +296,8 @@ export const editProfile = (data, id) => async dispatch => {
     if (res?.code == 200) {
       toastAlert.showToastError(res?.message);
       dispatch(getUserProfile(false, true));
-      NavigationService.reset(BOTTOM_NAVIGATION_STACK)
+      // Go back to previous screen instead of navigating to profile tab
+      NavigationService.goBack();
     }
     dispatch(setLoading(false));
   } catch (e) {

@@ -994,6 +994,31 @@ const ProfileStack = () => (
       headerShown: false,
     }}>
     <Stack.Screen
+      name="Profile"
+      component={Profile}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={PROFILE_EDIT}
+      component={EditProfile}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={UPLOAD_SELFIE}
+      component={UploadSelfie}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={MY_BALANCE}
+      component={MyBalance}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name={KYC_SCREEN}
+      component={KYC}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
       name={MYBATTLEREFEREARN}
       component={MyBattleReferEarn}
       options={{headerShown: false}}
@@ -1115,8 +1140,8 @@ const BottomMainTab = () => {
         }}
       />
       <BottomTab.Screen
-        name={PROFILE}
-        component={MyReferDrawer}
+        name={BOTTOM_TAB_PROFILE_SCREEN}
+        component={ProfileStack}
         options={{
           tabBarIcon: ({focused}) => (
             <>
@@ -1142,10 +1167,10 @@ const BottomMainTab = () => {
               )}
               <FastImage
                 tintColor={focused ? colors.brownYellow : colors.gray}
-                source={focused ? refer_earn : refer_earn}
+                source={focused ? profile_icon : profile_icon}
                 style={{
-                  width: 23,
-                  height: 23,
+                  width: 25,
+                  height: 25,
                 }}
                 resizeMode="contain"
               />
@@ -1154,7 +1179,7 @@ const BottomMainTab = () => {
                 color={focused ? BROWNYELLOW : GRY}
                 weight={POPPINS_MEDIUM}
                 type={TEN}>
-                Refer & Earn
+                Profile
               </AppText>
             </>
           ),
@@ -1201,6 +1226,52 @@ const BottomMainTab = () => {
                 weight={POPPINS_MEDIUM}
                 type={TEN}>
                 Transactions
+              </AppText>
+            </>
+          ),
+        }}
+      />
+      <BottomTab.Screen
+        name="ReferEarn"
+        component={MyReferDrawer}
+        options={{
+          tabBarIcon: ({focused}) => (
+            <>
+              {focused ? (
+                <LinearGradient
+                  start={{x: 0, y: 1}}
+                  end={{x: 1, y: 0}}
+                  style={{
+                    height: 5,
+                    width: 46,
+                    borderBottomRightRadius: 50,
+                    borderBottomLeftRadius: 50,
+                    position: 'absolute',
+                    top: -11,
+                  }}
+                  colors={[
+                    colors.playerDetailsLinerOne,
+                    colors.playerDetailsLinerTwo,
+                  ]}
+                />
+              ) : (
+                <></>
+              )}
+              <FastImage
+                tintColor={focused ? colors.brownYellow : colors.gray}
+                source={focused ? refer_earn : refer_earn}
+                style={{
+                  width: 23,
+                  height: 23,
+                }}
+                resizeMode="contain"
+              />
+              <AppText
+                style={{marginTop: 4}}
+                color={focused ? BROWNYELLOW : GRY}
+                weight={POPPINS_MEDIUM}
+                type={TEN}>
+                Refer & Earn
               </AppText>
             </>
           ),
@@ -1308,7 +1379,7 @@ const MyReferDrawer = ({navigation}) => {
       drawerPosition={'left'}>
       <Drawer.Screen
         name="Refer"
-        component={ProfileStack}
+        component={MyBattleReferEarn}
         options={{
           headerShown: false,
         }}
