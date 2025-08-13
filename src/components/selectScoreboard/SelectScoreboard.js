@@ -143,13 +143,15 @@ const SelectScoreboard = ({
         }
         
         // If no scoreboards found, redirect to create screen
-        if (response.data.length === 0) {
+          if (response.data.length === 0) {
           setTimeout(() => {
             onClose();
-            NavigationService.navigate('Scoreboard/Create', {
-              ...contestData,
-              isFromMyMatch: true,
-            });
+              NavigationService.navigate('Scoreboard/Create', {
+                ...contestData,
+                contestDetails,
+                isFromMyMatch: true,
+                isFromJoinFlow: true,
+              });
           }, 100);
         } else {
           console.log('🎯 Scoreboards loaded successfully:', response.data.length);
@@ -174,7 +176,9 @@ const SelectScoreboard = ({
           onClose();
           NavigationService.navigate('Scoreboard/Create', {
             ...contestData,
+            contestDetails,
             isFromMyMatch: true,
+            isFromJoinFlow: true,
           });
         }, 100);
       }
@@ -507,9 +511,11 @@ const SelectScoreboard = ({
       // Immediately redirect without showing the select screen
       onClose();
       NavigationService.navigate('Scoreboard/Create', {
-        ...contestDetails,
+        ...contestData,
+        contestDetails,
         matchDetails,
         isFromMyMatch: true,
+        isFromJoinFlow: true,
       });
     }
   }, [isLoadingRegisteredScoreboards, loading, filteredScoreboards, scoreboards, onClose, contestDetails, matchDetails]);

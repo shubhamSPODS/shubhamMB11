@@ -89,6 +89,7 @@ import {
   SCOREBOARD_MATCH,
   TRANSACTIONS_SCREEN,
   LUDO_TRANSACTIONS_SCREEN,
+  BANNED_STATE_SCREEN,
 } from './routes';
 import NavigationService from './NavigationService';
 import {useSelector, useDispatch} from 'react-redux';
@@ -200,6 +201,7 @@ import Create from '../screens/Scoreboard/Create';
 import List from '../screens/Scoreboard/List';
 import Details from '../screens/Scoreboard/Details';
 import GameWebView from '../screens/GameWebView';
+import BannedState from '../screens/BannedState';
 const Stack = createNativeStackNavigator();
 const Drawer = createDrawerNavigator();
 const Tab = createBottomTabNavigator();
@@ -861,6 +863,7 @@ const RootStackScreen = () => (
     }}>
     <Stack.Screen name={TRANSACTIONS_SCREEN} component={TransactionsScreen} />
     <Stack.Screen name={LUDO_TRANSACTIONS_SCREEN} component={LudoTransactionsScreen} />
+    <Stack.Screen name={BANNED_STATE_SCREEN} component={BannedState} />
     <Stack.Screen
       name={AUTH_LOADING_SCREEN}
       component={AuthLoading}

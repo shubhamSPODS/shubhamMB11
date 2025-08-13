@@ -243,6 +243,18 @@ import { appOperation } from '../../../appOperation';
     // Use utility function for consistent logging
     const aadharStatus = contestData?.kycDetails?.adhar_verified == 0 ? 'PENDING' : 'VERIFIED';
     
+    console.log('🎯 [CONTEST CARD] onJoinContest called:', {
+      totalTeamCount,
+      myTeamCount: myTeam?.length || 0,
+      teamDetailsCount: details?.teamDetails?.length || 0,
+      contestCategoryId: details?.contest_category_id,
+      JoinWithMultiple,
+      totalMultipleTeams,
+      aadharStatus,
+      matchStatus: contestData?.Status,
+      gameState: contestData?.game_state
+    });
+    
     if (contestData?.kycDetails?.adhar_verified == 0) {
       NavigationService.navigate(VERIFY_ADHAAR_SCREEN)
     } else 
@@ -321,7 +333,17 @@ import { appOperation } from '../../../appOperation';
       
       // Original team-based contest logic
       
+      console.log('🎯 [CONTEST CARD] Processing team-based contest logic:', {
+        totalTeamCount,
+        myTeamCount: myTeam?.length || 0,
+        teamDetailsCount: details?.teamDetails?.length || 0,
+        contestCategoryId: details?.contest_category_id,
+        JoinWithMultiple,
+        totalMultipleTeams
+      });
+      
       if (totalTeamCount === 0) {
+        console.log('🎯 [CONTEST CARD] No teams available - going to create team');
         dispatch(setAllPlayers([]))
         let data = { cid: contestData?.SeriesId };
         dispatch(getAllPlayerList(_id, data, false, {}, true));
@@ -333,7 +355,22 @@ import { appOperation } from '../../../appOperation';
         dispatch(setSelectedMatch(details ? { ...details } : {}));
 
       } else if (totalTeamCount === 1) {
-        if (details?.teamDetails?.length) {
+        // Enhanced logic: Check if the single team is already joined in THIS contest
+        const teamJoinedInThisContest = details?.teamDetails?.some(team => 
+          team?.contest_category_id === details?.contest_category_id
+        );
+        
+        console.log('🎯 [CONTEST CARD] Single team logic:', {
+          teamJoinedInThisContest,
+          teamDetails: details?.teamDetails,
+          contestCategoryId: details?.contest_category_id
+        });
+        
+        if (teamJoinedInThisContest) {
+          console.log('🎯 [CONTEST CARD] Single team already joined in this contest - redirecting to create team');
+          toastAlert.showToastError('Your team is already joined in this contest');
+          
+          // Go directly to create team
           dispatch(setAllPlayers([]))
           let data = { cid: contestData?.SeriesId };
           let isNavigate = true
@@ -345,6 +382,8 @@ import { appOperation } from '../../../appOperation';
             isEditMode: false,
           });
         } else {
+          console.log('🎯 [CONTEST CARD] Single team not joined - showing confirmation modal');
+          // Show confirmation modal
           setIsAdd(true);
           dispatch(setSelectedMatch(details ? { ...details } : {}));
           setSaveTeamName(myTeam?.[0]?.name || '')
@@ -355,13 +394,39 @@ import { appOperation } from '../../../appOperation';
         // Check if this is a multiple entry contest
         const isMultipleEntryContest = JoinWithMultiple || details?.JoinWithMULT;
         
+        console.log('🎯 [CONTEST CARD] Multiple teams logic:', {
+          isMultipleEntryContest,
+          JoinWithMultiple,
+          detailsJoinWithMULT: details?.JoinWithMULT
+        });
+        
         if (isMultipleEntryContest) {
+          console.log('🎯 [CONTEST CARD] Multiple entry contest - showing team selection');
           // For multiple entry contests, always show team selection
           dispatch(setSelectedMatch(details ? { ...details } : {}));
           selectTeam?.current?.open();
         } else {
           // For single entry contests, check if user has used all teams
-          if (details?.teamDetails?.length == myTeam?.length) {
+          // Enhanced logic: Check if all teams are already joined in THIS contest
+          const teamsJoinedInThisContest = details?.teamDetails?.filter(team => 
+            team?.contest_category_id === details?.contest_category_id
+          ) || [];
+          
+          const allTeamsAlreadyJoined = teamsJoinedInThisContest.length >= myTeam?.length;
+          
+          console.log('🎯 [CONTEST CARD] Single entry contest logic:', {
+            teamsJoinedInThisContest: teamsJoinedInThisContest.length,
+            myTeamCount: myTeam?.length || 0,
+            allTeamsAlreadyJoined,
+            teamDetails: details?.teamDetails,
+            contestCategoryId: details?.contest_category_id
+          });
+          
+          if (allTeamsAlreadyJoined) {
+            console.log('🎯 [CONTEST CARD] All teams already joined in this contest - redirecting to create team');
+            toastAlert.showToastError('All teams are already joined in this contest');
+            
+            // Go directly to create team
             dispatch(setAllPlayers([]))
             let data = { cid: contestData?.SeriesId };
             let isNavigate = true
@@ -373,6 +438,8 @@ import { appOperation } from '../../../appOperation';
               isEditMode: false,
             });
           } else {
+            console.log('🎯 [CONTEST CARD] Some teams available - showing team selection');
+            // Show team selection
             dispatch(setSelectedMatch(details ? { ...details } : {}));
             selectTeam?.current?.open();
           }

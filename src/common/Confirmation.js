@@ -69,6 +69,8 @@ const Confirmation = ({
   const FilterId = myTeam?.find(value => {
     return value?.name === saveTeamName;
   });
+  // Prefer team selected in SelectTeam or by saved name; fallback to first team
+  const teamFromProps = selectedTeam || FilterId || myTeam?.[0] || {};
   const selectedMatch = useSelector(state => state?.match?.selectedMatch);
   const contestData = useSelector(state => state?.match?.contestData);
   
@@ -79,7 +81,12 @@ const Confirmation = ({
   const inner_data_id = details?.inner_data_id || selectedMatch?.inner_data_id;
   
   const { _id: matchDetails_id } = matchDetails ?? '';
-  const { match_id, matchid, _id } = myTeam[0] ?? '';
+  const {
+    match_id: selected_match_id,
+    matchid: selected_matchid,
+    _id: selected_team_id,
+    name: selected_team_name,
+  } = teamFromProps;
   const { cash_bonus, totaldeposit } = userData ?? '';
   const winningAmount = userData?.winning_amount || 0;
   
@@ -207,7 +214,15 @@ const Confirmation = ({
 
     if (CreateContestData?.EnteryFee) {
       dispatch(
-        setcreateContest(CreateContestData, match_id, payAmount, _id, matchid, FilterId?.name, contestListId),
+        setcreateContest(
+          CreateContestData,
+          selected_match_id,
+          payAmount,
+          selected_team_id,
+          selected_matchid,
+          selected_team_name || FilterId?.name,
+          contestListId,
+        ),
       );
       handleClose();
     }
@@ -275,7 +290,8 @@ const Confirmation = ({
             teamName: 'T1', 
             method: 'wallet',
             amount: singleEntryFee,
-            ...(existingContestEntryId && { existing_contest_entry_id: existingContestEntryId })
+            // Only include existing_contest_entry_id if we're actually updating an existing entry
+            ...(existingContestEntryId && details?.teamDetails?.some(td => td.team_id === teamId) && { existing_contest_entry_id: existingContestEntryId })
           };
 
           console.log('Joining multiple entry contest with single team:', joinData);
@@ -320,7 +336,10 @@ const Confirmation = ({
           const joinData = {
             mutiple: true,
             arofobj,
-            ...(existingContestEntryId && { existing_contest_entry_id: existingContestEntryId })
+            // Only include existing_contest_entry_id if we're actually updating an existing entry
+            ...(existingContestEntryId && details?.teamDetails?.some(td => 
+              arofobj.some(team => team.teams_id.includes(td.team_id))
+            ) && { existing_contest_entry_id: existingContestEntryId })
           };
 
                     console.log('Joining contest with multiple teams:', joinData);
@@ -329,8 +348,8 @@ const Confirmation = ({
           handleClose();
         }
       } else {
-        if (!match_id || !_id || !matchDetails?.SeriesId) {
-          console.error('Invalid single team data:', { match_id, _id, seriesId: matchDetails?.SeriesId });
+        if (!selected_match_id || !selected_team_id || !matchDetails?.SeriesId) {
+          console.error('Invalid single team data:', { match_id: selected_match_id, _id: selected_team_id, seriesId: matchDetails?.SeriesId });
           toastAlert.showToastError('Invalid team data');
           return;
         }
@@ -367,16 +386,17 @@ const Confirmation = ({
 
         const joinData = {
           cid: matchDetails?.SeriesId,
-          match_id: match_id || matchDetails?._id,
-          matchid: matchid || matchDetails?.matchid,
-          teams_id: [_id],
+          match_id: selected_match_id || matchDetails?._id,
+          matchid: selected_matchid || matchDetails?.matchid,
+          teams_id: [selected_team_id],
           contest_category_id: contest_category_id,
           shadow_contest_id,
           match_contest_category_id,
           teamName: 'T1', 
           method: 'wallet',
           amount: singleEntryFee,
-          ...(existingContestEntryId && { existing_contest_entry_id: existingContestEntryId })
+          // Only include existing_contest_entry_id if we're actually updating an existing entry
+          ...(existingContestEntryId && details?.teamDetails?.some(td => td.team_id === selected_team_id) && { existing_contest_entry_id: existingContestEntryId })
         };
 
                 console.log('Joining contest with single team:', joinData);

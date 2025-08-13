@@ -465,6 +465,13 @@ export const joinContest = (data, matchDetails) => async dispatch => {
       fullData: data
     });
 
+    // Additional validation: ensure match_id is never undefined
+    if (!validateData?.match_id) {
+      console.error('Missing match_id in contest data:', validateData);
+      toastAlert.showToastError('Missing match ID - cannot join contest');
+      return;
+    }
+
     const missingFields = Object.entries(requiredFields)
       .filter(([key, value]) => !value)
       .map(([key]) => key);
@@ -515,7 +522,11 @@ export const joinContest = (data, matchDetails) => async dispatch => {
       dispatch(getContestList(matchDetails?.object, matchDetails?._id));
       
       // Refresh my joined contests
-      dispatch(getMyJoinedContest(matchDetails?._id));
+      if (matchDetails?._id) {
+        dispatch(getMyJoinedContest(matchDetails._id));
+      } else {
+        console.warn('🎯 [JOIN CONTEST] Cannot refresh joined contests - missing match ID:', matchDetails);
+      }
       
       // Refresh my teams
       dispatch(getMyTeam(matchDetails?._id));
@@ -536,8 +547,25 @@ export const joinContest = (data, matchDetails) => async dispatch => {
     } else {
       // Handle specific error message for already joined team
       if (res?.message && res.message.includes('You cannot join contest mulitple times with single team')) {
+        console.log('🎯 [JOIN CONTEST] Team already joined error detected:', {
+          message: res.message,
+          data: res.data,
+          requestData: data
+        });
+        
+        // Check if this is actually a new team or if there's a data issue
+        if (data?.teams_id && Array.isArray(data.teams_id)) {
+          console.log('🎯 [JOIN CONTEST] Team IDs being used:', data.teams_id);
+        }
+        
         toastAlert.showToastError('You have already joined the contest from this team');
       } else {
+        console.log('🎯 [JOIN CONTEST] Generic error response:', {
+          success: res?.success,
+          message: res?.message,
+          code: res?.code,
+          data: res?.data
+        });
         toastAlert.showToastError(res?.message || 'Failed to join contest');
       }
     }
@@ -646,14 +674,24 @@ export const joinScoreboardContest = (scoreboardId, matchDetails, contestDetails
       dispatch(getContestList(matchDetails?.object, matchDetails?._id));
       
       // Refresh my joined contests
-      dispatch(getMyJoinedContest(matchDetails?._id));
+      if (matchDetails?._id) {
+        dispatch(getMyJoinedContest(matchDetails._id));
+      } else {
+        console.warn('🎯 [JOIN SCOREBOARD CONTEST] Cannot refresh joined contests - missing match ID:', matchDetails);
+      }
       
       // Refresh user profile (wallet balance, etc.)
       dispatch(getUserProfile(false, false));
       
       // Force a small delay to ensure data is updated before navigation
       setTimeout(() => {
-        NavigationService.goBack();
+        // Send user to My Contest tab for the same match and keep scoreboard context
+        NavigationService.navigate(MY_CONTEST, {
+          ...matchDetails,
+          matchType: 'scoreboard',
+          isFromMyMatch: true,
+          initialTabIndex: 1, // My Contest tab
+        });
         
         // Force another refresh after navigation to ensure UI is updated
         setTimeout(() => {

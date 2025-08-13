@@ -23,6 +23,7 @@ import {backIconMain} from '../../helper/image';
 import {appOperation} from '../../appOperation';
 import {toastAlert} from '../../helper/utility';
 import PrimaryButton from '../../common/primaryButton';
+import Confirmation from '../../common/Confirmation';
 import {Screen} from '../../theme/dimens';
 
 const Create = ({route}) => {
@@ -68,6 +69,9 @@ const Create = ({route}) => {
   const overs = Array.from({length: totalOvers}, (_, i) => `Over ${i + 1}`);
   const [predictions, setPredictions] = React.useState(Array(totalOvers).fill('0'));
   const [isLoading, setIsLoading] = React.useState(false);
+  const [showConfirmation, setShowConfirmation] = React.useState(false);
+  const [createdScoreboard, setCreatedScoreboard] = React.useState(null);
+  const contestDetailsFromRoute = route?.params?.contestDetails;
   const inputRefs = React.useRef([]);
   const scrollViewRef = React.useRef(null);
 
@@ -318,7 +322,10 @@ const Create = ({route}) => {
         
         const createData = {
           predictions: predictionsData,
+          // Provide multiple match id keys to satisfy backend variants
           match_id: matchId,
+          matchId: matchId,
+          matchid: matchId,
           name: scoreboardName,
         };
         
@@ -341,17 +348,23 @@ const Create = ({route}) => {
           
           // Check if user came from join flow
           if (route?.params?.isFromJoinFlow) {
-            console.log('🎯 Scoreboard created from join flow - navigating to confirmation screen');
-            
-            // Navigate back to contest screen and open confirmation with the created scoreboard
-            NavigationService.goBack();
-            
-            // Small delay to ensure navigation is complete
-            setTimeout(() => {
-              // The contest card will handle the flow properly now
-              // since we've created a scoreboard, it should open the SelectScoreboard screen
-              console.log('✅ Scoreboard created successfully, user can now join contest');
-            }, 500);
+            console.log('🎯 Scoreboard created from join flow - showing confirmation for created scoreboard');
+            // Prefer scoreboard object from response; fallback to fetching latest if unavailable
+            let created = response?.data || response?.scoreboard || response;
+            const hasId = created && (created.prediction_id || created.predictions_id || created.scoreboard_id || created.id || created._id);
+            if (!hasId) {
+              try {
+                const refreshed = await appOperation.customer.getUserScoreCard(matchId);
+                if (refreshed?.success && Array.isArray(refreshed.data) && refreshed.data.length > 0) {
+                  // Pick the last scoreboard as the most recent
+                  created = refreshed.data[refreshed.data.length - 1];
+                }
+              } catch (e) {
+                console.log('Failed to fetch latest scoreboards after creation:', e);
+              }
+            }
+            setCreatedScoreboard(created);
+            setShowConfirmation(true);
           } else {
             // Navigate to My Scoreboard tab in MyContest screen
             NavigationService.navigate(MY_CONTEST, {
@@ -503,6 +516,24 @@ const Create = ({route}) => {
             />
           </View>
         </View>
+
+        {/* Confirmation Modal for Join Flow after Scoreboard Creation */}
+        {showConfirmation && (
+          <Confirmation
+            isModalVisible={showConfirmation}
+            setIsModalVisible={setShowConfirmation}
+            details={contestDetailsFromRoute || contestData}
+            matchDetails={contestData}
+            isScoreboardContest={true}
+            supportsMultipleEntries={false}
+            selectedScoreboard={createdScoreboard}
+            onClose={() => {
+              setShowConfirmation(false);
+              // After closing, go back to contest list to avoid stuck state
+              NavigationService.goBack();
+            }}
+          />
+        )}
       </CommonImageBackground>
     </AppSafeAreaView>
   );

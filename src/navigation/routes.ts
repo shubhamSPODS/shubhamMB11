@@ -102,5 +102,7 @@ export const SCOREBOARD_MATCH = 'Scoreboard/Match';
 export const TRANSACTIONS_SCREEN = 'TRANSACTIONS_SCREEN';
 export const LUDO_TRANSACTIONS_SCREEN = 'LUDO_TRANSACTIONS_SCREEN';
 
+// Compliance
+export const BANNED_STATE_SCREEN = 'BANNED_STATE_SCREEN';
 
 

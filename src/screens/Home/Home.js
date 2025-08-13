@@ -18,7 +18,6 @@ import { HomeTopHeader } from '../../common/HomeTopHeader';
 import BannerSlider from '../../common/BannerSilder';
 import { BannerLoop } from '../../helper/image';
 import { Button } from '../../common/Button';
-import Geolocation from '@react-native-community/geolocation';
 import dynamicLinks from '@react-native-firebase/dynamic-links';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MycreateShareContest, shareTeam } from '../../slices/matchSlice';
@@ -161,6 +160,7 @@ const Home = () => {
         console.error('Error opening download link:', error);
       });
   }
+  // Removed reverse geocoding logic from Home screen as requested
   return (
     <AppSafeAreaView
       statusColor={true}

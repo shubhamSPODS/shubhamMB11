@@ -16,9 +16,11 @@ import {
   FORTEEN,
   POPPINS_BOLD,
   POPPINS_BOLD_ITALIC,
+  POPPINS_MEDIUM,
   POPPINS_SEMI_BOLD,
   SIXTEEN,
   THIRTEEN,
+  TWELVE,
   WHITE,
 } from '../../common/AppText';
 import { useDispatch, useSelector } from 'react-redux';
@@ -33,6 +35,7 @@ import { TouchableOpacityView } from '../../common/TouchableOpacityView';
 import { universalPaddingHorizontal } from '../../theme/dimens';
 import PrimaryButton from '../../common/primaryButton';
 import NavigationService from '../../navigation/NavigationService';
+import { SELECT_PLAYER } from '../../navigation/routes';
 
 const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, totallMultipleTeams, JoinWithMULT }) => {
   const dispatch = useDispatch();
@@ -43,6 +46,21 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, totall
   const [selectMulty, setSelectMulty] = useState([]);
   const [registeredTeams, setRegisteredTeams] = useState([]);
   const [isLoadingTeams, setIsLoadingTeams] = useState(true);
+  const [hasRedirected, setHasRedirected] = useState(false);
+
+  // Log props when component receives them
+  useEffect(() => {
+    console.log('🎯 [SELECT TEAM] Component props received:', {
+      contestDetailsId: contestDetails?._id,
+      contestCategoryId: contestDetails?.contest_category_id,
+      teamDetailsLength: teamDetails?.length || 0,
+      teamDetails: teamDetails,
+      matchDetailsId: matchDetails?._id,
+      totallMultipleTeams,
+      JoinWithMULT,
+      myTeamLength: myTeam?.length || 0
+    });
+  }, [contestDetails, teamDetails, matchDetails, totallMultipleTeams, JoinWithMULT, myTeam, hasRedirected]);
 
   // Fetch registered teams when component mounts
   useEffect(() => {
@@ -223,21 +241,76 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, totall
 
   // Add useEffect to handle redirect when all teams are filtered out
   useEffect(() => {
-    if (!isLoadingTeams && result && result.length === 0 && myTeam && myTeam.length > 0) {
-      console.log('🎯 [SELECT TEAM] All teams are already joined - redirecting to create team');
-      toastAlert.showToastError('All your teams are already joined in this contest');
+    console.log('🎯 [SELECT TEAM] useEffect triggered:', {
+      isLoadingTeams,
+      resultLength: result?.length || 0,
+      myTeamLength: myTeam?.length || 0,
+      teamDetailsLength: teamDetails?.length || 0,
+      contestDetailsId: contestDetails?._id,
+      contestCategoryId: contestDetails?.contest_category_id
+    });
+    
+    // Check if all teams are already joined using multiple approaches
+    const allTeamsFilteredOut = !isLoadingTeams && result && result.length === 0 && myTeam && myTeam.length > 0;
+    
+    // Alternative check: if teamDetails has entries for this contest and matches myTeam count
+    const alternativeCheck = !isLoadingTeams && 
+                           teamDetails && 
+                           teamDetails.length > 0 && 
+                           myTeam && 
+                           myTeam.length > 0 &&
+                           teamDetails.length >= myTeam.length;
+    
+    // Simple check: if we have teams but no result after filtering
+    const simpleCheck = !isLoadingTeams && 
+                       myTeam && 
+                       myTeam.length > 0 && 
+                       (!result || result.length === 0);
+    
+    if ((allTeamsFilteredOut || alternativeCheck || simpleCheck) && !hasRedirected) {
+      console.log('🎯 [SELECT TEAM] All teams are already joined - redirecting to create team', {
+        allTeamsFilteredOut,
+        alternativeCheck,
+        simpleCheck,
+        teamDetailsLength: teamDetails?.length || 0,
+        myTeamLength: myTeam?.length || 0,
+        resultLength: result?.length || 0,
+        hasRedirected
+      });
+      
+      // Set flag to prevent multiple redirects
+      setHasRedirected(true);
+      
+      toastAlert.showToastError('All teams are already joined in this contest');
       
       // Small delay to show the toast before redirecting
       setTimeout(() => {
-        onClose();
-        NavigationService.navigate('CreateTeam', {
-          matchDetails,
-          contestDetails,
-          isFromMyMatch: true,
+        console.log('🎯 [SELECT TEAM] Attempting navigation to SELECT_PLAYER');
+        
+        // Navigate directly without closing the modal first
+        NavigationService.navigate(SELECT_PLAYER, {
+          matchDetails: matchDetails || {},
+          isEditMode: false,
         });
-      }, 1500);
+        
+        console.log('🎯 [SELECT TEAM] Navigation completed, closing modal immediately');
+        
+        // Close the modal immediately after navigation
+        onClose();
+      }, 500); // 0.5 second delay
+    } else {
+      console.log('🎯 [SELECT TEAM] Redirect conditions not met:', {
+        isLoadingTeams,
+        hasResult: !!result,
+        resultLength: result?.length || 0,
+        hasMyTeam: !!myTeam,
+        myTeamLength: myTeam?.length || 0,
+        allTeamsFilteredOut,
+        alternativeCheck,
+        simpleCheck
+      });
     }
-  }, [isLoadingTeams, result, myTeam, onClose, matchDetails, contestDetails]);
+  }, [isLoadingTeams, result, myTeam, onClose, matchDetails, contestDetails, teamDetails, hasRedirected]);
 
   const onSelectTeam = useCallback((item) => {
     console.log('🎯 [SELECT TEAM] Team selection attempt:', {
@@ -311,7 +384,12 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, totall
     });
     
     const isSelected = selectMulty?.some(value => value._id === item._id);
-    const isAlreadyJoined = teamDetails?.some(items => items?.team_id === item?._id);
+    
+    // Fix: Check if team is already joined in THIS SPECIFIC contest, not any contest
+    const isAlreadyJoined = teamDetails?.some(items => 
+      items?.team_id === item?._id && 
+      items?.contest_category_id === contestDetails?.contest_category_id
+    );
     
     // For multiple entry contests, also check if team has reached maximum usage
     let isTeamMaxedOut = false;
@@ -337,7 +415,11 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, totall
         isAlreadyJoined,
         isTeamMaxedOut,
         teamUsageCount: JoinWithMULT ? teamUsageCount : 'N/A',
-        maxTeamsAllowed: JoinWithMULT ? maxTeamsAllowed : 'N/A'
+        maxTeamsAllowed: JoinWithMULT ? maxTeamsAllowed : 'N/A',
+        contestCategoryId: contestDetails?.contest_category_id,
+        teamDetailsForThisContest: teamDetails?.filter(td => 
+          td.contest_category_id === contestDetails?.contest_category_id
+        )
       });
     }
 
@@ -411,7 +493,7 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, totall
         </AppText>
         <AppText type={TWELVE} weight={POPPINS_MEDIUM} color={WHITE} style={{ textAlign: 'center', marginBottom: 20 }}>
           {hasTeamsButFiltered 
-            ? 'You have already joined this contest with all your teams'
+            ? 'Redirecting to create team...'
             : 'Redirecting to create team...'
           }
         </AppText>
@@ -426,15 +508,14 @@ const SelectTeam = ({ onClose, contestDetails, matchDetails, teamDetails, totall
             }}
             onPress={() => {
               onClose();
-              NavigationService.navigate('CreateTeam', {
-                matchDetails,
-                contestDetails,
-                isFromMyMatch: true,
+              NavigationService.navigate(SELECT_PLAYER, {
+                matchDetails: matchDetails || {},
+                isEditMode: false,
               });
             }}
           >
             <AppText type={FORTEEN} weight={POPPINS_SEMI_BOLD} color={WHITE}>
-              Create New Team
+              Create New Team Now
             </AppText>
           </TouchableOpacity>
         )}
